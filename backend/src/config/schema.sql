@@ -68,5 +68,4 @@ $$ language 'plpgsql';
 CREATE TRIGGER update_books_updated_at BEFORE UPDATE ON books
 FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER update_google_books_enrichments_updated_at BEFORE UPDATE ON google_books_enrichments
-FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+-- Note: google_books_enrichments trigger is created by runMigrations() in initDb.ts

@@ -226,7 +226,30 @@ async function runMigrations(): Promise<void> {
     console.log('Enrichment data migration complete.');
   }
 
-  // Always ensure FK index and view exist
+  // Ensure enrichments table exists (for DBs that never had flat columns, e.g. fresh Railway)
+  await query(`
+    CREATE TABLE IF NOT EXISTS google_books_enrichments (
+      id SERIAL PRIMARY KEY,
+      google_books_id VARCHAR(50) UNIQUE NOT NULL,
+      cover_image_url TEXT,
+      description TEXT,
+      genres TEXT[],
+      google_rating DECIMAL(3, 2),
+      google_ratings_count INTEGER,
+      page_count INTEGER,
+      publisher VARCHAR(200),
+      published_date VARCHAR(20),
+      isbn_10 VARCHAR(13),
+      isbn_13 VARCHAR(17),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // Ensure FK column exists on books (for DBs that skipped the migration path)
+  await query('ALTER TABLE books ADD COLUMN IF NOT EXISTS google_enrichment_id INTEGER REFERENCES google_books_enrichments(id)');
+
+  // Always ensure FK index exists
   await query('CREATE INDEX IF NOT EXISTS idx_books_google_enrichment_id ON books(google_enrichment_id)');
 
   // Drop and recreate the view (CREATE OR REPLACE can fail if column types change)
