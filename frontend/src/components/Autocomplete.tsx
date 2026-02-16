@@ -96,10 +96,7 @@ const Autocomplete: React.FC<AutocompleteProps> = ({
         onFocus={() => setIsOpen(filteredSuggestions.length > 0)}
         placeholder={placeholder}
         required={required}
-        autoComplete="chrome-off"
-        data-lpignore="true"
-        data-form-type="other"
-        data-1p-ignore="true"
+        autoComplete="off"
       />
       {isOpen && filteredSuggestions.length > 0 && (
         <ul className="autocomplete-suggestions">

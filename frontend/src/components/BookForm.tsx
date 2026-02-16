@@ -108,7 +108,7 @@ const BookForm: React.FC<BookFormProps> = ({ book, onSubmit, onCancel }) => {
   };
 
   return (
-    <form className="book-form" onSubmit={handleSubmit}>
+    <form className="book-form" onSubmit={handleSubmit} data-lpignore="true" autoComplete="off">
       <div className="form-header">
         <h2>{book ? 'Edit Book' : 'Add New Book'}</h2>
       </div>
@@ -134,14 +134,7 @@ const BookForm: React.FC<BookFormProps> = ({ book, onSubmit, onCancel }) => {
 
           <div className="form-row">
             <div className="form-group">
-              <label htmlFor="author_first_middle">
-                Book Author First/Middle
-                <span className="field-hint">
-                  {formData.author_last_name
-                    ? `Showing matches for "${formData.author_last_name}"`
-                    : 'Include middle initial if present (e.g., "Dean R.")'}
-                </span>
-              </label>
+              <label htmlFor="book_author_first">Book Author First/Middle</label>
               <Autocomplete
                 id="book_author_first"
                 name="author_first_middle"
@@ -152,14 +145,7 @@ const BookForm: React.FC<BookFormProps> = ({ book, onSubmit, onCancel }) => {
               />
             </div>
             <div className="form-group">
-              <label htmlFor="author_last_name">
-                Book Author Last Name *
-                {formData.author_first_middle && (
-                  <span className="field-hint">
-                    Showing matches for "{formData.author_first_middle}"
-                  </span>
-                )}
-              </label>
+              <label htmlFor="book_author_last">Book Author Last Name *</label>
               <Autocomplete
                 id="book_author_last"
                 name="author_last_name"
