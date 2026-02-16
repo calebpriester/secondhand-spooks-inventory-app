@@ -1,16 +1,41 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { bookApi } from '../services/api';
-import { BookFilters } from '../types/Book';
+import { Book, BookFilters } from '../types/Book';
+import Modal from '../components/Modal';
+import BookForm from '../components/BookForm';
 import './Inventory.css';
 
 function Inventory() {
   const [filters, setFilters] = useState<BookFilters>({});
   const [search, setSearch] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedBook, setSelectedBook] = useState<Book | null>(null);
+
+  const queryClient = useQueryClient();
 
   const { data: books, isLoading } = useQuery({
     queryKey: ['books', filters],
     queryFn: () => bookApi.getAll(filters),
+  });
+
+  const createMutation = useMutation({
+    mutationFn: bookApi.create,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['books'] });
+      setIsModalOpen(false);
+      setSelectedBook(null);
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, book }: { id: number; book: Partial<Book> }) =>
+      bookApi.update(id, book),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['books'] });
+      setIsModalOpen(false);
+      setSelectedBook(null);
+    },
   });
 
   const handleSearch = (e: React.FormEvent) => {
@@ -33,6 +58,29 @@ function Inventory() {
     setSearch('');
   };
 
+  const handleAddBook = () => {
+    setSelectedBook(null);
+    setIsModalOpen(true);
+  };
+
+  const handleEditBook = (book: Book) => {
+    setSelectedBook(book);
+    setIsModalOpen(true);
+  };
+
+  const handleSubmitBook = (bookData: Partial<Book>) => {
+    if (selectedBook?.id) {
+      updateMutation.mutate({ id: selectedBook.id, book: bookData });
+    } else {
+      createMutation.mutate(bookData as Book);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedBook(null);
+  };
+
   if (isLoading) {
     return <div className="loading">Loading inventory...</div>;
   }
@@ -41,6 +89,9 @@ function Inventory() {
     <div className="inventory">
       <div className="inventory-header">
         <h2>Inventory ({books?.length || 0} books)</h2>
+        <button onClick={handleAddBook} className="btn btn-primary">
+          + Add Book
+        </button>
       </div>
 
       <div className="filters-section">
@@ -111,6 +162,7 @@ function Inventory() {
               <th>Our Price</th>
               <th>Source</th>
               <th>Cleaned</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -139,11 +191,28 @@ function Inventory() {
                 <td>{book.our_price ? `$${Number(book.our_price).toFixed(2)}` : 'N/A'}</td>
                 <td className="source-cell">{book.source || '-'}</td>
                 <td>{book.cleaned ? '✓' : ''}</td>
+                <td>
+                  <button
+                    onClick={() => handleEditBook(book)}
+                    className="btn btn-edit"
+                    title="Edit book"
+                  >
+                    ✏️
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      <Modal isOpen={isModalOpen} onClose={handleCloseModal}>
+        <BookForm
+          book={selectedBook}
+          onSubmit={handleSubmitBook}
+          onCancel={handleCloseModal}
+        />
+      </Modal>
     </div>
   );
 }
