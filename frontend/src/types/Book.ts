@@ -13,11 +13,11 @@ export interface Book {
   source: string | null;
   seller: string | null;
   order_number?: string;
-  thriftbooks_price?: number;
-  purchase_price?: number;
-  our_price?: number;
-  profit_est?: number;
-  author_fullname: string;
+  thriftbooks_price?: number | null;
+  purchase_price?: number | null;
+  our_price?: number | null;
+  profit_est?: number | null;
+  author_fullname?: string | null;
   pulled_to_read: boolean;
   created_at?: string;
   updated_at?: string;

@@ -39,6 +39,7 @@ function Inventory() {
   });
 
   const toggleCleaned = (book: Book) => {
+    if (!book.id) return;
     updateMutation.mutate({ id: book.id, book: { cleaned: !book.cleaned } });
   };
 
