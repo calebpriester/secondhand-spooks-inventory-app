@@ -39,7 +39,13 @@ See [GitHub Issues](https://github.com/calebpriester/secondhand-spooks-inventory
 - **Frontend**: React + TypeScript + Vite
 - **Backend**: Node.js + Express + TypeScript
 - **Database**: PostgreSQL
-- **Deployment**: Docker + Docker Compose
+- **Deployment**: Docker + Docker Compose (local), Railway (production)
+
+## 🌐 Live App
+
+**Production**: https://secondhand-spooks-inventory-app-production.up.railway.app/
+
+Hosted on Railway (free tier). Auto-deploys from the `main` branch. The backend serves the frontend as static files, with PostgreSQL managed by Railway.
 
 ## 🚀 Getting Started
 
@@ -248,8 +254,8 @@ ss_inventory_app/
 │   │   ├── models/         # TypeScript interfaces
 │   │   ├── routes/         # API routes
 │   │   ├── services/       # Business logic
-│   │   └── utils/          # Utilities (CSV import)
-│   ├── Dockerfile
+│   │   └── utils/          # Utilities (CSV import, DB init)
+│   ├── Dockerfile          # Local dev Dockerfile
 │   └── package.json
 ├── frontend/
 │   ├── src/
@@ -258,7 +264,7 @@ ss_inventory_app/
 │   │   ├── services/       # API client
 │   │   ├── types/          # TypeScript types
 │   │   └── utils/          # Utility functions
-│   ├── Dockerfile
+│   ├── Dockerfile          # Local dev Dockerfile
 │   └── package.json
 ├── data/
 │   ├── seed/
@@ -273,7 +279,9 @@ ss_inventory_app/
 │   ├── reset-and-reimport.sh  # Clear DB and reimport CSV
 │   ├── fresh-start.sh      # Complete teardown and rebuild
 │   └── README.md           # Scripts documentation
-├── docker-compose.yml
+├── Dockerfile.railway      # Production multi-stage build (Railway)
+├── railway.toml            # Railway deployment config
+├── docker-compose.yml      # Local dev orchestration
 └── README.md
 ```
 

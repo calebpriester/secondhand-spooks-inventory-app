@@ -8,9 +8,11 @@ This is a full-stack inventory management system for **Secondhand Spooks**, a ho
 - Frontend: React + TypeScript + Vite
 - Backend: Node.js + Express + TypeScript
 - Database: PostgreSQL
-- Deployment: Docker Compose
+- Deployment: Docker Compose (local), Railway (production)
 
 **Current Status:** ✅ Fully operational with 682 books imported from seed data
+
+**Production URL:** https://secondhand-spooks-inventory-app-production.up.railway.app/
 
 ## Project Context
 
@@ -36,7 +38,7 @@ This is a full-stack inventory management system for **Secondhand Spooks**, a ho
 - **Models**: `src/models/Book.ts` - TypeScript interfaces
 - **Services**: `src/services/bookService.ts` - Business logic (CRUD, stats)
 - **Routes**: `src/routes/bookRoutes.ts` - API endpoints
-- **Utilities**: `src/utils/importCsv.ts` - CSV import logic
+- **Utilities**: `src/utils/importCsv.ts` - CSV import logic, `src/utils/initDb.ts` - DB initialization and seeding
 
 ### Frontend (`/frontend`)
 - **Entry point**: `src/main.tsx`
@@ -57,8 +59,11 @@ Books table with fields:
 - Metadata: id, created_at, updated_at
 
 ### Infrastructure
-- **Docker Compose**: Orchestrates 3 containers (postgres, backend, frontend)
-- **Data Persistence**: Named volume `postgres_data` for PostgreSQL
+- **Docker Compose**: Orchestrates 3 containers for local dev (postgres, backend, frontend)
+- **Railway (Production)**: 2 services — Postgres (managed) + app (backend serves frontend static files)
+- **Dockerfile.railway**: Multi-stage production build (frontend build → backend build → slim runtime image)
+- **railway.toml**: Railway deployment config (health check, restart policy)
+- **Data Persistence**: Named volume `postgres_data` for local PostgreSQL; Railway manages production DB
 - **Scripts**: Helper scripts in `/scripts` for backup/restore/import
 - **Documentation**:
   - `README.md` - Main setup and reference
@@ -87,6 +92,8 @@ Books table with fields:
 - Seed CSV (on host): `data/seed/inventory.csv`
 - Backups: `data/backups/`
 - Schema: `backend/src/config/schema.sql`
+- Production Dockerfile: `Dockerfile.railway`
+- Railway config: `railway.toml`
 
 ## Common Development Tasks
 
@@ -149,6 +156,7 @@ docker compose ps
 ✅ Backup and restore functionality
 ✅ Add/edit books through the UI (Issue #1 - closed)
 ✅ Quick-toggle cleaned status checkbox
+✅ Production deployment on Railway (auto-deploys from main)
 
 ### What's Missing (See GitHub Issues):
 ❌ No sales tracking (Issue #2)
@@ -248,6 +256,14 @@ docker compose ps
 - Frontend runs on port 3000
 - PostgreSQL runs on port 5432
 - All accessible via localhost when using Docker
+
+### Production (Railway)
+- URL: https://secondhand-spooks-inventory-app-production.up.railway.app/
+- Auto-deploys from `main` branch via GitHub integration
+- Backend serves frontend as static files (monolith — 2 Railway services total)
+- DB initialization and CSV seeding runs automatically on startup via `initDb.ts`
+- `VITE_API_URL=/api` baked in at build time — frontend calls same origin
+- Health check: `/health`
 
 ## Quick Reference Commands
 
