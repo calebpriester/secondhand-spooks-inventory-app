@@ -135,7 +135,7 @@ const BookForm: React.FC<BookFormProps> = ({ book, onSubmit, onCancel }) => {
           <div className="form-row">
             <div className="form-group">
               <label htmlFor="author_first_middle">
-                Author First/Middle
+                Book Author First/Middle
                 <span className="field-hint">
                   {formData.author_last_name
                     ? `Showing matches for "${formData.author_last_name}"`
@@ -143,7 +143,7 @@ const BookForm: React.FC<BookFormProps> = ({ book, onSubmit, onCancel }) => {
                 </span>
               </label>
               <Autocomplete
-                id="author_first_middle"
+                id="book_author_first"
                 name="author_first_middle"
                 value={formData.author_first_middle || ''}
                 onChange={handleChange}
@@ -153,7 +153,7 @@ const BookForm: React.FC<BookFormProps> = ({ book, onSubmit, onCancel }) => {
             </div>
             <div className="form-group">
               <label htmlFor="author_last_name">
-                Author Last Name *
+                Book Author Last Name *
                 {formData.author_first_middle && (
                   <span className="field-hint">
                     Showing matches for "{formData.author_first_middle}"
@@ -161,7 +161,7 @@ const BookForm: React.FC<BookFormProps> = ({ book, onSubmit, onCancel }) => {
                 )}
               </label>
               <Autocomplete
-                id="author_last_name"
+                id="book_author_last"
                 name="author_last_name"
                 value={formData.author_last_name || ''}
                 onChange={handleChange}

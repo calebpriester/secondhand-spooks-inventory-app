@@ -31,10 +31,9 @@ const Autocomplete: React.FC<AutocompleteProps> = ({
         suggestion.toLowerCase().includes(value.toLowerCase())
       );
       setFilteredSuggestions(filtered);
-      setIsOpen(filtered.length > 0);
     } else {
-      setFilteredSuggestions([]);
-      setIsOpen(false);
+      // Show all suggestions when field is empty
+      setFilteredSuggestions(suggestions);
     }
     setHighlightedIndex(-1);
   }, [value, suggestions]);
@@ -94,10 +93,13 @@ const Autocomplete: React.FC<AutocompleteProps> = ({
         value={value}
         onChange={onChange}
         onKeyDown={handleKeyDown}
-        onFocus={() => value && setIsOpen(filteredSuggestions.length > 0)}
+        onFocus={() => setIsOpen(filteredSuggestions.length > 0)}
         placeholder={placeholder}
         required={required}
-        autoComplete="off"
+        autoComplete="chrome-off"
+        data-lpignore="true"
+        data-form-type="other"
+        data-1p-ignore="true"
       />
       {isOpen && filteredSuggestions.length > 0 && (
         <ul className="autocomplete-suggestions">
