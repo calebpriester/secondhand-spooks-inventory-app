@@ -33,7 +33,7 @@ services:
         condition: service_healthy
     volumes:
       - ./backend:/app
-      - ./inventory.csv:/inventory.csv
+      - ./data/seed/inventory.csv:/inventory.csv
       - /app/node_modules
     command: npm run dev
 

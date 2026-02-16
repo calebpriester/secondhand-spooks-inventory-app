@@ -58,12 +58,15 @@ This full-stack inventory management system helps track and analyze our horror b
 
 3. **Import your inventory data**
    ```bash
-   # Copy CSV to container (if not using volume mount)
-   docker cp inventory.csv ss_backend:/inventory.csv
+   # The seed data is automatically mounted, just import it
+   docker exec ss_backend npm run import-csv
 
-   # Import the data
+   # Or to use a different CSV file
+   docker cp your_inventory.csv ss_backend:/inventory.csv
    docker exec ss_backend npm run import-csv
    ```
+
+   Note: The repository includes seed data from February 16, 2026 in `data/seed/inventory.csv`
 
 4. **Access the app**
    - Frontend: http://localhost:3000
@@ -181,8 +184,11 @@ docker exec -it ss_backend sh
 # Access database
 docker exec -it ss_postgres psql -U spooks -d secondhand_spooks
 
-# Re-import CSV data
-docker cp inventory.csv ss_backend:/inventory.csv
+# Re-import seed data (from data/seed/inventory.csv)
+docker exec ss_backend npm run import-csv
+
+# Or import a custom CSV
+docker cp your_inventory.csv ss_backend:/inventory.csv
 docker exec ss_backend npm run import-csv
 
 # Check container status
@@ -239,8 +245,11 @@ ss_inventory_app/
 │   │   └── utils/          # Utility functions
 │   ├── Dockerfile
 │   └── package.json
+├── data/
+│   └── seed/
+│       ├── inventory.csv   # Seed inventory data (Feb 16, 2026)
+│       └── README.md       # Seed data documentation
 ├── docker-compose.yml
-├── inventory.csv           # Your book inventory data
 └── README.md
 ```
 
@@ -288,8 +297,8 @@ docker compose down
 
 ### Update Inventory
 ```bash
-# After updating inventory.csv
-docker cp inventory.csv ss_backend:/inventory.csv
+# After updating your inventory CSV file
+docker cp your_updated_inventory.csv ss_backend:/inventory.csv
 docker exec ss_backend npm run import-csv
 ```
 
