@@ -27,8 +27,10 @@ const Autocomplete: React.FC<AutocompleteProps> = ({
 
   useEffect(() => {
     if (value) {
+      const normalize = (s: string) => s.toLowerCase().replace(/[.\-']/g, '');
+      const normalizedValue = normalize(value);
       const filtered = suggestions.filter(suggestion =>
-        suggestion.toLowerCase().includes(value.toLowerCase())
+        normalize(suggestion).includes(normalizedValue)
       );
       setFilteredSuggestions(filtered);
     } else {
