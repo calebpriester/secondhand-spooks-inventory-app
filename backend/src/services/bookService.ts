@@ -43,7 +43,7 @@ export class BookService {
       }
     }
 
-    sql += ' ORDER BY date_purchased DESC, id DESC';
+    sql += ' ORDER BY author_last_name ASC, book_title ASC';
 
     const result = await query(sql, params);
     return result.rows;
@@ -117,6 +117,35 @@ export class BookService {
   async deleteBook(id: number): Promise<boolean> {
     const result = await query('DELETE FROM books WHERE id = $1', [id]);
     return result.rowCount ? result.rowCount > 0 : false;
+  }
+
+  async getUniqueSeries(): Promise<string[]> {
+    const result = await query(`
+      SELECT DISTINCT book_series
+      FROM books
+      WHERE book_series IS NOT NULL AND book_series <> ''
+      ORDER BY book_series
+    `);
+
+    return result.rows.map(row => row.book_series);
+  }
+
+  async getUniqueAuthors(): Promise<{ first_middle: string; last_name: string; full_name: string }[]> {
+    const result = await query(`
+      SELECT DISTINCT
+        author_first_middle,
+        author_last_name,
+        author_fullname
+      FROM books
+      WHERE author_fullname IS NOT NULL
+      ORDER BY author_fullname
+    `);
+
+    return result.rows.map(row => ({
+      first_middle: row.author_first_middle || '',
+      last_name: row.author_last_name,
+      full_name: row.author_fullname,
+    }));
   }
 
   async getStats(): Promise<BookStats> {
