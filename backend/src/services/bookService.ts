@@ -92,12 +92,21 @@ export class BookService {
   }
 
   async updateBook(id: number, book: Partial<Book>): Promise<Book | null> {
+    // Only allow columns that exist on the books table (not view-only enrichment fields)
+    const allowedColumns = new Set([
+      'book_title', 'cleaned', 'author_last_name', 'author_first_middle',
+      'book_series', 'vol_number', 'cover_type', 'category', 'condition',
+      'date_purchased', 'source', 'seller', 'order_number',
+      'thriftbooks_price', 'purchase_price', 'our_price', 'profit_est',
+      'author_fullname', 'pulled_to_read', 'google_enrichment_id',
+    ]);
+
     const fields: string[] = [];
     const values: any[] = [];
     let paramCount = 1;
 
     Object.entries(book).forEach(([key, value]) => {
-      if (value !== undefined && key !== 'id') {
+      if (value !== undefined && key !== 'id' && allowedColumns.has(key)) {
         fields.push(`${key} = $${paramCount++}`);
         values.push(value);
       }
