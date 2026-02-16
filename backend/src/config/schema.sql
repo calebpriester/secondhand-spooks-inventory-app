@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS books (
   cover_type VARCHAR(15) CHECK (cover_type IN ('Paper', 'Hard', 'Audiobook')),
   category VARCHAR(50) CHECK (category IN ('YA/Nostalgia', 'PFH/Vintage', 'Mainstream', 'Comics/Ephemera')),
   condition VARCHAR(20) CHECK (condition IN ('Like New', 'Very Good', 'Good', 'Acceptable')),
-  date_purchased DATE NOT NULL,
+  date_purchased DATE,
   source VARCHAR(100),
   seller VARCHAR(100),
   order_number VARCHAR(100),
