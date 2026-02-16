@@ -26,3 +26,8 @@ yarn-error.log*
 .env
 .env.local
 .env.*.local
+
+# Backup files
+data/backups/
+*.sql
+!backend/src/config/schema.sql

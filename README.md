@@ -158,12 +158,17 @@ The app tracks comprehensive book information:
 
 ## 🐳 Docker Commands
 
+> **📦 Data Persistence:** Your PostgreSQL data persists between runs! See [docs/DATA_MANAGEMENT.md](docs/DATA_MANAGEMENT.md) for details on backups, restores, and data management.
+
 ```bash
-# Start all services
+# Start all services (data persists from previous runs)
 docker compose up -d
 
-# Stop all services
+# Stop all services (data stays safe in volume)
 docker compose down
+
+# ⚠️ DANGER: This deletes all data!
+docker compose down -v
 
 # View logs (all services)
 docker compose logs -f
@@ -246,9 +251,18 @@ ss_inventory_app/
 │   ├── Dockerfile
 │   └── package.json
 ├── data/
-│   └── seed/
-│       ├── inventory.csv   # Seed inventory data (Feb 16, 2026)
-│       └── README.md       # Seed data documentation
+│   ├── seed/
+│   │   ├── inventory.csv   # Seed inventory data (Feb 16, 2026)
+│   │   └── README.md       # Seed data documentation
+│   └── backups/            # Database backups (created by scripts)
+├── docs/
+│   └── DATA_MANAGEMENT.md  # Data persistence & backup guide
+├── scripts/
+│   ├── backup-db.sh        # Create database backup
+│   ├── restore-db.sh       # Restore from backup
+│   ├── reset-and-reimport.sh  # Clear DB and reimport CSV
+│   ├── fresh-start.sh      # Complete teardown and rebuild
+│   └── README.md           # Scripts documentation
 ├── docker-compose.yml
 └── README.md
 ```
@@ -295,12 +309,40 @@ open http://localhost:3000
 docker compose down
 ```
 
-### Update Inventory
+### Backup & Restore
 ```bash
-# After updating your inventory CSV file
-docker cp your_updated_inventory.csv ss_backend:/inventory.csv
-docker exec ss_backend npm run import-csv
+# Create a backup
+./scripts/backup-db.sh
+
+# Restore from backup
+./scripts/restore-db.sh data/backups/backup_20260216_123456.sql
+
+# Clear and re-import from CSV
+./scripts/reset-and-reimport.sh
 ```
+
+### Update Inventory from Google Sheets
+
+**Source**: Google Sheet "Inventory Tracker" → `Inventory` tab
+
+**Steps**:
+1. Open your Google Sheet "Inventory Tracker"
+2. Go to the `Inventory` tab
+3. Download as CSV: `File` → `Download` → `Comma Separated Values (.csv)`
+4. Rename the downloaded file to `inventory.csv`
+5. Replace the seed file:
+   ```bash
+   # Backup current database first!
+   ./scripts/backup-db.sh
+
+   # Move new CSV to seed location
+   mv ~/Downloads/inventory.csv data/seed/inventory.csv
+
+   # Re-import the data
+   ./scripts/reset-and-reimport.sh
+   ```
+
+**Note**: The reset-and-reimport script will clear the database and import fresh data from `data/seed/inventory.csv`
 
 ### Development
 ```bash
