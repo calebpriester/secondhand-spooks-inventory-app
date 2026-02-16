@@ -43,7 +43,7 @@ export class BookService {
       }
     }
 
-    sql += ' ORDER BY date_purchased DESC, id DESC';
+    sql += ' ORDER BY author_last_name ASC, book_title ASC';
 
     const result = await query(sql, params);
     return result.rows;
