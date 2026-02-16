@@ -36,4 +36,9 @@ export const bookApi = {
     const { data } = await api.get('/books/stats');
     return data;
   },
+
+  getAuthors: async (): Promise<{ first_middle: string; last_name: string; full_name: string }[]> => {
+    const { data } = await api.get('/books/authors');
+    return data;
+  },
 };

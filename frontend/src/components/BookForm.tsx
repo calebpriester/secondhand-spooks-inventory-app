@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Book } from '../types/Book';
+import { bookApi } from '../services/api';
+import Autocomplete from './Autocomplete';
 import './BookForm.css';
 
 interface BookFormProps {
@@ -30,6 +33,14 @@ const BookForm: React.FC<BookFormProps> = ({ book, onSubmit, onCancel }) => {
     author_fullname: '',
     pulled_to_read: false,
   });
+
+  const { data: authors = [] } = useQuery({
+    queryKey: ['authors'],
+    queryFn: bookApi.getAuthors,
+  });
+
+  const firstMiddleNames = [...new Set(authors.map(a => a.first_middle).filter(Boolean))];
+  const lastNames = [...new Set(authors.map(a => a.last_name).filter(Boolean))];
 
   useEffect(() => {
     if (book) {
@@ -107,25 +118,25 @@ const BookForm: React.FC<BookFormProps> = ({ book, onSubmit, onCancel }) => {
                 Author First/Middle
                 <span className="field-hint">Include middle initial if present (e.g., "Dean R.")</span>
               </label>
-              <input
-                type="text"
+              <Autocomplete
                 id="author_first_middle"
                 name="author_first_middle"
                 value={formData.author_first_middle || ''}
                 onChange={handleChange}
+                suggestions={firstMiddleNames}
                 placeholder="e.g., Dean R."
               />
             </div>
             <div className="form-group">
               <label htmlFor="author_last_name">Author Last Name *</label>
-              <input
-                type="text"
+              <Autocomplete
                 id="author_last_name"
                 name="author_last_name"
                 value={formData.author_last_name || ''}
                 onChange={handleChange}
-                required
+                suggestions={lastNames}
                 placeholder="e.g., Koontz"
+                required
               />
             </div>
           </div>

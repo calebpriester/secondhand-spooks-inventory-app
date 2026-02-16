@@ -119,6 +119,24 @@ export class BookService {
     return result.rowCount ? result.rowCount > 0 : false;
   }
 
+  async getUniqueAuthors(): Promise<{ first_middle: string; last_name: string; full_name: string }[]> {
+    const result = await query(`
+      SELECT DISTINCT
+        author_first_middle,
+        author_last_name,
+        author_fullname
+      FROM books
+      WHERE author_fullname IS NOT NULL
+      ORDER BY author_fullname
+    `);
+
+    return result.rows.map(row => ({
+      first_middle: row.author_first_middle || '',
+      last_name: row.author_last_name,
+      full_name: row.author_fullname,
+    }));
+  }
+
   async getStats(): Promise<BookStats> {
     const totalQuery = await query(`
       SELECT

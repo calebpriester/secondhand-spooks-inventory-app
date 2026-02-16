@@ -26,6 +26,17 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
+// Get unique authors for autocomplete
+router.get('/authors', async (req: Request, res: Response) => {
+  try {
+    const authors = await bookService.getUniqueAuthors();
+    res.json(authors);
+  } catch (error) {
+    console.error('Error fetching authors:', error);
+    res.status(500).json({ error: 'Failed to fetch authors' });
+  }
+});
+
 // Get book stats
 router.get('/stats', async (req: Request, res: Response) => {
   try {
