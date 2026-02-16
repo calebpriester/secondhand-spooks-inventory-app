@@ -38,6 +38,10 @@ function Inventory() {
     },
   });
 
+  const toggleCleaned = (book: Book) => {
+    updateMutation.mutate({ id: book.id, book: { cleaned: !book.cleaned } });
+  };
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setFilters({ ...filters, search });
@@ -202,7 +206,15 @@ function Inventory() {
                 <td>{book.purchase_price ? `$${Number(book.purchase_price).toFixed(2)}` : 'N/A'}</td>
                 <td>{book.our_price ? `$${Number(book.our_price).toFixed(2)}` : 'N/A'}</td>
                 <td className="source-cell">{book.source || '-'}</td>
-                <td>{book.cleaned ? '✓' : ''}</td>
+                <td className="cleaned-cell">
+                  <input
+                    type="checkbox"
+                    checked={!!book.cleaned}
+                    onChange={() => toggleCleaned(book)}
+                    className="cleaned-checkbox"
+                    title={book.cleaned ? 'Mark as not cleaned' : 'Mark as cleaned'}
+                  />
+                </td>
                 <td>
                   <button
                     onClick={() => handleEditBook(book)}
