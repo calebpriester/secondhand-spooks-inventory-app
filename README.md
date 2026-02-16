@@ -25,6 +25,7 @@ This full-stack inventory management system helps track and analyze our horror b
 - **CSV Import**: Easily import existing inventory data
 - **Author Insights**: See top authors and series in the collection
 - **Dark Horror Theme**: Custom-designed UI matching the Secondhand Spooks aesthetic
+- **Mobile Responsive**: Full mobile support with card-based inventory view, stacked filters, and touch-friendly controls
 
 ### Planned Features
 
@@ -32,7 +33,6 @@ See [GitHub Issues](https://github.com/calebpriester/secondhand-spooks-inventory
 - #2: Sales tracking and revenue reporting
 - #3: Bulk price management tools
 - #4: Enhanced analytics and insights
-- #5: Mobile-responsive design
 
 ## 🛠 Tech Stack
 
@@ -262,6 +262,7 @@ ss_inventory_app/
 │   │   └── logo.png        # Secondhand Spooks logo
 │   ├── src/
 │   │   ├── components/     # React components
+│   │   ├── hooks/          # Custom React hooks
 │   │   ├── pages/          # Page components
 │   │   ├── services/       # API client
 │   │   ├── types/          # TypeScript types
@@ -398,7 +399,7 @@ When working on new features:
 - Issue #4: Enhanced analytics
 
 **Phase 3 - User Experience**
-- Issue #5: Mobile responsive design
+- ~~Issue #5: Mobile responsive design~~ ✅ Done
 
 ## 📄 License
 

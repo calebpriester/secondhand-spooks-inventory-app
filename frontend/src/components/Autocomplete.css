@@ -59,3 +59,15 @@
 .autocomplete-suggestions::-webkit-scrollbar-thumb:hover {
   background: #00cc82;
 }
+
+/* ===== Mobile ===== */
+@media (max-width: 768px) {
+  .autocomplete-suggestions {
+    max-height: 180px;
+  }
+
+  .autocomplete-suggestions li {
+    padding: 0.85rem 0.75rem;
+    font-size: 0.95rem;
+  }
+}

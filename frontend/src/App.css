@@ -129,3 +129,43 @@ body {
 .btn-secondary:hover {
   background-color: #505050;
 }
+
+/* ===== Tablet ===== */
+@media (max-width: 1024px) {
+  .main-content {
+    padding: 1.5rem;
+  }
+
+  .nav-container {
+    padding: 0 1rem;
+  }
+}
+
+/* ===== Mobile ===== */
+@media (max-width: 768px) {
+  .nav-logo {
+    height: 50px;
+    padding: 4px 6px;
+  }
+
+  .nav-container {
+    padding: 0 0.75rem;
+  }
+
+  .nav-links {
+    gap: 1rem;
+  }
+
+  .nav-links a {
+    font-size: 0.9rem;
+  }
+
+  .main-content {
+    padding: 0.75rem;
+  }
+
+  .btn {
+    padding: 0.6rem 1rem;
+    font-size: 0.9rem;
+  }
+}

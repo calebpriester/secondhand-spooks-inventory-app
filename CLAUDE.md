@@ -45,7 +45,8 @@ This is a full-stack inventory management system for **Secondhand Spooks**, a ho
 - **App**: `src/App.tsx` - Routing and layout
 - **Pages**:
   - `src/pages/Dashboard.tsx` - Analytics and stats
-  - `src/pages/Inventory.tsx` - Book browsing and filtering
+  - `src/pages/Inventory.tsx` - Book browsing and filtering (card view on mobile, table on desktop)
+- **Hooks**: `src/hooks/useIsMobile.ts` - Responsive breakpoint hook using `matchMedia`
 - **API client**: `src/services/api.ts` - Backend communication
 - **Types**: `src/types/Book.ts` - TypeScript interfaces
 
@@ -124,6 +125,14 @@ docker compose logs -f
 
 ### Testing
 ```bash
+# Type-check frontend (no node_modules on host — must use Docker)
+docker exec ss_frontend npx tsc --noEmit
+
+# Backend tests (jest is a devDependency, NOT installed in the dev container)
+# Backend tests must be run by installing locally or in a separate test container
+# For quick validation: the backend dev container uses nodemon, not jest
+# To run tests: npm install in backend/ locally, then npm test
+
 # Check API
 curl http://localhost:3001/api/books/stats
 
@@ -133,6 +142,13 @@ docker exec ss_postgres psql -U spooks -d secondhand_spooks -c "SELECT COUNT(*) 
 # View container status
 docker compose ps
 ```
+
+### Important: No node_modules on Host
+- The project runs entirely in Docker — there are no `node_modules` directories on the host machine
+- **Frontend type-check**: `docker exec ss_frontend npx tsc --noEmit`
+- **Backend type-check**: `docker exec ss_backend npx tsc --noEmit`
+- Do NOT try to run `tsc`, `jest`, `npx tsc`, or `npm test` directly on the host — they will fail
+- For backend unit tests, you would need to `cd backend && npm install && npm test` locally (installs devDeps)
 
 ### Data Management
 ```bash
@@ -157,12 +173,12 @@ docker compose ps
 ✅ Add/edit books through the UI (Issue #1 - closed)
 ✅ Quick-toggle cleaned status checkbox
 ✅ Production deployment on Railway (auto-deploys from main)
+✅ Mobile-responsive design (Issue #5 - closed)
 
 ### What's Missing (See GitHub Issues):
 ❌ No sales tracking (Issue #2)
 ❌ Many books missing prices (Issue #3)
 ❌ Limited analytics (Issue #4)
-❌ Not mobile responsive (Issue #5)
 
 ## Development Guidelines
 
@@ -187,7 +203,9 @@ docker compose ps
 ### UI/UX
 - Dark horror theme (Ghostly Foam Green #00FFA3, Paper White #FFFFDC, Inky Black #1E1B1C)
 - Keep interface simple and intuitive
-- Mobile responsiveness needed (future work)
+- Mobile-responsive: breakpoints at 768px (mobile) and 1024px (tablet)
+- Inventory uses card layout on mobile via `useIsMobile` hook, table on desktop
+- Use `font-size: 16px` on mobile inputs/selects to prevent iOS Safari auto-zoom
 - Use React Query for data fetching
 
 ## Troubleshooting Common Issues
@@ -227,7 +245,6 @@ docker compose ps
 - #2: Sales tracking functionality (HIGH PRIORITY)
 - #3: Bulk price management tools (HIGH PRIORITY)
 - #4: Enhanced analytics and reporting (MEDIUM)
-- #5: Mobile-responsive design (MEDIUM-HIGH)
 
 ## Git Workflow
 

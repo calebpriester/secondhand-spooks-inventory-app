@@ -166,4 +166,38 @@
   .form-row {
     grid-template-columns: 1fr;
   }
+
+  .form-header {
+    padding: 1rem;
+  }
+
+  .form-header h2 {
+    font-size: 1.2rem;
+  }
+
+  .form-body {
+    padding: 1rem;
+  }
+
+  .form-section {
+    margin-bottom: 1.25rem;
+    padding-bottom: 1.25rem;
+  }
+
+  .form-group input,
+  .form-group select {
+    font-size: 16px;
+    padding: 0.65rem;
+  }
+
+  .form-footer {
+    padding: 1rem;
+    flex-direction: column-reverse;
+  }
+
+  .form-footer .btn {
+    width: 100%;
+    text-align: center;
+    padding: 0.85rem;
+  }
 }
