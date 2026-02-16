@@ -119,6 +119,17 @@ export class BookService {
     return result.rowCount ? result.rowCount > 0 : false;
   }
 
+  async getUniqueSeries(): Promise<string[]> {
+    const result = await query(`
+      SELECT DISTINCT book_series
+      FROM books
+      WHERE book_series IS NOT NULL AND book_series <> ''
+      ORDER BY book_series
+    `);
+
+    return result.rows.map(row => row.book_series);
+  }
+
   async getUniqueAuthors(): Promise<{ first_middle: string; last_name: string; full_name: string }[]> {
     const result = await query(`
       SELECT DISTINCT

@@ -26,6 +26,17 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
+// Get unique series for autocomplete
+router.get('/series', async (req: Request, res: Response) => {
+  try {
+    const series = await bookService.getUniqueSeries();
+    res.json(series);
+  } catch (error) {
+    console.error('Error fetching series:', error);
+    res.status(500).json({ error: 'Failed to fetch series' });
+  }
+});
+
 // Get unique authors for autocomplete
 router.get('/authors', async (req: Request, res: Response) => {
   try {
