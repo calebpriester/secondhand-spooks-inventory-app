@@ -7,7 +7,6 @@
     "dev": "nodemon --watch src --exec ts-node src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "migrate": "node dist/utils/migrate.js",
     "import-csv": "ts-node src/utils/importCsv.ts",
     "test": "jest",
     "test:watch": "jest --watch",
