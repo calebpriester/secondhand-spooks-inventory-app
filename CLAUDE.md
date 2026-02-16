@@ -16,7 +16,7 @@ This is a full-stack inventory management system for **Secondhand Spooks**, a ho
 
 ### Business Model
 - Small booth selling used horror books
-- Two operators (Caleb and his wife)
+- Two operators (Caleb and Sarah)
 - Focus on "Paperbacks from Hell" era vintage horror
 - Categories: YA/Nostalgia, PFH/Vintage, Mainstream, Comics/Ephemera
 - Track purchase prices, retail prices, and profit estimates
