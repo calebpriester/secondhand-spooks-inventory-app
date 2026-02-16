@@ -39,8 +39,28 @@ const BookForm: React.FC<BookFormProps> = ({ book, onSubmit, onCancel }) => {
     queryFn: bookApi.getAuthors,
   });
 
+  // Get unique first/middle names
   const firstMiddleNames = [...new Set(authors.map(a => a.first_middle).filter(Boolean))];
-  const lastNames = [...new Set(authors.map(a => a.last_name).filter(Boolean))];
+
+  // Filter last names based on selected first/middle name
+  const lastNames = formData.author_first_middle
+    ? [...new Set(
+        authors
+          .filter(a => a.first_middle === formData.author_first_middle)
+          .map(a => a.last_name)
+          .filter(Boolean)
+      )]
+    : [...new Set(authors.map(a => a.last_name).filter(Boolean))];
+
+  // Filter first/middle names based on selected last name
+  const filteredFirstMiddleNames = formData.author_last_name
+    ? [...new Set(
+        authors
+          .filter(a => a.last_name === formData.author_last_name)
+          .map(a => a.first_middle)
+          .filter(Boolean)
+      )]
+    : firstMiddleNames;
 
   useEffect(() => {
     if (book) {
@@ -116,19 +136,30 @@ const BookForm: React.FC<BookFormProps> = ({ book, onSubmit, onCancel }) => {
             <div className="form-group">
               <label htmlFor="author_first_middle">
                 Author First/Middle
-                <span className="field-hint">Include middle initial if present (e.g., "Dean R.")</span>
+                <span className="field-hint">
+                  {formData.author_last_name
+                    ? `Showing matches for "${formData.author_last_name}"`
+                    : 'Include middle initial if present (e.g., "Dean R.")'}
+                </span>
               </label>
               <Autocomplete
                 id="author_first_middle"
                 name="author_first_middle"
                 value={formData.author_first_middle || ''}
                 onChange={handleChange}
-                suggestions={firstMiddleNames}
+                suggestions={filteredFirstMiddleNames}
                 placeholder="e.g., Dean R."
               />
             </div>
             <div className="form-group">
-              <label htmlFor="author_last_name">Author Last Name *</label>
+              <label htmlFor="author_last_name">
+                Author Last Name *
+                {formData.author_first_middle && (
+                  <span className="field-hint">
+                    Showing matches for "{formData.author_first_middle}"
+                  </span>
+                )}
+              </label>
               <Autocomplete
                 id="author_last_name"
                 name="author_last_name"

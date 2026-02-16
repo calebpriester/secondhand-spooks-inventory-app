@@ -10,8 +10,17 @@ interface ModalProps {
 const Modal: React.FC<ModalProps> = ({ isOpen, onClose, children }) => {
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
+      // Only close on Escape if not focused in an input/textarea/select
+      // This prevents conflicts with password managers and autocomplete
       if (e.key === 'Escape') {
-        onClose();
+        const target = e.target as HTMLElement;
+        const isInputFocused = target.tagName === 'INPUT' ||
+                              target.tagName === 'TEXTAREA' ||
+                              target.tagName === 'SELECT';
+
+        if (!isInputFocused) {
+          onClose();
+        }
       }
     };
 

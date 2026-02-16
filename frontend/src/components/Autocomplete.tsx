@@ -71,6 +71,7 @@ const Autocomplete: React.FC<AutocompleteProps> = ({
         }
         break;
       case 'Escape':
+        e.stopPropagation(); // Prevent modal from closing
         setIsOpen(false);
         break;
     }
