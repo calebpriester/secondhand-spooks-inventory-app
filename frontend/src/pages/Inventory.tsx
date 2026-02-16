@@ -185,8 +185,20 @@ function Inventory() {
                     </span>
                   )}
                 </td>
-                <td>{book.condition || '-'}</td>
-                <td>{book.cover_type || '-'}</td>
+                <td>
+                  {book.condition && (
+                    <span className={`badge badge-${book.condition.toLowerCase().replace(' ', '-')}`}>
+                      {book.condition}
+                    </span>
+                  )}
+                </td>
+                <td>
+                  {book.cover_type && (
+                    <span className={`badge badge-${book.cover_type.toLowerCase()}`}>
+                      {book.cover_type}
+                    </span>
+                  )}
+                </td>
                 <td>{book.purchase_price ? `$${Number(book.purchase_price).toFixed(2)}` : 'N/A'}</td>
                 <td>{book.our_price ? `$${Number(book.our_price).toFixed(2)}` : 'N/A'}</td>
                 <td className="source-cell">{book.source || '-'}</td>

@@ -133,6 +133,43 @@
   color: white;
 }
 
+/* Condition badges */
+.badge-like-new {
+  background-color: #00695c;
+  color: white;
+}
+
+.badge-very-good {
+  background-color: #2e7d32;
+  color: white;
+}
+
+.badge-good {
+  background-color: #558b2f;
+  color: white;
+}
+
+.badge-acceptable {
+  background-color: #827717;
+  color: white;
+}
+
+/* Cover type badges */
+.badge-paper {
+  background-color: #37474f;
+  color: white;
+}
+
+.badge-hard {
+  background-color: #4e342e;
+  color: white;
+}
+
+.badge-audiobook {
+  background-color: #283593;
+  color: white;
+}
+
 .btn-edit {
   padding: 0.5rem 1rem;
   border: none;
