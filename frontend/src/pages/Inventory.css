@@ -1,0 +1,131 @@
+.inventory {
+  padding: 1rem;
+}
+
+.inventory-header {
+  margin-bottom: 2rem;
+}
+
+.inventory-header h2 {
+  color: var(--secondary);
+  font-size: 2rem;
+}
+
+.filters-section {
+  margin-bottom: 2rem;
+}
+
+.search-form {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.search-input {
+  flex: 1;
+  padding: 0.75rem;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  font-size: 1rem;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.filters {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.filter-select {
+  padding: 0.75rem;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.books-table-container {
+  background-color: var(--surface);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  overflow-x: auto;
+}
+
+.books-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 1200px;
+}
+
+.books-table th {
+  text-align: left;
+  padding: 1rem;
+  background-color: rgba(139, 0, 0, 0.2);
+  border-bottom: 2px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  position: sticky;
+  top: 0;
+}
+
+.books-table td {
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.books-table tr:hover {
+  background-color: rgba(139, 0, 0, 0.1);
+}
+
+.book-title {
+  font-weight: 500;
+  color: var(--text);
+}
+
+.source-cell {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.badge-ya-nostalgia {
+  background-color: #4a148c;
+  color: white;
+}
+
+.badge-pfh-vintage {
+  background-color: #b71c1c;
+  color: white;
+}
+
+.badge-mainstream {
+  background-color: #1b5e20;
+  color: white;
+}
+
+.badge-comics-ephemera {
+  background-color: #ff6f00;
+  color: white;
+}
