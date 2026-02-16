@@ -4,6 +4,7 @@ import { bookApi } from '../services/api';
 import { Book, BookFilters } from '../types/Book';
 import Modal from '../components/Modal';
 import BookForm from '../components/BookForm';
+import { useIsMobile } from '../hooks/useIsMobile';
 import './Inventory.css';
 
 function Inventory() {
@@ -12,6 +13,7 @@ function Inventory() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
 
+  const isMobile = useIsMobile();
   const queryClient = useQueryClient();
 
   const { data: books, isLoading } = useQuery({
@@ -153,61 +155,58 @@ function Inventory() {
         </div>
       </div>
 
-      <div className="books-table-container">
-        <table className="books-table">
-          <thead>
-            <tr>
-              <th>Title</th>
-              <th>Author</th>
-              <th>Series</th>
-              <th>Category</th>
-              <th>Condition</th>
-              <th>Cover</th>
-              <th>Purchase $</th>
-              <th>Our Price</th>
-              <th>Source</th>
-              <th>Cleaned</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {books?.map((book) => (
-              <tr key={book.id}>
-                <td className="book-title">{book.book_title}</td>
-                <td>{book.author_fullname}</td>
-                <td>
-                  {book.book_series && (
-                    <>
-                      {book.book_series}
-                      {book.vol_number && ` #${book.vol_number}`}
-                    </>
-                  )}
-                </td>
-                <td>
-                  {book.category && (
-                    <span className={`badge badge-${book.category.toLowerCase().replace('/', '-')}`}>
-                      {book.category}
-                    </span>
-                  )}
-                </td>
-                <td>
-                  {book.condition && (
-                    <span className={`badge badge-${book.condition.toLowerCase().replace(' ', '-')}`}>
-                      {book.condition}
-                    </span>
-                  )}
-                </td>
-                <td>
-                  {book.cover_type && (
-                    <span className={`badge badge-${book.cover_type.toLowerCase()}`}>
-                      {book.cover_type}
-                    </span>
-                  )}
-                </td>
-                <td>{book.purchase_price ? `$${Number(book.purchase_price).toFixed(2)}` : 'N/A'}</td>
-                <td>{book.our_price ? `$${Number(book.our_price).toFixed(2)}` : 'N/A'}</td>
-                <td className="source-cell">{book.source || '-'}</td>
-                <td className="cleaned-cell">
+      {isMobile ? (
+        <div className="book-cards">
+          {books?.map((book) => (
+            <div key={book.id} className="book-card">
+              <div className="book-card-header">
+                <span className="book-card-title">{book.book_title}</span>
+                <button
+                  onClick={() => handleEditBook(book)}
+                  className="btn btn-edit"
+                  title="Edit book"
+                >
+                  ✏️
+                </button>
+              </div>
+              <div className="book-card-author">{book.author_fullname}</div>
+              {book.book_series && (
+                <div className="book-card-series">
+                  {book.book_series}
+                  {book.vol_number && ` #${book.vol_number}`}
+                </div>
+              )}
+              <div className="book-card-badges">
+                {book.category && (
+                  <span className={`badge badge-${book.category.toLowerCase().replace('/', '-')}`}>
+                    {book.category}
+                  </span>
+                )}
+                {book.condition && (
+                  <span className={`badge badge-${book.condition.toLowerCase().replace(' ', '-')}`}>
+                    {book.condition}
+                  </span>
+                )}
+                {book.cover_type && (
+                  <span className={`badge badge-${book.cover_type.toLowerCase()}`}>
+                    {book.cover_type}
+                  </span>
+                )}
+              </div>
+              <div className="book-card-details">
+                <span className="book-card-detail-label">Purchase $</span>
+                <span className="book-card-detail-value">
+                  {book.purchase_price ? `$${Number(book.purchase_price).toFixed(2)}` : 'N/A'}
+                </span>
+                <span className="book-card-detail-label">Our Price</span>
+                <span className="book-card-detail-value">
+                  {book.our_price ? `$${Number(book.our_price).toFixed(2)}` : 'N/A'}
+                </span>
+                <span className="book-card-detail-label">Source</span>
+                <span className="book-card-detail-value">{book.source || '-'}</span>
+              </div>
+              <div className="book-card-footer">
+                <label className="book-card-cleaned">
                   <input
                     type="checkbox"
                     checked={!!book.cleaned}
@@ -215,21 +214,91 @@ function Inventory() {
                     className="cleaned-checkbox"
                     title={book.cleaned ? 'Mark as not cleaned' : 'Mark as cleaned'}
                   />
-                </td>
-                <td>
-                  <button
-                    onClick={() => handleEditBook(book)}
-                    className="btn btn-edit"
-                    title="Edit book"
-                  >
-                    ✏️
-                  </button>
-                </td>
+                  Cleaned
+                </label>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="books-table-container">
+          <table className="books-table">
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Author</th>
+                <th>Series</th>
+                <th>Category</th>
+                <th>Condition</th>
+                <th>Cover</th>
+                <th>Purchase $</th>
+                <th>Our Price</th>
+                <th>Source</th>
+                <th>Cleaned</th>
+                <th>Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {books?.map((book) => (
+                <tr key={book.id}>
+                  <td className="book-title">{book.book_title}</td>
+                  <td>{book.author_fullname}</td>
+                  <td>
+                    {book.book_series && (
+                      <>
+                        {book.book_series}
+                        {book.vol_number && ` #${book.vol_number}`}
+                      </>
+                    )}
+                  </td>
+                  <td>
+                    {book.category && (
+                      <span className={`badge badge-${book.category.toLowerCase().replace('/', '-')}`}>
+                        {book.category}
+                      </span>
+                    )}
+                  </td>
+                  <td>
+                    {book.condition && (
+                      <span className={`badge badge-${book.condition.toLowerCase().replace(' ', '-')}`}>
+                        {book.condition}
+                      </span>
+                    )}
+                  </td>
+                  <td>
+                    {book.cover_type && (
+                      <span className={`badge badge-${book.cover_type.toLowerCase()}`}>
+                        {book.cover_type}
+                      </span>
+                    )}
+                  </td>
+                  <td>{book.purchase_price ? `$${Number(book.purchase_price).toFixed(2)}` : 'N/A'}</td>
+                  <td>{book.our_price ? `$${Number(book.our_price).toFixed(2)}` : 'N/A'}</td>
+                  <td className="source-cell">{book.source || '-'}</td>
+                  <td className="cleaned-cell">
+                    <input
+                      type="checkbox"
+                      checked={!!book.cleaned}
+                      onChange={() => toggleCleaned(book)}
+                      className="cleaned-checkbox"
+                      title={book.cleaned ? 'Mark as not cleaned' : 'Mark as cleaned'}
+                    />
+                  </td>
+                  <td>
+                    <button
+                      onClick={() => handleEditBook(book)}
+                      className="btn btn-edit"
+                      title="Edit book"
+                    >
+                      ✏️
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       <Modal isOpen={isModalOpen} onClose={handleCloseModal}>
         <BookForm

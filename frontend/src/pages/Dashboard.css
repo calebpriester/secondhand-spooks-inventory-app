@@ -89,3 +89,55 @@
 .breakdown-table tr:hover {
   background-color: rgba(0, 255, 163, 0.08);
 }
+
+/* ===== Tablet ===== */
+@media (max-width: 1024px) {
+  .breakdown-section {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  }
+}
+
+/* ===== Mobile ===== */
+@media (max-width: 768px) {
+  .dashboard h2 {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 2rem;
+  }
+
+  .stat-card {
+    padding: 1rem;
+  }
+
+  .stat-card h3 {
+    font-size: 0.75rem;
+  }
+
+  .stat-value {
+    font-size: 1.75rem;
+  }
+
+  .breakdown-section {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .breakdown-card {
+    padding: 1rem;
+  }
+
+  .breakdown-card h3 {
+    font-size: 1rem;
+  }
+
+  .breakdown-table th,
+  .breakdown-table td {
+    padding: 0.5rem 0.25rem;
+    font-size: 0.85rem;
+  }
+}
