@@ -4,13 +4,15 @@ import { bookApi } from '../services/api';
 import { Book, BookFilters } from '../types/Book';
 import Modal from '../components/Modal';
 import BookForm from '../components/BookForm';
+import BookDetail from '../components/BookDetail';
 import { useIsMobile } from '../hooks/useIsMobile';
 import './Inventory.css';
 
 function Inventory() {
   const [filters, setFilters] = useState<BookFilters>({});
   const [search, setSearch] = useState('');
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
 
   const isMobile = useIsMobile();
@@ -25,7 +27,7 @@ function Inventory() {
     mutationFn: bookApi.create,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['books'] });
-      setIsModalOpen(false);
+      setIsFormOpen(false);
       setSelectedBook(null);
     },
   });
@@ -35,8 +37,16 @@ function Inventory() {
       bookApi.update(id, book),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['books'] });
-      setIsModalOpen(false);
+      setIsFormOpen(false);
       setSelectedBook(null);
+    },
+  });
+
+  const enrichMutation = useMutation({
+    mutationFn: ({ id, title, author, isbn }: { id: number; title?: string; author?: string; isbn?: string }) =>
+      bookApi.enrichBook(id, title, author, isbn),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['books'] });
     },
   });
 
@@ -67,12 +77,18 @@ function Inventory() {
 
   const handleAddBook = () => {
     setSelectedBook(null);
-    setIsModalOpen(true);
+    setIsFormOpen(true);
   };
 
   const handleEditBook = (book: Book) => {
+    setIsDetailOpen(false);
     setSelectedBook(book);
-    setIsModalOpen(true);
+    setIsFormOpen(true);
+  };
+
+  const handleViewBook = (book: Book) => {
+    setSelectedBook(book);
+    setIsDetailOpen(true);
   };
 
   const handleSubmitBook = (bookData: Partial<Book>) => {
@@ -83,10 +99,24 @@ function Inventory() {
     }
   };
 
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
+  const handleCloseForm = () => {
+    setIsFormOpen(false);
     setSelectedBook(null);
   };
+
+  const handleCloseDetail = () => {
+    setIsDetailOpen(false);
+    setSelectedBook(null);
+  };
+
+  const handleEnrichBook = (bookId: number, title?: string, author?: string, isbn?: string) => {
+    enrichMutation.mutate({ id: bookId, title, author, isbn });
+  };
+
+  // Keep selectedBook in sync with latest data from the query
+  const currentSelectedBook = selectedBook && books
+    ? books.find(b => b.id === selectedBook.id) || selectedBook
+    : selectedBook;
 
   if (isLoading) {
     return <div className="loading">Loading inventory...</div>;
@@ -159,63 +189,90 @@ function Inventory() {
         <div className="book-cards">
           {books?.map((book) => (
             <div key={book.id} className="book-card">
-              <div className="book-card-header">
-                <span className="book-card-title">{book.book_title}</span>
-                <button
-                  onClick={() => handleEditBook(book)}
-                  className="btn btn-edit"
-                  title="Edit book"
-                >
-                  ✏️
-                </button>
-              </div>
-              <div className="book-card-author">{book.author_fullname}</div>
-              {book.book_series && (
-                <div className="book-card-series">
-                  {book.book_series}
-                  {book.vol_number && ` #${book.vol_number}`}
-                </div>
-              )}
-              <div className="book-card-badges">
-                {book.category && (
-                  <span className={`badge badge-${book.category.toLowerCase().replace('/', '-')}`}>
-                    {book.category}
-                  </span>
-                )}
-                {book.condition && (
-                  <span className={`badge badge-${book.condition.toLowerCase().replace(' ', '-')}`}>
-                    {book.condition}
-                  </span>
-                )}
-                {book.cover_type && (
-                  <span className={`badge badge-${book.cover_type.toLowerCase()}`}>
-                    {book.cover_type}
-                  </span>
-                )}
-              </div>
-              <div className="book-card-details">
-                <span className="book-card-detail-label">Purchase $</span>
-                <span className="book-card-detail-value">
-                  {book.purchase_price ? `$${Number(book.purchase_price).toFixed(2)}` : 'N/A'}
-                </span>
-                <span className="book-card-detail-label">Our Price</span>
-                <span className="book-card-detail-value">
-                  {book.our_price ? `$${Number(book.our_price).toFixed(2)}` : 'N/A'}
-                </span>
-                <span className="book-card-detail-label">Source</span>
-                <span className="book-card-detail-value">{book.source || '-'}</span>
-              </div>
-              <div className="book-card-footer">
-                <label className="book-card-cleaned">
-                  <input
-                    type="checkbox"
-                    checked={!!book.cleaned}
-                    onChange={() => toggleCleaned(book)}
-                    className="cleaned-checkbox"
-                    title={book.cleaned ? 'Mark as not cleaned' : 'Mark as cleaned'}
+              <div className="book-card-content">
+                {book.cover_image_url ? (
+                  <img
+                    src={book.cover_image_url}
+                    alt={book.book_title}
+                    className="book-card-cover book-card-cover-clickable"
+                    loading="lazy"
+                    onClick={() => handleViewBook(book)}
                   />
-                  Cleaned
-                </label>
+                ) : (
+                  <div
+                    className="book-card-cover-placeholder book-card-cover-clickable"
+                    onClick={() => handleViewBook(book)}
+                  >
+                    View
+                  </div>
+                )}
+                <div className="book-card-info">
+                  <div className="book-card-header">
+                    <span className="book-card-title">{book.book_title}</span>
+                    <button
+                      onClick={() => handleEditBook(book)}
+                      className="btn btn-action"
+                      title="Edit book"
+                    >
+                      ✏️
+                    </button>
+                  </div>
+                  <div className="book-card-author">
+                    {book.author_fullname}
+                    {book.google_rating && (
+                      <span className="google-rating" title={`${book.google_ratings_count} ratings`}>
+                        {Number(book.google_rating).toFixed(1)}
+                      </span>
+                    )}
+                  </div>
+                  {book.book_series && (
+                    <div className="book-card-series">
+                      {book.book_series}
+                      {book.vol_number && ` #${book.vol_number}`}
+                    </div>
+                  )}
+                  <div className="book-card-badges">
+                    {book.category && (
+                      <span className={`badge badge-${book.category.toLowerCase().replace('/', '-')}`}>
+                        {book.category}
+                      </span>
+                    )}
+                    {book.condition && (
+                      <span className={`badge badge-${book.condition.toLowerCase().replace(' ', '-')}`}>
+                        {book.condition}
+                      </span>
+                    )}
+                    {book.cover_type && (
+                      <span className={`badge badge-${book.cover_type.toLowerCase()}`}>
+                        {book.cover_type}
+                      </span>
+                    )}
+                  </div>
+                  <div className="book-card-details">
+                    <span className="book-card-detail-label">Purchase $</span>
+                    <span className="book-card-detail-value">
+                      {book.purchase_price ? `$${Number(book.purchase_price).toFixed(2)}` : 'N/A'}
+                    </span>
+                    <span className="book-card-detail-label">Our Price</span>
+                    <span className="book-card-detail-value">
+                      {book.our_price ? `$${Number(book.our_price).toFixed(2)}` : 'N/A'}
+                    </span>
+                    <span className="book-card-detail-label">Source</span>
+                    <span className="book-card-detail-value">{book.source || '-'}</span>
+                  </div>
+                  <div className="book-card-footer">
+                    <label className="book-card-cleaned">
+                      <input
+                        type="checkbox"
+                        checked={!!book.cleaned}
+                        onChange={() => toggleCleaned(book)}
+                        className="cleaned-checkbox"
+                        title={book.cleaned ? 'Mark as not cleaned' : 'Mark as cleaned'}
+                      />
+                      Cleaned
+                    </label>
+                  </div>
+                </div>
               </div>
             </div>
           ))}
@@ -225,6 +282,7 @@ function Inventory() {
           <table className="books-table">
             <thead>
               <tr>
+                <th></th>
                 <th>Title</th>
                 <th>Author</th>
                 <th>Series</th>
@@ -241,7 +299,30 @@ function Inventory() {
             <tbody>
               {books?.map((book) => (
                 <tr key={book.id}>
-                  <td className="book-title">{book.book_title}</td>
+                  <td className="cover-cell">
+                    {book.cover_image_url ? (
+                      <img
+                        src={book.cover_image_url}
+                        alt={book.book_title}
+                        className="cover-thumbnail cover-clickable"
+                        loading="lazy"
+                        onClick={() => handleViewBook(book)}
+                      />
+                    ) : (
+                      <div
+                        className="cover-placeholder cover-clickable"
+                        onClick={() => handleViewBook(book)}
+                      />
+                    )}
+                  </td>
+                  <td className="book-title">
+                    {book.book_title}
+                    {book.google_rating && (
+                      <span className="google-rating" title={`${book.google_ratings_count} ratings`}>
+                        {Number(book.google_rating).toFixed(1)}
+                      </span>
+                    )}
+                  </td>
                   <td>{book.author_fullname}</td>
                   <td>
                     {book.book_series && (
@@ -284,10 +365,10 @@ function Inventory() {
                       title={book.cleaned ? 'Mark as not cleaned' : 'Mark as cleaned'}
                     />
                   </td>
-                  <td>
+                  <td className="actions-cell">
                     <button
                       onClick={() => handleEditBook(book)}
-                      className="btn btn-edit"
+                      className="btn btn-action"
                       title="Edit book"
                     >
                       ✏️
@@ -300,12 +381,24 @@ function Inventory() {
         </div>
       )}
 
-      <Modal isOpen={isModalOpen} onClose={handleCloseModal}>
+      <Modal isOpen={isFormOpen} onClose={handleCloseForm}>
         <BookForm
           book={selectedBook}
           onSubmit={handleSubmitBook}
-          onCancel={handleCloseModal}
+          onCancel={handleCloseForm}
         />
+      </Modal>
+
+      <Modal isOpen={isDetailOpen} onClose={handleCloseDetail}>
+        {currentSelectedBook && (
+          <BookDetail
+            book={currentSelectedBook}
+            onClose={handleCloseDetail}
+            onEdit={handleEditBook}
+            onEnrich={handleEnrichBook}
+            isEnriching={enrichMutation.isPending}
+          />
+        )}
       </Modal>
     </div>
   );

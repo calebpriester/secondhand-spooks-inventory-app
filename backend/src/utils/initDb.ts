@@ -148,9 +148,121 @@ async function seedFromCsv(): Promise<void> {
   console.log(`Seed complete: ${imported} imported, ${failed} failed`);
 }
 
+async function runMigrations(): Promise<void> {
+  // Check if books still has the old flat enrichment columns (pre-normalization)
+  const oldColumns = await query(`
+    SELECT column_name FROM information_schema.columns
+    WHERE table_name = 'books' AND column_name = 'google_books_id'
+  `);
+
+  if (oldColumns.rows.length > 0) {
+    console.log('Migrating enrichment data to normalized schema...');
+
+    // 1. Create the enrichments table if it doesn't exist
+    await query(`
+      CREATE TABLE IF NOT EXISTS google_books_enrichments (
+        id SERIAL PRIMARY KEY,
+        google_books_id VARCHAR(50) UNIQUE NOT NULL,
+        cover_image_url TEXT,
+        description TEXT,
+        genres TEXT[],
+        google_rating DECIMAL(3, 2),
+        google_ratings_count INTEGER,
+        page_count INTEGER,
+        publisher VARCHAR(200),
+        published_date VARCHAR(20),
+        isbn_10 VARCHAR(13),
+        isbn_13 VARCHAR(17),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // 2. Migrate existing enrichment data
+    await query(`
+      INSERT INTO google_books_enrichments (
+        google_books_id, cover_image_url, description, genres,
+        google_rating, google_ratings_count, page_count, publisher,
+        published_date, isbn_10, isbn_13, created_at
+      )
+      SELECT DISTINCT ON (google_books_id)
+        google_books_id, cover_image_url, description, genres,
+        google_rating, google_ratings_count, page_count, publisher,
+        published_date, isbn_10, isbn_13, COALESCE(enriched_at, CURRENT_TIMESTAMP)
+      FROM books
+      WHERE google_books_id IS NOT NULL
+      ON CONFLICT (google_books_id) DO NOTHING
+    `);
+
+    // 3. Add the FK column
+    await query('ALTER TABLE books ADD COLUMN IF NOT EXISTS google_enrichment_id INTEGER REFERENCES google_books_enrichments(id)');
+
+    // 4. Populate FKs from migrated data
+    await query(`
+      UPDATE books b SET google_enrichment_id = gbe.id
+      FROM google_books_enrichments gbe
+      WHERE b.google_books_id = gbe.google_books_id
+        AND b.google_books_id IS NOT NULL
+    `);
+
+    // 5. Drop old flat columns
+    await query('ALTER TABLE books DROP COLUMN IF EXISTS google_books_id');
+    await query('ALTER TABLE books DROP COLUMN IF EXISTS cover_image_url');
+    await query('ALTER TABLE books DROP COLUMN IF EXISTS description');
+    await query('ALTER TABLE books DROP COLUMN IF EXISTS genres');
+    await query('ALTER TABLE books DROP COLUMN IF EXISTS google_rating');
+    await query('ALTER TABLE books DROP COLUMN IF EXISTS google_ratings_count');
+    await query('ALTER TABLE books DROP COLUMN IF EXISTS page_count');
+    await query('ALTER TABLE books DROP COLUMN IF EXISTS publisher');
+    await query('ALTER TABLE books DROP COLUMN IF EXISTS published_date');
+    await query('ALTER TABLE books DROP COLUMN IF EXISTS isbn_10');
+    await query('ALTER TABLE books DROP COLUMN IF EXISTS isbn_13');
+    await query('ALTER TABLE books DROP COLUMN IF EXISTS enriched_at');
+
+    // 6. Drop old indexes
+    await query('DROP INDEX IF EXISTS idx_books_google_books_id');
+    await query('DROP INDEX IF EXISTS idx_books_enriched_at');
+
+    console.log('Enrichment data migration complete.');
+  }
+
+  // Always ensure FK index and view exist
+  await query('CREATE INDEX IF NOT EXISTS idx_books_google_enrichment_id ON books(google_enrichment_id)');
+
+  // Drop and recreate the view (CREATE OR REPLACE can fail if column types change)
+  await query('DROP VIEW IF EXISTS books_with_enrichment');
+  await query(`
+    CREATE OR REPLACE VIEW books_with_enrichment AS
+    SELECT
+      b.*,
+      gb.google_books_id,
+      COALESCE(gb.cover_image_url) AS cover_image_url,
+      COALESCE(gb.description) AS description,
+      COALESCE(gb.genres) AS genres,
+      COALESCE(gb.google_rating) AS google_rating,
+      COALESCE(gb.google_ratings_count) AS google_ratings_count,
+      COALESCE(gb.page_count) AS page_count,
+      COALESCE(gb.publisher) AS publisher,
+      COALESCE(gb.published_date) AS published_date,
+      COALESCE(gb.isbn_10) AS isbn_10,
+      COALESCE(gb.isbn_13) AS isbn_13,
+      gb.created_at AS enriched_at
+    FROM books b
+    LEFT JOIN google_books_enrichments gb ON b.google_enrichment_id = gb.id
+  `);
+
+  // Ensure trigger exists for enrichments table
+  await query('DROP TRIGGER IF EXISTS update_google_books_enrichments_updated_at ON google_books_enrichments');
+  await query(`
+    CREATE TRIGGER update_google_books_enrichments_updated_at BEFORE UPDATE ON google_books_enrichments
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()
+  `);
+}
+
 export async function initializeDatabase(): Promise<void> {
   console.log('Initializing database...');
   await runSchema();
+  await runMigrations();
   await seedFromCsv();
   console.log('Database initialization complete.');
 }

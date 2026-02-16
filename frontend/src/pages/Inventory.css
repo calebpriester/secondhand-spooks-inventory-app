@@ -103,6 +103,15 @@
   color: var(--text);
 }
 
+.cover-clickable {
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.cover-clickable:hover {
+  opacity: 0.75;
+}
+
 .source-cell {
   font-size: 0.9rem;
   color: var(--text-secondary);
@@ -185,17 +194,61 @@
   accent-color: var(--success);
 }
 
-.btn-edit {
-  padding: 0.5rem 1rem;
+.btn-action {
+  padding: 0.3rem 0.5rem;
   border: none;
   background: transparent;
   cursor: pointer;
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   transition: transform 0.2s ease;
 }
 
-.btn-edit:hover {
+.btn-action:hover {
   transform: scale(1.2);
+}
+
+.actions-cell {
+  white-space: nowrap;
+}
+
+/* ===== Cover Images & Ratings ===== */
+.cover-cell {
+  width: 40px;
+  padding: 0.25rem !important;
+}
+
+.cover-thumbnail {
+  width: 36px;
+  height: 54px;
+  object-fit: cover;
+  border-radius: 2px;
+  border: 1px solid var(--border);
+}
+
+.cover-placeholder {
+  width: 36px;
+  height: 54px;
+  background-color: var(--background);
+  border: 1px dashed var(--border);
+  border-radius: 2px;
+}
+
+.google-rating {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.4rem;
+  background-color: #ffa000;
+  color: #1E1B1C;
+  font-size: 0.7rem;
+  font-weight: 600;
+  border-radius: 3px;
+  vertical-align: middle;
+}
+
+/* Genre badges */
+.badge-genre {
+  background-color: #6a1b9a;
+  color: white;
 }
 
 /* ===== Mobile Book Cards ===== */
@@ -210,6 +263,43 @@
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 1rem;
+}
+
+.book-card-content {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.book-card-cover {
+  width: 60px;
+  height: 90px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.book-card-cover-clickable {
+  cursor: pointer;
+}
+
+.book-card-cover-placeholder {
+  width: 60px;
+  height: 90px;
+  background-color: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  flex-shrink: 0;
+}
+
+.book-card-info {
+  flex: 1;
+  min-width: 0;
 }
 
 .book-card-header {

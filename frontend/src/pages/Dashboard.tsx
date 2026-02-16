@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { bookApi } from '../services/api';
+import BatchEnrichment from '../components/BatchEnrichment';
 import './Dashboard.css';
 
 function Dashboard() {
@@ -107,6 +108,8 @@ function Dashboard() {
           </table>
         </div>
       </div>
+
+      <BatchEnrichment />
     </div>
   );
 }

@@ -36,28 +36,40 @@ This is a full-stack inventory management system for **Secondhand Spooks**, a ho
 - **Database config**: `src/config/database.ts` - PostgreSQL connection
 - **Schema**: `src/config/schema.sql` - Database schema (682 books currently)
 - **Models**: `src/models/Book.ts` - TypeScript interfaces
-- **Services**: `src/services/bookService.ts` - Business logic (CRUD, stats)
-- **Routes**: `src/routes/bookRoutes.ts` - API endpoints
-- **Utilities**: `src/utils/importCsv.ts` - CSV import logic, `src/utils/initDb.ts` - DB initialization and seeding
+- **Services**: `src/services/bookService.ts` - Business logic (CRUD, stats), `src/services/googleBooksService.ts` - Google Books API integration (enrichment, batch processing)
+- **Routes**: `src/routes/bookRoutes.ts` - API endpoints (including enrichment)
+- **Utilities**: `src/utils/importCsv.ts` - CSV import logic, `src/utils/initDb.ts` - DB initialization, seeding, and migrations
 
 ### Frontend (`/frontend`)
 - **Entry point**: `src/main.tsx`
 - **App**: `src/App.tsx` - Routing and layout
 - **Pages**:
   - `src/pages/Dashboard.tsx` - Analytics and stats
-  - `src/pages/Inventory.tsx` - Book browsing and filtering (card view on mobile, table on desktop)
+  - `src/pages/Inventory.tsx` - Book browsing and filtering (card view on mobile, table on desktop, cover images)
+- **Components**: `src/components/BookDetail.tsx` - Book detail popup (enrichment data, custom search), `src/components/BatchEnrichment.tsx` - Google Books batch enrichment panel (on Dashboard)
 - **Hooks**: `src/hooks/useIsMobile.ts` - Responsive breakpoint hook using `matchMedia`
 - **API client**: `src/services/api.ts` - Backend communication
 - **Types**: `src/types/Book.ts` - TypeScript interfaces
 
 ### Database Schema
-Books table with fields:
+
+**`books` table:**
 - Core: book_title, author (first/middle/last/fullname), series, vol_number
 - Physical: cover_type (Paper/Hard/Audiobook), category, condition
 - Purchase: date_purchased, source, seller, order_number
 - Pricing: thriftbooks_price, purchase_price, our_price, profit_est
 - Status: cleaned (boolean), pulled_to_read (boolean)
+- Enrichment FK: google_enrichment_id (references google_books_enrichments)
 - Metadata: id, created_at, updated_at
+
+**`google_books_enrichments` table** (normalized, one row per unique Google Books match):
+- google_books_id (unique), cover_image_url, description, genres (TEXT[])
+- google_rating, google_ratings_count, page_count, publisher, published_date
+- isbn_10, isbn_13, created_at, updated_at
+
+**`books_with_enrichment` view** — JOINs books + enrichments, returns flat columns the frontend expects. Uses COALESCE for future multi-source support (add Hardcover/Open Library later by adding more LEFT JOINs).
+
+Multiple books can share one enrichment row (duplicates don't waste API calls).
 
 ### Infrastructure
 - **Docker Compose**: Orchestrates 3 containers for local dev (postgres, backend, frontend)
@@ -87,6 +99,15 @@ Books table with fields:
 - User: `spooks`
 - Password: `horror_books_2024`
 - Database: `secondhand_spooks`
+
+### Environment Variables
+- `DATABASE_URL` — PostgreSQL connection string (required)
+- `PORT` — API port (default 3001)
+- `NODE_ENV` — 'production' or 'development'
+- `GOOGLE_BOOKS_API_KEY` — Google Books API key (optional, enables enrichment)
+  - Local: Set in `.env` file at project root (read by Docker Compose)
+  - Railway: Set in Railway dashboard as environment variable
+  - If not set, app works normally but enrichment is unavailable
 
 ### Important Paths
 - Seed CSV (in container): `/inventory.csv`
@@ -174,6 +195,7 @@ docker compose ps
 ✅ Quick-toggle cleaned status checkbox
 ✅ Production deployment on Railway (auto-deploys from main)
 ✅ Mobile-responsive design (Issue #5 - closed)
+✅ Google Books API integration (cover images, ratings, descriptions, genres, ISBNs)
 
 ### What's Missing (See GitHub Issues):
 ❌ No sales tracking (Issue #2)
@@ -205,8 +227,18 @@ docker compose ps
 - Keep interface simple and intuitive
 - Mobile-responsive: breakpoints at 768px (mobile) and 1024px (tablet)
 - Inventory uses card layout on mobile via `useIsMobile` hook, table on desktop
+- Cover images are clickable to open BookDetail popup (enrichment data, custom search, edit/enrich actions)
+- Modals use `overflow: hidden` + `min-height: 0` flex pattern to stay within 90vh
 - Use `font-size: 16px` on mobile inputs/selects to prevent iOS Safari auto-zoom
 - Use React Query for data fetching
+
+### Enrichment Architecture
+- Normalized: `google_books_enrichments` table + `books.google_enrichment_id` FK
+- `books_with_enrichment` SQL view returns flat columns (frontend sees same shape as before)
+- `bookService.ts` reads from the view; writes go to `books` table directly
+- Duplicate titles share enrichment rows (0 API calls for duplicates)
+- Custom search supports ISBN, title, and author overrides
+- Future sources: add new table + FK + update view COALESCE (zero changes to existing code)
 
 ## Troubleshooting Common Issues
 

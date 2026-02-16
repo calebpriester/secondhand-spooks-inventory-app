@@ -385,6 +385,7 @@ const BookForm: React.FC<BookFormProps> = ({ book, onSubmit, onCancel }) => {
             </div>
           </div>
         </div>
+
       </div>
 
       <div className="form-footer">

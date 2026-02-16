@@ -19,8 +19,50 @@ export interface Book {
   profit_est?: number | null;
   author_fullname?: string | null;
   pulled_to_read: boolean;
+  google_books_id?: string | null;
+  cover_image_url?: string | null;
+  description?: string | null;
+  genres?: string[] | null;
+  google_rating?: number | null;
+  google_ratings_count?: number | null;
+  page_count?: number | null;
+  publisher?: string | null;
+  published_date?: string | null;
+  isbn_10?: string | null;
+  isbn_13?: string | null;
+  enriched_at?: string | null;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface EnrichmentStatus {
+  configured: boolean;
+  stats: {
+    total_books: string;
+    enriched_count: string;
+    unenriched_count: string;
+    with_cover: string;
+    with_description: string;
+    with_rating: string;
+  } | null;
+}
+
+export interface EnrichmentResult {
+  book_id: number;
+  book_title: string;
+  status: 'success' | 'not_found' | 'error';
+  google_books_id?: string;
+  error?: string;
+}
+
+export interface BatchEnrichmentProgress {
+  total: number;
+  processed: number;
+  succeeded: number;
+  not_found: number;
+  errors: number;
+  is_running: boolean;
+  results: EnrichmentResult[];
 }
 
 export interface BookFilters {

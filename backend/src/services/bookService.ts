@@ -3,7 +3,7 @@ import { Book, BookFilters, BookStats } from '../models/Book';
 
 export class BookService {
   async getAllBooks(filters?: BookFilters): Promise<Book[]> {
-    let sql = 'SELECT * FROM books WHERE 1=1';
+    let sql = 'SELECT * FROM books_with_enrichment WHERE 1=1';
     const params: any[] = [];
     let paramCount = 1;
 
@@ -50,7 +50,7 @@ export class BookService {
   }
 
   async getBookById(id: number): Promise<Book | null> {
-    const result = await query('SELECT * FROM books WHERE id = $1', [id]);
+    const result = await query('SELECT * FROM books_with_enrichment WHERE id = $1', [id]);
     return result.rows[0] || null;
   }
 

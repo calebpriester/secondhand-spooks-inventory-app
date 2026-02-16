@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Book, BookFilters, BookStats } from '../types/Book';
+import { Book, BookFilters, BookStats, EnrichmentStatus, EnrichmentResult, BatchEnrichmentProgress } from '../types/Book';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -44,6 +44,33 @@ export const bookApi = {
 
   getAuthors: async (): Promise<{ first_middle: string; last_name: string; full_name: string }[]> => {
     const { data } = await api.get('/books/authors');
+    return data;
+  },
+
+  // Enrichment
+  getEnrichmentStatus: async (): Promise<EnrichmentStatus> => {
+    const { data } = await api.get('/books/enrichment/status');
+    return data;
+  },
+
+  enrichBook: async (id: number, title?: string, author?: string, isbn?: string): Promise<EnrichmentResult> => {
+    const body = (title || author || isbn) ? { title, author, isbn } : undefined;
+    const { data } = await api.post(`/books/${id}/enrich`, body);
+    return data;
+  },
+
+  startBatchEnrichment: async (limit: number = 3): Promise<{ message: string }> => {
+    const { data } = await api.post('/books/enrichment/batch', { limit });
+    return data;
+  },
+
+  getBatchProgress: async (): Promise<BatchEnrichmentProgress> => {
+    const { data } = await api.get('/books/enrichment/batch/progress');
+    return data;
+  },
+
+  cancelBatchEnrichment: async (): Promise<{ message: string }> => {
+    const { data } = await api.post('/books/enrichment/batch/cancel');
     return data;
   },
 };

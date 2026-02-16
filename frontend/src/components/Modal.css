@@ -21,6 +21,7 @@
   max-height: 90vh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   box-shadow: 0 10px 40px rgba(0, 255, 163, 0.2);
   animation: modalSlideIn 0.3s ease-out;
 }
