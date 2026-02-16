@@ -147,9 +147,10 @@ docker compose ps
 ✅ CSV import from Google Sheets
 ✅ Data persistence across restarts
 ✅ Backup and restore functionality
+✅ Add/edit books through the UI (Issue #1 - closed)
+✅ Quick-toggle cleaned status checkbox
 
 ### What's Missing (See GitHub Issues):
-❌ No UI for adding/editing books (Issue #1)
 ❌ No sales tracking (Issue #2)
 ❌ Many books missing prices (Issue #3)
 ❌ Limited analytics (Issue #4)
@@ -215,7 +216,6 @@ docker compose ps
 6. Reference issue in commit: `git commit -m "Fix #1: Add book edit UI"`
 
 **Current Open Issues:**
-- #1: Add UI for creating/editing books (HIGH PRIORITY)
 - #2: Sales tracking functionality (HIGH PRIORITY)
 - #3: Bulk price management tools (HIGH PRIORITY)
 - #4: Enhanced analytics and reporting (MEDIUM)
