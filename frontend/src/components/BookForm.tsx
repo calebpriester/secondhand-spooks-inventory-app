@@ -49,7 +49,25 @@ const BookForm: React.FC<BookFormProps> = ({ book, onSubmit, onCancel }) => {
     } else if (type === 'number') {
       setFormData(prev => ({ ...prev, [name]: value ? parseFloat(value) : null }));
     } else {
-      setFormData(prev => ({ ...prev, [name]: value || null }));
+      setFormData(prev => {
+        const updated = { ...prev, [name]: value || null };
+
+        // Auto-generate author_fullname when author fields change
+        if (name === 'author_first_middle' || name === 'author_last_name') {
+          const firstName = name === 'author_first_middle' ? value : (prev.author_first_middle || '');
+          const lastName = name === 'author_last_name' ? value : (prev.author_last_name || '');
+
+          if (firstName && lastName) {
+            updated.author_fullname = `${firstName} ${lastName}`;
+          } else if (lastName) {
+            updated.author_fullname = lastName;
+          } else {
+            updated.author_fullname = firstName || null;
+          }
+        }
+
+        return updated;
+      });
     }
   };
 
@@ -85,6 +103,17 @@ const BookForm: React.FC<BookFormProps> = ({ book, onSubmit, onCancel }) => {
 
           <div className="form-row">
             <div className="form-group">
+              <label htmlFor="author_first_middle">Author First/Middle</label>
+              <input
+                type="text"
+                id="author_first_middle"
+                name="author_first_middle"
+                value={formData.author_first_middle || ''}
+                onChange={handleChange}
+                placeholder="e.g., Stephen"
+              />
+            </div>
+            <div className="form-group">
               <label htmlFor="author_last_name">Author Last Name *</label>
               <input
                 type="text"
@@ -93,32 +122,19 @@ const BookForm: React.FC<BookFormProps> = ({ book, onSubmit, onCancel }) => {
                 value={formData.author_last_name || ''}
                 onChange={handleChange}
                 required
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="author_first_middle">Author First/Middle</label>
-              <input
-                type="text"
-                id="author_first_middle"
-                name="author_first_middle"
-                value={formData.author_first_middle || ''}
-                onChange={handleChange}
+                placeholder="e.g., King"
               />
             </div>
           </div>
 
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="author_fullname">Author Full Name</label>
-              <input
-                type="text"
-                id="author_fullname"
-                name="author_fullname"
-                value={formData.author_fullname || ''}
-                onChange={handleChange}
-              />
+          {formData.author_fullname && (
+            <div className="form-row">
+              <div className="form-group">
+                <label className="computed-label">Full Name (auto-generated)</label>
+                <div className="computed-value">{formData.author_fullname}</div>
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="form-row">
             <div className="form-group">

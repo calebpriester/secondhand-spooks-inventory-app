@@ -98,6 +98,20 @@
   cursor: pointer;
 }
 
+.computed-label {
+  color: #999;
+  font-style: italic;
+}
+
+.computed-value {
+  padding: 0.75rem;
+  background-color: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 4px;
+  color: #ff6b35;
+  font-weight: 500;
+}
+
 .form-footer {
   display: flex;
   justify-content: flex-end;
