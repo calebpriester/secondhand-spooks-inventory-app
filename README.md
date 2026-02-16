@@ -26,6 +26,7 @@ This full-stack inventory management system helps track and analyze our horror b
 - **Author Insights**: See top authors and series in the collection
 - **Dark Horror Theme**: Custom-designed UI matching the Secondhand Spooks aesthetic
 - **Mobile Responsive**: Full mobile support with card-based inventory view, stacked filters, and touch-friendly controls
+- **Google Books Integration**: Auto-enrich books with cover images, ratings, descriptions, genres, ISBNs, and more via Google Books API. Batch enrichment tool on Dashboard. Custom search by ISBN/title/author for tricky matches. Duplicates share enrichment data (no wasted API calls). Normalized schema supports adding future enrichment sources (Hardcover, Open Library).
 
 ### Planned Features
 

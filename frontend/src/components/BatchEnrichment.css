@@ -1,0 +1,106 @@
+.enrichment-panel {
+  background-color: var(--surface);
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  margin-top: 2rem;
+}
+
+.enrichment-panel h3 {
+  color: var(--secondary);
+  margin-bottom: 1rem;
+}
+
+.enrichment-warning {
+  color: #ffa000;
+  font-style: italic;
+}
+
+.enrichment-stats {
+  display: flex;
+  gap: 2rem;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.enrichment-progress {
+  margin-bottom: 1rem;
+}
+
+.progress-bar {
+  height: 8px;
+  background-color: var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.progress-fill {
+  height: 100%;
+  background-color: var(--primary);
+  transition: width 0.3s ease;
+  border-radius: 4px;
+}
+
+.progress-text {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.enrichment-results {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+}
+
+.enrichment-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.batch-size-input {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.batch-size-input input {
+  width: 70px;
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background-color: var(--surface);
+  color: var(--text);
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.batch-size-input input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .enrichment-stats {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .enrichment-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .batch-size-input {
+    justify-content: space-between;
+  }
+
+  .batch-size-input input {
+    font-size: 16px;
+  }
+}

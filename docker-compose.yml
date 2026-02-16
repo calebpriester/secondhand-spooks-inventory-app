@@ -26,6 +26,7 @@ services:
       DATABASE_URL: postgresql://spooks:horror_books_2024@postgres:5432/secondhand_spooks
       PORT: 3001
       NODE_ENV: production
+      GOOGLE_BOOKS_API_KEY: ${GOOGLE_BOOKS_API_KEY:-}
     ports:
       - "3001:3001"
     depends_on:
