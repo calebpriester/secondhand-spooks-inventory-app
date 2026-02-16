@@ -24,6 +24,15 @@ This full-stack inventory management system helps track and analyze our horror b
 - **Author Insights**: See top authors and series in the collection
 - **Dark Horror Theme**: Custom-designed UI matching the Secondhand Spooks aesthetic
 
+### Planned Features
+
+See [GitHub Issues](https://github.com/calebpriester/secondhand-spooks-inventory-app/issues) for upcoming features:
+- #1: Add/edit books through the UI
+- #2: Sales tracking and revenue reporting
+- #3: Bulk price management tools
+- #4: Enhanced analytics and insights
+- #5: Mobile-responsive design
+
 ## 🛠 Tech Stack
 
 - **Frontend**: React + TypeScript + Vite
@@ -352,6 +361,32 @@ docker compose logs -f
 # Restart after major changes
 docker compose restart backend frontend
 ```
+
+## 🔮 Future Development
+
+This project is actively developed. See [open issues](https://github.com/calebpriester/secondhand-spooks-inventory-app/issues) for planned features.
+
+### Contributing
+
+When working on new features:
+1. Review the [CLAUDE.md](CLAUDE.md) file for project context
+2. Check relevant GitHub issue for requirements
+3. Create a new branch (never commit to main directly)
+4. Test thoroughly before committing
+5. Update documentation for user-facing changes
+
+### Roadmap Priority
+
+**Phase 1 - Essential Operations** (In Progress)
+- Issue #1: Add/edit books UI
+- Issue #3: Price management tools
+
+**Phase 2 - Business Intelligence**
+- Issue #2: Sales tracking
+- Issue #4: Enhanced analytics
+
+**Phase 3 - User Experience**
+- Issue #5: Mobile responsive design
 
 ## 📄 License
 

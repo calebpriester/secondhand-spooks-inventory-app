@@ -65,6 +65,29 @@ Books table with fields:
   - `docs/DATA_MANAGEMENT.md` - Data persistence guide
   - `data/seed/README.md` - Seed data info
 
+## Quick Reference
+
+### Container Names
+- `ss_postgres` - PostgreSQL database
+- `ss_backend` - Node.js/Express API
+- `ss_frontend` - React/Vite app
+
+### Ports
+- `3000` - Frontend (React app)
+- `3001` - Backend API
+- `5432` - PostgreSQL
+
+### Database Credentials
+- User: `spooks`
+- Password: `horror_books_2024`
+- Database: `secondhand_spooks`
+
+### Important Paths
+- Seed CSV (in container): `/inventory.csv`
+- Seed CSV (on host): `data/seed/inventory.csv`
+- Backups: `data/backups/`
+- Schema: `backend/src/config/schema.sql`
+
 ## Common Development Tasks
 
 ### Starting Work
