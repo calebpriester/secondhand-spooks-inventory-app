@@ -103,14 +103,17 @@ const BookForm: React.FC<BookFormProps> = ({ book, onSubmit, onCancel }) => {
 
           <div className="form-row">
             <div className="form-group">
-              <label htmlFor="author_first_middle">Author First/Middle</label>
+              <label htmlFor="author_first_middle">
+                Author First/Middle
+                <span className="field-hint">Include middle initial if present (e.g., "Dean R.")</span>
+              </label>
               <input
                 type="text"
                 id="author_first_middle"
                 name="author_first_middle"
                 value={formData.author_first_middle || ''}
                 onChange={handleChange}
-                placeholder="e.g., Stephen"
+                placeholder="e.g., Dean R."
               />
             </div>
             <div className="form-group">
@@ -122,7 +125,7 @@ const BookForm: React.FC<BookFormProps> = ({ book, onSubmit, onCancel }) => {
                 value={formData.author_last_name || ''}
                 onChange={handleChange}
                 required
-                placeholder="e.g., King"
+                placeholder="e.g., Koontz"
               />
             </div>
           </div>
