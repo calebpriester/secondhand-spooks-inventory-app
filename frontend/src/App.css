@@ -1,13 +1,13 @@
 :root {
-  --primary: #8b0000;
-  --primary-dark: #5a0000;
-  --secondary: #ff6b35;
-  --background: #1a1a1a;
-  --surface: #2d2d2d;
-  --text: #f0f0f0;
-  --text-secondary: #b0b0b0;
-  --border: #404040;
-  --success: #4caf50;
+  --primary: #00FFA3;
+  --primary-dark: #00cc82;
+  --secondary: #00FFA3;
+  --background: #121010;
+  --surface: #1E1B1C;
+  --text: #e8e8e0;
+  --text-secondary: #a0a098;
+  --border: #3d3839;
+  --success: #00FFA3;
 }
 
 * {
@@ -43,6 +43,21 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-decoration: none;
+}
+
+.nav-logo {
+  height: 80px;
+  width: auto;
+  background-color: #FFFFDC;
+  padding: 6px 10px;
+  border-radius: 6px;
 }
 
 .logo {
@@ -98,7 +113,8 @@ body {
 
 .btn-primary {
   background-color: var(--primary);
-  color: white;
+  color: #1E1B1C;
+  font-weight: 600;
 }
 
 .btn-primary:hover {
