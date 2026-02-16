@@ -258,6 +258,8 @@ ss_inventory_app/
 │   ├── Dockerfile          # Local dev Dockerfile
 │   └── package.json
 ├── frontend/
+│   ├── public/
+│   │   └── logo.png        # Secondhand Spooks logo
 │   ├── src/
 │   │   ├── components/     # React components
 │   │   ├── pages/          # Page components
@@ -287,10 +289,11 @@ ss_inventory_app/
 
 ## 🎨 Customization
 
-The app uses a dark horror-themed design with customizable colors in the CSS files:
-- Primary color (blood red): `#8b0000`
-- Secondary color (orange): `#ff6b35`
-- Background: `#1a1a1a`
+The app uses a dark horror-themed design with official Secondhand Spooks brand colors:
+- Primary accent (Ghostly Foam Green): `#00FFA3`
+- Text (Paper White): `#FFFFDC` (accents), `#e8e8e0` (body)
+- Background (Inky Black): `#121010`
+- Surface: `#1E1B1C`
 
 Edit the CSS variables in [frontend/src/App.css](frontend/src/App.css) to customize.
 

@@ -185,7 +185,7 @@ docker compose ps
 - DECIMAL types return as strings from PostgreSQL (convert with Number())
 
 ### UI/UX
-- Dark horror theme (blood red #8b0000, orange #ff6b35)
+- Dark horror theme (Ghostly Foam Green #00FFA3, Paper White #FFFFDC, Inky Black #1E1B1C)
 - Keep interface simple and intuitive
 - Mobile responsiveness needed (future work)
 - Use React Query for data fetching
@@ -236,6 +236,7 @@ docker compose ps
 - Author: Caleb Priester <calebhpriester@gmail.com>
 - Remote: https://github.com/calebpriester/secondhand-spooks-inventory-app.git
 - Use `gh` CLI for GitHub operations
+- **Before pushing**: Always verify that README.md, CLAUDE.md, and tests are up-to-date with your changes
 
 ## Important Notes
 
@@ -303,7 +304,7 @@ docker exec -it ss_postgres psql -U spooks -d secondhand_spooks
 
 ## Testing Checklist
 
-Before committing new features:
+Before pushing changes:
 - [ ] Backend compiles without errors
 - [ ] Frontend compiles without errors
 - [ ] API endpoints return correct data
@@ -312,6 +313,8 @@ Before committing new features:
 - [ ] No console errors in browser
 - [ ] Data persists after restart
 - [ ] Changes documented in README if user-facing
+- [ ] CLAUDE.md updated if architecture, colors, or workflows changed
+- [ ] Existing tests still pass and are updated if relevant
 
 ## Need Help?
 

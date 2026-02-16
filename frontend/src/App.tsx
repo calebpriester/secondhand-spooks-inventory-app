@@ -13,7 +13,9 @@ function App() {
         <div className="app">
           <nav className="navbar">
             <div className="nav-container">
-              <h1 className="logo">🎃 Secondhand Spooks</h1>
+              <Link to="/" className="nav-brand">
+                <img src="/logo.png" alt="Secondhand Spooks" className="nav-logo" />
+              </Link>
               <div className="nav-links">
                 <Link to="/">Dashboard</Link>
                 <Link to="/inventory">Inventory</Link>
