@@ -84,17 +84,40 @@ export interface BookStats {
   by_category: CategoryBreakdown[];
   by_condition: ConditionBreakdown[];
   top_authors: AuthorBreakdown[];
+  by_genre: GenreBreakdown[];
+  by_decade: DecadeBreakdown[];
+  rating_distribution: RatingBucket[];
 }
 
 export interface CategoryBreakdown {
   category: string;
   count: number;
   total_value: number;
+  percentage: number;
 }
 
 export interface ConditionBreakdown {
   condition: string;
   count: number;
+  percentage: number;
+}
+
+export interface GenreBreakdown {
+  genre: string;
+  count: number;
+  percentage: number;
+}
+
+export interface DecadeBreakdown {
+  decade: string;
+  count: number;
+  percentage: number;
+}
+
+export interface RatingBucket {
+  rating_bucket: string;
+  count: number;
+  avg_rating: number;
 }
 
 export interface AuthorBreakdown {

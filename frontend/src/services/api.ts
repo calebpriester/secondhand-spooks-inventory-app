@@ -32,8 +32,12 @@ export const bookApi = {
     await api.delete(`/books/${id}`);
   },
 
-  getStats: async (): Promise<BookStats> => {
-    const { data } = await api.get('/books/stats');
+  getStats: async (cleaned?: boolean): Promise<BookStats> => {
+    const params: Record<string, string> = {};
+    if (cleaned !== undefined) {
+      params.cleaned = String(cleaned);
+    }
+    const { data } = await api.get('/books/stats', { params });
     return data;
   },
 

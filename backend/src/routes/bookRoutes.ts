@@ -53,7 +53,10 @@ router.get('/authors', async (req: Request, res: Response) => {
 // Get book stats
 router.get('/stats', async (req: Request, res: Response) => {
   try {
-    const stats = await bookService.getStats();
+    const cleaned = req.query.cleaned === 'true' ? true
+                  : req.query.cleaned === 'false' ? false
+                  : undefined;
+    const stats = await bookService.getStats(cleaned);
     res.json(stats);
   } catch (error) {
     console.error('Error fetching stats:', error);
