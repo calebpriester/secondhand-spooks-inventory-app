@@ -91,6 +91,43 @@
   color: var(--success);
 }
 
+/* ===== Sales Stats ===== */
+.sales-stats-grid {
+  margin-top: 0;
+  grid-template-columns: repeat(5, 1fr);
+}
+
+.stat-card-sales {
+  border-color: #E85D04;
+}
+
+.stat-card-sales:hover {
+  border-color: #E85D04;
+  box-shadow: 0 4px 12px rgba(232, 93, 4, 0.15);
+}
+
+.stat-card-sales h3 {
+  color: #E85D04;
+}
+
+.sales-event-breakdown {
+  margin-top: 0;
+  margin-bottom: 2rem;
+}
+
+.breakdown-card-sales {
+  border-color: #E85D04;
+}
+
+.breakdown-card-sales h3 {
+  color: #E85D04;
+}
+
+.profit-cell {
+  color: #00FFA3;
+  font-weight: 500;
+}
+
 /* ===== Charts Section ===== */
 .charts-section {
   display: grid;

@@ -291,6 +291,105 @@
   gap: 0.75rem;
 }
 
+/* === Sold Badge === */
+.badge-sold {
+  background-color: #E85D04;
+  color: white;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+}
+
+/* === Sale Info Section === */
+.book-detail-sale-info {
+  padding-top: 1.5rem;
+  border-top: 1px solid #3d3839;
+  margin-top: 1.5rem;
+}
+
+.book-detail-sale-info h3 {
+  color: #E85D04;
+  font-size: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.meta-value.profit {
+  color: #00FFA3;
+  font-weight: 600;
+}
+
+.view-transaction-link {
+  display: inline-block;
+  margin-top: 0.75rem;
+  color: #E85D04;
+  font-size: 0.85rem;
+  text-decoration: none;
+}
+
+.view-transaction-link:hover {
+  text-decoration: underline;
+}
+
+/* === Sale Form Footer === */
+.sale-form-footer {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.sale-form-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+/* === Mark as Sold Button === */
+.btn-sold {
+  background-color: #E85D04 !important;
+  border-color: #E85D04 !important;
+  color: white !important;
+}
+
+.btn-sold:hover {
+  background-color: #C44E03 !important;
+}
+
+.btn-sold:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* === Payment Toggle === */
+.payment-toggle {
+  display: flex;
+  gap: 0;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid #3d3839;
+}
+
+.payment-btn {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border: none;
+  background-color: #1E1B1C;
+  color: #b8b8a0;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+}
+
+.payment-btn.active {
+  background-color: #00FFA3;
+  color: #1E1B1C;
+  font-weight: 600;
+}
+
+.payment-btn:hover:not(.active) {
+  background-color: #2a2627;
+}
+
 /* Mobile */
 @media (max-width: 768px) {
   .book-detail-header {
@@ -341,10 +440,6 @@
     flex-wrap: wrap;
   }
 
-  .book-detail-footer:not(.custom-search-footer) {
-    flex-direction: column-reverse;
-  }
-
   .book-detail-footer .btn {
     width: 100%;
     text-align: center;
@@ -357,5 +452,19 @@
   .custom-search-field input {
     font-size: 16px;
     padding: 0.85rem;
+  }
+
+  .payment-btn {
+    font-size: 16px;
+    padding: 0.75rem;
+    min-height: 44px;
+  }
+
+  .book-detail-footer:not(.custom-search-footer):not(.sale-form-footer) {
+    flex-direction: column-reverse;
+  }
+
+  .sale-form-footer {
+    flex-direction: column;
   }
 }

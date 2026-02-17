@@ -94,6 +94,63 @@ function Dashboard() {
         </div>
       </div>
 
+      {stats.sales && stats.sales.books_sold > 0 && (
+        <>
+          <div className="stats-grid sales-stats-grid">
+            <div className="stat-card stat-card-sales">
+              <h3>Books Sold</h3>
+              <p className="stat-value">{stats.sales.books_sold}</p>
+            </div>
+            <div className="stat-card stat-card-sales">
+              <h3>Transactions</h3>
+              <p className="stat-value">{stats.sales.transaction_count}</p>
+            </div>
+            <div className="stat-card stat-card-sales">
+              <h3>Total Revenue</h3>
+              <p className="stat-value">${stats.sales.total_revenue.toFixed(2)}</p>
+            </div>
+            <div className="stat-card stat-card-sales">
+              <h3>Actual Profit</h3>
+              <p className="stat-value profit">${stats.sales.actual_profit.toFixed(2)}</p>
+            </div>
+            <div className="stat-card stat-card-sales">
+              <h3>Avg Sale Price</h3>
+              <p className="stat-value">
+                ${(stats.sales.total_revenue / stats.sales.books_sold).toFixed(2)}
+              </p>
+            </div>
+          </div>
+
+          {stats.sales.by_event.length > 0 && (
+            <div className="breakdown-section sales-event-breakdown">
+              <div className="breakdown-card breakdown-card-sales">
+                <h3>Sales by Event</h3>
+                <table className="breakdown-table">
+                  <thead>
+                    <tr>
+                      <th>Event</th>
+                      <th>Sold</th>
+                      <th>Revenue</th>
+                      <th>Profit</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stats.sales.by_event.map((ev) => (
+                      <tr key={ev.event}>
+                        <td>{ev.event}</td>
+                        <td>{ev.count}</td>
+                        <td>${ev.revenue.toFixed(2)}</td>
+                        <td className="profit-cell">${ev.profit.toFixed(2)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
       <div className="charts-section">
         {/* Category Pie Chart */}
         {stats.by_category.length > 0 && (

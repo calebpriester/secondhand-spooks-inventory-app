@@ -1,5 +1,5 @@
 import { query } from '../config/database';
-import { Book, BookFilters, BookStats } from '../models/Book';
+import { Book, BookFilters, BookStats, BulkSaleRequest, UpdateTransactionRequest, Transaction } from '../models/Book';
 
 export class BookService {
   async getAllBooks(filters?: BookFilters): Promise<Book[]> {
@@ -48,6 +48,22 @@ export class BookService {
       if (filters.pacing) {
         sql += ` AND pacing = $${paramCount++}`;
         params.push(filters.pacing);
+      }
+      if (filters.sold !== undefined) {
+        sql += ` AND sold = $${paramCount++}`;
+        params.push(filters.sold);
+      }
+      if (filters.sale_event) {
+        sql += ` AND sale_event = $${paramCount++}`;
+        params.push(filters.sale_event);
+      }
+      if (filters.date_sold) {
+        sql += ` AND date_sold = $${paramCount++}`;
+        params.push(filters.date_sold);
+      }
+      if (filters.sale_transaction_id) {
+        sql += ` AND sale_transaction_id = $${paramCount++}`;
+        params.push(filters.sale_transaction_id);
       }
     }
 
@@ -107,6 +123,7 @@ export class BookService {
       'date_purchased', 'source', 'seller', 'order_number',
       'thriftbooks_price', 'purchase_price', 'our_price', 'profit_est',
       'author_fullname', 'pulled_to_read', 'subgenres', 'pacing', 'google_enrichment_id',
+      'sold', 'date_sold', 'sold_price', 'sale_event', 'sale_transaction_id', 'payment_method',
     ]);
 
     const fields: string[] = [];
@@ -163,6 +180,156 @@ export class BookService {
       last_name: row.author_last_name,
       full_name: row.author_fullname,
     }));
+  }
+
+  async getUniqueSaleEvents(): Promise<string[]> {
+    const result = await query(`
+      SELECT DISTINCT sale_event
+      FROM books
+      WHERE sale_event IS NOT NULL AND sale_event <> ''
+      ORDER BY sale_event
+    `);
+    return result.rows.map(row => row.sale_event);
+  }
+
+  async markBulkSold(request: BulkSaleRequest): Promise<Book[]> {
+    const results: Book[] = [];
+    for (const item of request.items) {
+      const result = await query(
+        `UPDATE books SET sold = true, sold_price = $1, date_sold = $2, sale_event = $3,
+         sale_transaction_id = $4, payment_method = $5
+         WHERE id = $6 RETURNING *`,
+        [
+          item.sold_price,
+          request.date_sold,
+          request.sale_event || null,
+          request.sale_transaction_id,
+          request.payment_method,
+          item.book_id,
+        ]
+      );
+      if (result.rows[0]) {
+        results.push(result.rows[0]);
+      }
+    }
+    return results;
+  }
+
+  async revertTransaction(saleTransactionId: string): Promise<number> {
+    const result = await query(
+      `UPDATE books SET sold = false, sold_price = NULL, date_sold = NULL,
+       sale_event = NULL, sale_transaction_id = NULL, payment_method = NULL
+       WHERE sale_transaction_id = $1 RETURNING id`,
+      [saleTransactionId]
+    );
+    return result.rowCount || 0;
+  }
+
+  async updateTransaction(request: UpdateTransactionRequest): Promise<number> {
+    // Update shared fields on all books in the transaction
+    const sharedFields: string[] = [];
+    const sharedParams: any[] = [];
+    let paramCount = 1;
+
+    if (request.date_sold !== undefined) {
+      sharedFields.push(`date_sold = $${paramCount++}`);
+      sharedParams.push(request.date_sold);
+    }
+    if (request.sale_event !== undefined) {
+      sharedFields.push(`sale_event = $${paramCount++}`);
+      sharedParams.push(request.sale_event);
+    }
+    if (request.payment_method !== undefined) {
+      sharedFields.push(`payment_method = $${paramCount++}`);
+      sharedParams.push(request.payment_method);
+    }
+
+    if (sharedFields.length > 0) {
+      sharedParams.push(request.sale_transaction_id);
+      await query(
+        `UPDATE books SET ${sharedFields.join(', ')} WHERE sale_transaction_id = $${paramCount}`,
+        sharedParams
+      );
+    }
+
+    // Update per-book sold_price
+    if (request.items && request.items.length > 0) {
+      for (const item of request.items) {
+        await query(
+          'UPDATE books SET sold_price = $1 WHERE id = $2 AND sale_transaction_id = $3',
+          [item.sold_price, item.book_id, request.sale_transaction_id]
+        );
+      }
+    }
+
+    const countResult = await query(
+      'SELECT COUNT(*) as count FROM books WHERE sale_transaction_id = $1',
+      [request.sale_transaction_id]
+    );
+    return parseInt(countResult.rows[0].count);
+  }
+
+  async getTransactions(filters?: { sale_event?: string; date_sold?: string; payment_method?: string }): Promise<Transaction[]> {
+    let sql = `
+      SELECT
+        sale_transaction_id, date_sold, sale_event, payment_method,
+        id, book_title, author_fullname, sold_price, purchase_price, cover_image_url
+      FROM books_with_enrichment
+      WHERE sold = true AND sale_transaction_id IS NOT NULL
+    `;
+    const params: any[] = [];
+    let paramCount = 1;
+
+    if (filters?.sale_event) {
+      sql += ` AND sale_event = $${paramCount++}`;
+      params.push(filters.sale_event);
+    }
+    if (filters?.date_sold) {
+      sql += ` AND date_sold = $${paramCount++}`;
+      params.push(filters.date_sold);
+    }
+    if (filters?.payment_method) {
+      sql += ` AND payment_method = $${paramCount++}`;
+      params.push(filters.payment_method);
+    }
+
+    sql += ' ORDER BY date_sold DESC, sale_transaction_id, book_title ASC';
+
+    const result = await query(sql, params);
+
+    // Group rows by transaction ID
+    const transactionMap = new Map<string, Transaction>();
+    for (const row of result.rows) {
+      const txId = row.sale_transaction_id;
+      if (!transactionMap.has(txId)) {
+        transactionMap.set(txId, {
+          sale_transaction_id: txId,
+          date_sold: row.date_sold,
+          sale_event: row.sale_event,
+          payment_method: row.payment_method,
+          book_count: 0,
+          total_revenue: 0,
+          total_profit: 0,
+          books: [],
+        });
+      }
+      const tx = transactionMap.get(txId)!;
+      const soldPrice = parseFloat(row.sold_price) || 0;
+      const purchasePrice = parseFloat(row.purchase_price) || 0;
+      tx.book_count++;
+      tx.total_revenue += soldPrice;
+      tx.total_profit += soldPrice - purchasePrice;
+      tx.books.push({
+        id: row.id,
+        book_title: row.book_title,
+        author_fullname: row.author_fullname,
+        sold_price: soldPrice,
+        purchase_price: row.purchase_price ? purchasePrice : null,
+        cover_image_url: row.cover_image_url || null,
+      });
+    }
+
+    return Array.from(transactionMap.values());
   }
 
   async getStats(cleaned?: boolean): Promise<BookStats> {
@@ -284,6 +451,28 @@ export class BookService {
       ORDER BY sort_order ASC
     `, params);
 
+    const salesQuery = await query(`
+      SELECT
+        COUNT(*) as books_sold,
+        COALESCE(SUM(sold_price), 0) as total_revenue,
+        COALESCE(SUM(sold_price - purchase_price), 0) as actual_profit,
+        COUNT(DISTINCT sale_transaction_id) as transaction_count
+      FROM books_with_enrichment
+      WHERE sold = true AND ${cleanedWhere}
+    `, params);
+
+    const salesByEventQuery = await query(`
+      SELECT
+        COALESCE(sale_event, 'No Event') as event,
+        COUNT(*) as count,
+        COALESCE(SUM(sold_price), 0) as revenue,
+        COALESCE(SUM(sold_price - purchase_price), 0) as profit
+      FROM books_with_enrichment
+      WHERE sold = true AND ${cleanedWhere}
+      GROUP BY sale_event
+      ORDER BY count DESC
+    `, params);
+
     return {
       total_books: parseInt(totalQuery.rows[0].total_books),
       total_value: parseFloat(totalQuery.rows[0].total_value),
@@ -325,6 +514,18 @@ export class BookService {
         count: parseInt(row.count),
         avg_rating: parseFloat(row.avg_rating),
       })),
+      sales: {
+        books_sold: parseInt(salesQuery.rows[0].books_sold),
+        total_revenue: parseFloat(salesQuery.rows[0].total_revenue),
+        actual_profit: parseFloat(salesQuery.rows[0].actual_profit),
+        transaction_count: parseInt(salesQuery.rows[0].transaction_count),
+        by_event: salesByEventQuery.rows.map(row => ({
+          event: row.event,
+          count: parseInt(row.count),
+          revenue: parseFloat(row.revenue),
+          profit: parseFloat(row.profit),
+        })),
+      },
     };
   }
 }

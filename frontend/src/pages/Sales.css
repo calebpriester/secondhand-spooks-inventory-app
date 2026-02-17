@@ -1,0 +1,481 @@
+.sales-page {
+  padding: 1rem;
+}
+
+.sales-header {
+  margin-bottom: 1.5rem;
+}
+
+.sales-header h2 {
+  color: #E85D04;
+  font-size: 2rem;
+}
+
+/* ===== Summary Bar ===== */
+.sales-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.sales-summary-card {
+  background-color: var(--surface);
+  border: 1px solid #E85D04;
+  border-radius: 8px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.sales-summary-label {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sales-summary-value {
+  color: var(--text);
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+
+.sales-summary-value.profit {
+  color: #00FFA3;
+}
+
+/* ===== Filters ===== */
+.sales-filters {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+}
+
+.filter-input {
+  padding: 0.75rem;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
+.filter-input:focus {
+  outline: none;
+  border-color: #E85D04;
+}
+
+/* ===== Empty State ===== */
+.sales-empty {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: var(--text-secondary);
+}
+
+.sales-empty p {
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+}
+
+.sales-empty-hint {
+  font-size: 0.9rem;
+  opacity: 0.7;
+}
+
+/* ===== Transaction List ===== */
+.transactions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.transaction-card {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.transaction-summary {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.transaction-summary:hover {
+  background-color: rgba(232, 93, 4, 0.05);
+}
+
+/* ===== Cover Thumbnail Strip ===== */
+.transaction-covers {
+  display: flex;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.transaction-cover-thumb {
+  width: 32px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 2px;
+  border: 1px solid var(--border);
+}
+
+.transaction-cover-placeholder {
+  width: 32px;
+  height: 48px;
+  background-color: var(--background);
+  border: 1px dashed var(--border);
+  border-radius: 2px;
+}
+
+.transaction-cover-more {
+  width: 32px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+/* ===== Transaction Info ===== */
+.transaction-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.transaction-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.25rem;
+}
+
+.transaction-date {
+  color: var(--text);
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+.transaction-event-badge {
+  background-color: rgba(232, 93, 4, 0.15);
+  color: #E85D04;
+  border: 1px solid rgba(232, 93, 4, 0.3);
+  padding: 0.1rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.transaction-payment-badge {
+  padding: 0.1rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.payment-cash {
+  background-color: rgba(0, 255, 163, 0.15);
+  color: #00FFA3;
+  border: 1px solid rgba(0, 255, 163, 0.3);
+}
+
+.payment-card {
+  background-color: rgba(103, 232, 249, 0.15);
+  color: #67E8F9;
+  border: 1px solid rgba(103, 232, 249, 0.3);
+}
+
+.transaction-stats {
+  display: flex;
+  gap: 1rem;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.transaction-revenue {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.transaction-profit {
+  color: #00FFA3;
+  font-weight: 500;
+}
+
+.transaction-expand-icon {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+
+.transaction-expand-icon.expanded {
+  transform: rotate(180deg);
+}
+
+/* ===== Transaction Details (Expanded) ===== */
+.transaction-details {
+  border-top: 1px solid var(--border);
+  padding: 0.5rem 1rem;
+}
+
+.transaction-book-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(61, 56, 57, 0.5);
+}
+
+.transaction-book-row:last-child {
+  border-bottom: none;
+}
+
+.transaction-book-cover {
+  width: 28px;
+  height: 42px;
+  object-fit: cover;
+  border-radius: 2px;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.transaction-book-cover-placeholder {
+  width: 28px;
+  height: 42px;
+  background-color: var(--background);
+  border: 1px dashed var(--border);
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.transaction-book-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.transaction-book-title {
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.transaction-book-author {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+}
+
+.transaction-book-price {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex-shrink: 0;
+}
+
+.transaction-book-sold {
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.transaction-book-profit {
+  color: #00FFA3;
+  font-size: 0.75rem;
+}
+
+/* ===== Transaction Edit Mode ===== */
+.transaction-card-editing {
+  border-color: #00FFA3;
+}
+
+.transaction-edit-shared {
+  padding-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.transaction-edit-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.transaction-edit-field label {
+  display: block;
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.15rem;
+}
+
+.transaction-edit-field input,
+.transaction-edit-field select {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background-color: #1E1B1C;
+  color: var(--text);
+  font-size: 0.9rem;
+  box-sizing: border-box;
+}
+
+.transaction-edit-field input:focus,
+.transaction-edit-field select:focus {
+  outline: none;
+  border-color: #00FFA3;
+}
+
+.transaction-edit-price {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.transaction-edit-price .price-prefix {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.transaction-edit-price input {
+  width: 80px;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background-color: #1E1B1C;
+  color: var(--text);
+  font-size: 0.9rem;
+  text-align: right;
+}
+
+.transaction-edit-price input:focus {
+  outline: none;
+  border-color: #00FFA3;
+}
+
+.transaction-edit-total {
+  text-align: right;
+  color: var(--text);
+  font-size: 0.95rem;
+  padding: 0.5rem 0;
+}
+
+.transaction-edit-total strong {
+  color: #00FFA3;
+}
+
+.transaction-actions .btn-primary {
+  background-color: #00FFA3;
+  border: none;
+  color: #1E1B1C;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.transaction-actions .btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ===== Transaction Actions ===== */
+.transaction-actions {
+  gap: 0.5rem;
+  display: flex;
+  justify-content: flex-end;
+  padding: 0.75rem 0 0.25rem;
+  border-top: 1px solid var(--border);
+  margin-top: 0.5rem;
+}
+
+.btn-revert {
+  padding: 0.5rem 1rem;
+  border: 1px solid #E85D04;
+  border-radius: 4px;
+  background: none;
+  color: #E85D04;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.btn-revert:hover {
+  background-color: rgba(232, 93, 4, 0.1);
+}
+
+.btn-revert:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ===== Mobile ===== */
+@media (max-width: 768px) {
+  .sales-header h2 {
+    font-size: 1.4rem;
+  }
+
+  .sales-summary {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .sales-filters {
+    flex-direction: column;
+  }
+
+  .filter-input {
+    width: 100%;
+    font-size: 16px;
+  }
+
+  .sales-filters .filter-select {
+    width: 100%;
+    font-size: 16px;
+  }
+
+  .transaction-summary {
+    padding: 0.75rem;
+  }
+
+  .transaction-stats {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .transaction-edit-row {
+    grid-template-columns: 1fr;
+  }
+
+  .transaction-edit-field input,
+  .transaction-edit-field select {
+    font-size: 16px;
+    padding: 0.85rem;
+  }
+
+  .transaction-edit-price input {
+    font-size: 16px;
+    width: 90px;
+    padding: 0.65rem 0.5rem;
+  }
+}

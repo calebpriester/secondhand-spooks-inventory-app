@@ -1,5 +1,7 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Book } from '../types/Book';
+import Autocomplete from './Autocomplete';
 import './BookDetail.css';
 
 interface BookDetailProps {
@@ -10,13 +12,22 @@ interface BookDetailProps {
   isEnriching: boolean;
   onTagSubgenres: (bookId: number) => void;
   isTagging: boolean;
+  onMarkSold?: (bookId: number, saleData: { sold_price: number; date_sold: string; sale_event?: string; payment_method: 'Cash' | 'Card'; sale_transaction_id: string }) => void;
+  isMarkingSold?: boolean;
+  saleEvents?: string[];
+  onMarkAvailable?: (bookId: number) => void;
 }
 
-const BookDetail: React.FC<BookDetailProps> = ({ book, onClose, onEdit, onEnrich, isEnriching, onTagSubgenres, isTagging }) => {
+const BookDetail: React.FC<BookDetailProps> = ({ book, onClose, onEdit, onEnrich, isEnriching, onTagSubgenres, isTagging, onMarkSold, isMarkingSold, saleEvents = [], onMarkAvailable }) => {
   const [showCustomSearch, setShowCustomSearch] = useState(false);
+  const [showSaleForm, setShowSaleForm] = useState(false);
   const [customTitle, setCustomTitle] = useState(book.book_title);
   const [customAuthor, setCustomAuthor] = useState(book.author_fullname || '');
   const [customIsbn, setCustomIsbn] = useState('');
+  const [salePrice, setSalePrice] = useState(book.our_price ? String(Number(book.our_price).toFixed(2)) : '');
+  const [saleDate, setSaleDate] = useState(new Date().toISOString().split('T')[0]);
+  const [saleEvent, setSaleEvent] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<'Cash' | 'Card'>('Cash');
 
   const handleEnrich = () => {
     if (book.id && window.confirm(
@@ -81,6 +92,9 @@ const BookDetail: React.FC<BookDetailProps> = ({ book, onClose, onEdit, onEnrich
               )}
               {book.pacing && (
                 <span className="badge badge-pacing">{book.pacing}</span>
+              )}
+              {book.sold && (
+                <span className="badge badge-sold">SOLD</span>
               )}
             </div>
 
@@ -177,9 +191,138 @@ const BookDetail: React.FC<BookDetailProps> = ({ book, onClose, onEdit, onEnrich
           </div>
         </div>
 
+        {book.sold && (
+          <div className="book-detail-sale-info">
+            <h3>Sale Information</h3>
+            <div className="pricing-grid">
+              <div className="pricing-item">
+                <span className="meta-label">Sold Price</span>
+                <span className="meta-value">{book.sold_price ? `$${Number(book.sold_price).toFixed(2)}` : 'N/A'}</span>
+              </div>
+              <div className="pricing-item">
+                <span className="meta-label">Date Sold</span>
+                <span className="meta-value">{book.date_sold ? String(book.date_sold).split('T')[0] : 'N/A'}</span>
+              </div>
+              <div className="pricing-item">
+                <span className="meta-label">Actual Profit</span>
+                <span className="meta-value profit">
+                  {book.sold_price && book.purchase_price
+                    ? `$${(Number(book.sold_price) - Number(book.purchase_price)).toFixed(2)}`
+                    : 'N/A'}
+                </span>
+              </div>
+              {book.payment_method && (
+                <div className="pricing-item">
+                  <span className="meta-label">Payment</span>
+                  <span className="meta-value">{book.payment_method}</span>
+                </div>
+              )}
+              {book.sale_event && (
+                <div className="pricing-item">
+                  <span className="meta-label">Event</span>
+                  <span className="meta-value">{book.sale_event}</span>
+                </div>
+              )}
+            </div>
+            {book.sale_transaction_id && (
+              <Link
+                to={`/sales?tx=${book.sale_transaction_id}`}
+                className="view-transaction-link"
+                onClick={onClose}
+              >
+                View Transaction
+              </Link>
+            )}
+          </div>
+        )}
+
       </div>
 
-      {showCustomSearch ? (
+      {showSaleForm ? (
+        <div className="book-detail-footer sale-form-footer">
+          <div className="sale-form-fields">
+            <div className="custom-search-row">
+              <div className="custom-search-field">
+                <label>Sale Price *</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={salePrice}
+                  onChange={(e) => setSalePrice(e.target.value)}
+                  placeholder="0.00"
+                />
+              </div>
+              <div className="custom-search-field">
+                <label>Date Sold</label>
+                <input
+                  type="date"
+                  value={saleDate}
+                  onChange={(e) => setSaleDate(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="custom-search-row">
+              <div className="custom-search-field">
+                <label>Event (optional)</label>
+                <Autocomplete
+                  id="sale_event"
+                  name="sale_event"
+                  value={saleEvent}
+                  onChange={(e) => setSaleEvent(e.target.value)}
+                  suggestions={saleEvents}
+                  placeholder="e.g., Mad Monster Party 2026"
+                />
+              </div>
+              <div className="custom-search-field">
+                <label>Payment</label>
+                <div className="payment-toggle">
+                  <button
+                    type="button"
+                    className={`payment-btn ${paymentMethod === 'Cash' ? 'active' : ''}`}
+                    onClick={() => setPaymentMethod('Cash')}
+                  >
+                    Cash
+                  </button>
+                  <button
+                    type="button"
+                    className={`payment-btn ${paymentMethod === 'Card' ? 'active' : ''}`}
+                    onClick={() => setPaymentMethod('Card')}
+                  >
+                    Card
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="custom-search-actions">
+            <button
+              className="btn btn-sold"
+              onClick={() => {
+                if (book.id && salePrice && onMarkSold) {
+                  onMarkSold(book.id, {
+                    sold_price: parseFloat(salePrice),
+                    date_sold: saleDate,
+                    sale_event: saleEvent || undefined,
+                    payment_method: paymentMethod,
+                    sale_transaction_id: crypto.randomUUID(),
+                  });
+                  setShowSaleForm(false);
+                }
+              }}
+              disabled={isMarkingSold || !salePrice}
+            >
+              {isMarkingSold ? 'Saving...' : 'Confirm Sale'}
+            </button>
+            <button
+              className="btn btn-secondary"
+              onClick={() => setShowSaleForm(false)}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : showCustomSearch ? (
         <div className="book-detail-footer custom-search-footer">
           <div className="custom-search-fields">
             <div className="custom-search-field">
@@ -230,6 +373,27 @@ const BookDetail: React.FC<BookDetailProps> = ({ book, onClose, onEdit, onEnrich
         </div>
       ) : (
         <div className="book-detail-footer">
+          {!book.sold && onMarkSold && (
+            <button
+              className="btn btn-sold"
+              onClick={() => setShowSaleForm(true)}
+              disabled={!book.id}
+            >
+              Mark as Sold
+            </button>
+          )}
+          {book.sold && onMarkAvailable && (
+            <button
+              className="btn btn-secondary"
+              onClick={() => {
+                if (book.id && window.confirm('Mark this book as available again? Sale data will be cleared.')) {
+                  onMarkAvailable(book.id);
+                }
+              }}
+            >
+              Mark Available
+            </button>
+          )}
           <button
             className="btn btn-secondary"
             onClick={handleEnrich}

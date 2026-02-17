@@ -49,6 +49,12 @@ CREATE TABLE IF NOT EXISTS books (
   pulled_to_read BOOLEAN DEFAULT FALSE,
   subgenres TEXT[],
   pacing VARCHAR(20),
+  sold BOOLEAN DEFAULT FALSE,
+  date_sold DATE,
+  sold_price DECIMAL(10, 2),
+  sale_event VARCHAR(200),
+  sale_transaction_id VARCHAR(50),
+  payment_method VARCHAR(10),
   google_enrichment_id INTEGER REFERENCES google_books_enrichments(id),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -61,6 +67,9 @@ CREATE INDEX IF NOT EXISTS idx_books_condition ON books(condition);
 CREATE INDEX IF NOT EXISTS idx_books_date_purchased ON books(date_purchased);
 CREATE INDEX IF NOT EXISTS idx_books_source ON books(source);
 CREATE INDEX IF NOT EXISTS idx_books_book_series ON books(book_series);
+
+-- Note: idx_books_sold and idx_books_sale_transaction_id are created by runMigrations() in initDb.ts
+-- (handles both fresh and existing databases safely, after columns are ensured)
 
 -- Note: idx_books_subgenres GIN index is created by runMigrations() in initDb.ts
 -- (handles both fresh and existing databases safely, after column is ensured)

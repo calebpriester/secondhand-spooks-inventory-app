@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Book, BookFilters, BookStats, EnrichmentStatus, EnrichmentResult, BatchEnrichmentProgress, SubgenreOption, GeminiTagResult, GeminiBatchProgress, GeminiTaggingStatus } from '../types/Book';
+import { Book, BookFilters, BookStats, EnrichmentStatus, EnrichmentResult, BatchEnrichmentProgress, SubgenreOption, GeminiTagResult, GeminiBatchProgress, GeminiTaggingStatus, BulkSaleRequest, UpdateTransactionRequest, Transaction } from '../types/Book';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -101,6 +101,32 @@ export const bookApi = {
 
   cancelBatchTagging: async (): Promise<{ message: string }> => {
     const { data } = await api.post('/books/enrichment/gemini/batch/cancel');
+    return data;
+  },
+
+  // Sales
+  getSaleEvents: async (): Promise<string[]> => {
+    const { data } = await api.get('/books/sale-events');
+    return data;
+  },
+
+  bulkMarkSold: async (request: BulkSaleRequest): Promise<Book[]> => {
+    const { data } = await api.post('/books/bulk-sale', request);
+    return data;
+  },
+
+  updateTransaction: async (request: UpdateTransactionRequest): Promise<{ message: string; count: number }> => {
+    const { data } = await api.post('/books/update-transaction', request);
+    return data;
+  },
+
+  revertTransaction: async (saleTransactionId: string): Promise<{ message: string; count: number }> => {
+    const { data } = await api.post('/books/revert-transaction', { sale_transaction_id: saleTransactionId });
+    return data;
+  },
+
+  getTransactions: async (filters?: { sale_event?: string; date_sold?: string; payment_method?: string }): Promise<Transaction[]> => {
+    const { data } = await api.get('/books/transactions', { params: filters });
     return data;
   },
 };

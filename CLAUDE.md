@@ -36,7 +36,7 @@ This is a full-stack inventory management system for **Secondhand Spooks**, a ho
 - **Database config**: `src/config/database.ts` - PostgreSQL connection
 - **Schema**: `src/config/schema.sql` - Database schema (682 books currently)
 - **Models**: `src/models/Book.ts` - TypeScript interfaces
-- **Services**: `src/services/bookService.ts` - Business logic (CRUD, stats), `src/services/googleBooksService.ts` - Google Books API integration (enrichment, batch processing), `src/services/geminiService.ts` - Gemini 2.0 Flash integration (sub-genre tagging, pacing, batch processing)
+- **Services**: `src/services/bookService.ts` - Business logic (CRUD, stats, sales tracking, bulk sales, transactions), `src/services/googleBooksService.ts` - Google Books API integration (enrichment, batch processing), `src/services/geminiService.ts` - Gemini 2.0 Flash integration (sub-genre tagging, pacing, batch processing)
 - **Routes**: `src/routes/bookRoutes.ts` - API endpoints (including enrichment + Gemini tagging), `src/routes/subgenreRoutes.ts` - Sub-genre options CRUD
 - **Utilities**: `src/utils/importCsv.ts` - CSV import logic, `src/utils/initDb.ts` - DB initialization, seeding, and migrations
 
@@ -44,9 +44,10 @@ This is a full-stack inventory management system for **Secondhand Spooks**, a ho
 - **Entry point**: `src/main.tsx`
 - **App**: `src/App.tsx` - Routing and layout
 - **Pages**:
-  - `src/pages/Dashboard.tsx` - Analytics and stats
-  - `src/pages/Inventory.tsx` - Book browsing and filtering (card view on mobile, table on desktop, cover images)
-- **Components**: `src/components/BookDetail.tsx` - Book detail popup (enrichment data, custom search, sub-genre tags), `src/components/BatchEnrichment.tsx` - Google Books batch enrichment panel (on Dashboard), `src/components/GeminiEnrichment.tsx` - Gemini sub-genre tagging panel (on Dashboard, includes sub-genre management CRUD)
+  - `src/pages/Dashboard.tsx` - Analytics and stats (including sales stats)
+  - `src/pages/Inventory.tsx` - Book browsing and filtering (card view on mobile, table on desktop, cover images, checkbox selection for bulk sales)
+  - `src/pages/Sales.tsx` + `Sales.css` - Transaction-centric sales history (expandable transactions with cover thumbnails, filters by event/date/payment, inline edit mode, transaction revert)
+- **Components**: `src/components/BookDetail.tsx` - Book detail popup (enrichment data, custom search, sub-genre tags, mark as sold with inline form, sale details, "View Transaction" link), `src/components/BulkSaleModal.tsx` + `BulkSaleModal.css` - Bulk sale form (per-book prices, shared event/date/payment), `src/components/BatchEnrichment.tsx` - Google Books batch enrichment panel (on Dashboard), `src/components/GeminiEnrichment.tsx` - Gemini sub-genre tagging panel (on Dashboard, includes sub-genre management CRUD)
 - **Hooks**: `src/hooks/useIsMobile.ts` - Responsive breakpoint hook using `matchMedia`
 - **API client**: `src/services/api.ts` - Backend communication
 - **Types**: `src/types/Book.ts` - TypeScript interfaces
@@ -60,6 +61,7 @@ This is a full-stack inventory management system for **Secondhand Spooks**, a ho
 - Pricing: thriftbooks_price, purchase_price, our_price, profit_est
 - Status: cleaned (boolean), pulled_to_read (boolean)
 - Gemini tags: subgenres (TEXT[]), pacing (VARCHAR — Slow Burn/Moderate/Fast-Paced)
+- Sales: sold (boolean), date_sold (date), sold_price (decimal), sale_event (varchar), sale_transaction_id (varchar), payment_method (varchar — Cash/Card)
 - Enrichment FK: google_enrichment_id (references google_books_enrichments)
 - Metadata: id, created_at, updated_at
 
@@ -150,7 +152,8 @@ docker compose logs -f
 **Database changes:**
 - Update `backend/src/config/schema.sql`
 - Requires fresh start: `./scripts/fresh-start.sh`
-- **IMPORTANT: schema.sql vs initDb.ts migrations** — `schema.sql` uses `CREATE TABLE IF NOT EXISTS`, so adding new columns/indexes to the table definition ONLY affects fresh databases. For existing databases, new columns and indexes MUST be added via `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` and `CREATE INDEX IF NOT EXISTS` in `runMigrations()` in `initDb.ts`. Never add indexes to `schema.sql` for columns that are only added via migration — the index will fail on existing databases where the column doesn't yet exist. Always put new column additions AND their indexes in the migration block BEFORE the view drop/recreate.
+- **IMPORTANT: schema.sql vs initDb.ts migrations** — `schema.sql` uses `CREATE TABLE IF NOT EXISTS`, so adding new columns to the table definition ONLY affects fresh databases. For existing databases, new columns MUST be added via `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` in `runMigrations()` in `initDb.ts`. Always put new column additions AND their indexes in the migration block BEFORE the view drop/recreate.
+- **CRITICAL: Never add `CREATE INDEX` to `schema.sql` for columns that are added via migration.** On existing databases, `schema.sql` runs BEFORE `runMigrations()`, so the index statement will reference a column that doesn't exist yet and the app will crash with error code 42703. Instead, add both the column AND its index in `runMigrations()` only. In `schema.sql`, add a comment pointing to the migration (e.g., `-- Note: idx_books_sold created by runMigrations()`). Only add indexes to `schema.sql` for columns that are part of the original `CREATE TABLE` definition (like `author_fullname`, `category`, etc.).
 
 ### Testing
 ```bash
@@ -205,9 +208,9 @@ docker compose ps
 ✅ Mobile-responsive design (Issue #5 - closed)
 ✅ Google Books API integration (cover images, ratings, descriptions, genres, ISBNs)
 ✅ Gemini 2.0 Flash integration (sub-genre tagging, pacing classification, batch processing, configurable sub-genre list)
+✅ Sales tracking (Issue #2): single-book mark-as-sold (inline form in BookDetail), bulk sales via checkbox selection + BulkSaleModal, transaction grouping (UUID sale_transaction_id), payment method (Cash/Card), event tagging with autocomplete, dedicated Sales page (`/sales`) with transaction-centric view (cover thumbnail strips, expandable details, filters by event/date/payment, inline edit mode for date/event/payment/per-book prices, full transaction revert), "View Transaction" link from BookDetail, Inventory sold view with sale-relevant columns, Dashboard sales stats (5 cards: Books Sold, Transactions, Total Revenue, Actual Profit, Avg Sale Price) + Sales by Event breakdown table
 
 ### What's Missing (See GitHub Issues):
-❌ No sales tracking (Issue #2)
 ❌ Many books missing prices (Issue #3)
 ❌ Limited analytics (Issue #4)
 
@@ -224,6 +227,8 @@ docker compose ps
 - Use proper HTTP methods (GET/POST/PUT/DELETE)
 - Return JSON responses
 - Handle errors with appropriate status codes
+- Sales endpoints: `GET /api/books/sale-events`, `GET /api/books/transactions`, `POST /api/books/bulk-sale`, `POST /api/books/update-transaction`, `POST /api/books/revert-transaction`
+- Book filters include: `sold`, `sale_event`, `date_sold`, `sale_transaction_id` (see `BookFilters` interface in `models/Book.ts`)
 
 ### Database
 - Use parameterized queries (avoid SQL injection)
@@ -232,14 +237,21 @@ docker compose ps
 - DECIMAL types return as strings from PostgreSQL (convert with Number())
 
 ### UI/UX
-- Dark horror theme (Ghostly Foam Green #00FFA3, Paper White #FFFFDC, Inky Black #1E1B1C)
+- Dark horror theme (Ghostly Foam Green #00FFA3, Paper White #FFFFDC, Inky Black #1E1B1C, Pumpkin Orange #E85D04)
 - Keep interface simple and intuitive
+- **Mobile is the primary use case** — this app is used at a booth during events; every feature MUST work well on phones
 - Mobile-responsive: breakpoints at 768px (mobile) and 1024px (tablet)
 - Inventory uses card layout on mobile via `useIsMobile` hook, table on desktop
 - Cover images are clickable to open BookDetail popup (enrichment data, custom search, edit/enrich actions)
 - Modals use `overflow: hidden` + `min-height: 0` flex pattern to stay within 90vh
-- Use `font-size: 16px` on mobile inputs/selects to prevent iOS Safari auto-zoom
 - Use React Query for data fetching
+
+**Mobile requirements (apply to ALL new UI):**
+- `font-size: 16px` on ALL mobile inputs, selects, and buttons — prevents iOS Safari auto-zoom
+- Minimum 44px tap target height for buttons, toggles, and interactive elements (WCAG AA)
+- Test all flows on narrow screens (320px–375px width)
+- Checkboxes should be at least 1.5rem on mobile
+- All new components MUST include a `@media (max-width: 768px)` block with mobile overrides
 
 ### Enrichment Architecture
 - Normalized: `google_books_enrichments` table + `books.google_enrichment_id` FK
@@ -295,7 +307,6 @@ docker compose ps
 6. Reference issue in commit: `git commit -m "Fix #1: Add book edit UI"`
 
 **Current Open Issues:**
-- #2: Sales tracking functionality (HIGH PRIORITY)
 - #3: Bulk price management tools (HIGH PRIORITY)
 - #4: Enhanced analytics and reporting (MEDIUM)
 

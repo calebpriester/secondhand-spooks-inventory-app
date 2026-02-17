@@ -56,4 +56,9 @@ export const rawStatsRows = {
     { author: 'Stephen King', count: '45', total_value: '350.00' },
     { author: 'R.L. Stine', count: '38', total_value: '190.00' },
   ],
+  sales: [{ books_sold: '5', total_revenue: '42.50', actual_profit: '28.00', transaction_count: '3' }],
+  salesByEvent: [
+    { event: 'Flea Market', count: '3', revenue: '25.00', profit: '17.00' },
+    { event: 'No Event', count: '2', revenue: '17.50', profit: '11.00' },
+  ],
 };
