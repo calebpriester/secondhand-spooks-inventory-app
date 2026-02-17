@@ -48,6 +48,17 @@ router.get('/series', async (req: Request, res: Response) => {
   }
 });
 
+// Get unique sources for autocomplete
+router.get('/sources', async (_req: Request, res: Response) => {
+  try {
+    const sources = await bookService.getUniqueSources();
+    res.json(sources);
+  } catch (error) {
+    console.error('Error fetching sources:', error);
+    res.status(500).json({ error: 'Failed to fetch sources' });
+  }
+});
+
 // Get unique authors for autocomplete
 router.get('/authors', async (req: Request, res: Response) => {
   try {

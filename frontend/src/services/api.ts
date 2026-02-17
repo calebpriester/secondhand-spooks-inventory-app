@@ -51,6 +51,11 @@ export const bookApi = {
     return data;
   },
 
+  getSources: async (): Promise<string[]> => {
+    const { data } = await api.get('/books/sources');
+    return data;
+  },
+
   // Enrichment
   getEnrichmentStatus: async (): Promise<EnrichmentStatus> => {
     const { data } = await api.get('/books/enrichment/status');

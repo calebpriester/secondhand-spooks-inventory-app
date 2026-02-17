@@ -184,6 +184,16 @@ export class BookService {
     }));
   }
 
+  async getUniqueSources(): Promise<string[]> {
+    const result = await query(`
+      SELECT DISTINCT source
+      FROM books
+      WHERE source IS NOT NULL AND source <> ''
+      ORDER BY source
+    `);
+    return result.rows.map(row => row.source);
+  }
+
   async getUniqueSaleEvents(): Promise<string[]> {
     const result = await query(`
       SELECT DISTINCT sale_event
