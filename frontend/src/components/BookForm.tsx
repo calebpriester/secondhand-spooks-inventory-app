@@ -9,9 +9,10 @@ interface BookFormProps {
   book?: Book | null;
   onSubmit: (book: Partial<Book>) => void;
   onCancel: () => void;
+  onDelete?: (bookId: number) => void;
 }
 
-const BookForm: React.FC<BookFormProps> = ({ book, onSubmit, onCancel }) => {
+const BookForm: React.FC<BookFormProps> = ({ book, onSubmit, onCancel, onDelete }) => {
   const [formData, setFormData] = useState<Partial<Book>>({
     book_title: '',
     cleaned: false,
@@ -361,12 +362,27 @@ const BookForm: React.FC<BookFormProps> = ({ book, onSubmit, onCancel }) => {
       </div>
 
       <div className="form-footer">
-        <button type="button" className="btn btn-secondary" onClick={onCancel}>
-          Cancel
-        </button>
-        <button type="submit" className="btn btn-primary">
-          {book ? 'Update Book' : 'Add Book'}
-        </button>
+        {book?.id && onDelete && (
+          <button
+            type="button"
+            className="btn btn-delete"
+            onClick={() => {
+              if (window.confirm(`Permanently delete "${book.book_title}"? This cannot be undone.`)) {
+                onDelete(book.id!);
+              }
+            }}
+          >
+            Delete
+          </button>
+        )}
+        <div className="form-footer-right">
+          <button type="button" className="btn btn-secondary" onClick={onCancel}>
+            Cancel
+          </button>
+          <button type="submit" className="btn btn-primary">
+            {book ? 'Update Book' : 'Add Book'}
+          </button>
+        </div>
       </div>
     </form>
   );

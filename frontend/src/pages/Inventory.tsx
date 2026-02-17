@@ -95,6 +95,16 @@ function Inventory() {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => bookApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['books'] });
+      queryClient.invalidateQueries({ queryKey: ['stats'] });
+      setIsFormOpen(false);
+      setSelectedBook(null);
+    },
+  });
+
   const { data: subgenreOptions } = useQuery({
     queryKey: ['subgenreOptions'],
     queryFn: subgenreApi.getAll,
@@ -107,7 +117,8 @@ function Inventory() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    setFilters({ ...filters, search: search || undefined });
+    const trimmed = search.trim();
+    setFilters({ ...filters, search: trimmed || undefined });
   };
 
   const toggleCleaned = (book: Book) => {
@@ -154,6 +165,10 @@ function Inventory() {
     } else {
       createMutation.mutate(bookData as Book);
     }
+  };
+
+  const handleDeleteBook = (bookId: number) => {
+    deleteMutation.mutate(bookId);
   };
 
   const handleCloseForm = () => {
@@ -754,6 +769,7 @@ function Inventory() {
           book={selectedBook}
           onSubmit={handleSubmitBook}
           onCancel={handleCloseForm}
+          onDelete={handleDeleteBook}
         />
       </Modal>
 
