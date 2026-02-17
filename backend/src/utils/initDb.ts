@@ -298,6 +298,10 @@ async function runMigrations(): Promise<void> {
     `);
   }
 
+  // --- Kept books migration ---
+  await query('ALTER TABLE books ADD COLUMN IF NOT EXISTS kept BOOLEAN DEFAULT FALSE');
+  await query('ALTER TABLE books ADD COLUMN IF NOT EXISTS date_kept DATE');
+
   // --- Sales tracking migration ---
   await query('ALTER TABLE books ADD COLUMN IF NOT EXISTS sold BOOLEAN DEFAULT FALSE');
   await query('ALTER TABLE books ADD COLUMN IF NOT EXISTS date_sold DATE');

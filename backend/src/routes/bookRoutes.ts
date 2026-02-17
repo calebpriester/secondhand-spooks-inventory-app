@@ -19,6 +19,7 @@ router.get('/', async (req: Request, res: Response) => {
       source: req.query.source as string,
       cleaned: req.query.cleaned === 'true' ? true : req.query.cleaned === 'false' ? false : undefined,
       pulled_to_read: req.query.pulled_to_read === 'true' ? true : req.query.pulled_to_read === 'false' ? false : undefined,
+      kept: req.query.kept === 'true' ? true : req.query.kept === 'false' ? false : undefined,
       search: req.query.search as string,
       subgenre: req.query.subgenre as string,
       pacing: req.query.pacing as string,

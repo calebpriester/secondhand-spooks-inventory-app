@@ -16,11 +16,16 @@ interface BookDetailProps {
   isMarkingSold?: boolean;
   saleEvents?: string[];
   onMarkAvailable?: (bookId: number) => void;
+  onMarkKept?: (bookId: number) => void;
+  onUnkeep?: (bookId: number) => void;
+  onPullToRead?: (bookId: number) => void;
+  onReturnFromPull?: (bookId: number) => void;
 }
 
-const BookDetail: React.FC<BookDetailProps> = ({ book, onClose, onEdit, onEnrich, isEnriching, onTagSubgenres, isTagging, onMarkSold, isMarkingSold, saleEvents = [], onMarkAvailable }) => {
+const BookDetail: React.FC<BookDetailProps> = ({ book, onClose, onEdit, onEnrich, isEnriching, onTagSubgenres, isTagging, onMarkSold, isMarkingSold, saleEvents = [], onMarkAvailable, onMarkKept, onUnkeep, onPullToRead, onReturnFromPull }) => {
   const [showCustomSearch, setShowCustomSearch] = useState(false);
   const [showSaleForm, setShowSaleForm] = useState(false);
+  const [showEnrichMenu, setShowEnrichMenu] = useState(false);
   const [customTitle, setCustomTitle] = useState(book.book_title);
   const [customAuthor, setCustomAuthor] = useState(book.author_fullname || '');
   const [customIsbn, setCustomIsbn] = useState('');
@@ -90,19 +95,25 @@ const BookDetail: React.FC<BookDetailProps> = ({ book, onClose, onEdit, onEnrich
                   {book.cover_type}
                 </span>
               )}
-              {book.pacing && (
-                <span className="badge badge-pacing">{book.pacing}</span>
+              {book.pulled_to_read && !book.sold && !book.kept && (
+                <span className="badge badge-reading">READING</span>
+              )}
+              {book.kept && (
+                <span className="badge badge-kept">KEPT</span>
               )}
               {book.sold && (
                 <span className="badge badge-sold">SOLD</span>
               )}
             </div>
 
-            {book.subgenres && book.subgenres.length > 0 && (
+            {((book.subgenres && book.subgenres.length > 0) || book.pacing) && (
               <div className="book-detail-subgenres">
-                {book.subgenres.map(sg => (
+                {book.subgenres?.map(sg => (
                   <span key={sg} className="badge badge-subgenre">{sg}</span>
                 ))}
+                {book.pacing && (
+                  <span className="badge badge-pacing">{book.pacing}</span>
+                )}
               </div>
             )}
 
@@ -369,13 +380,47 @@ const BookDetail: React.FC<BookDetailProps> = ({ book, onClose, onEdit, onEnrich
         </div>
       ) : (
         <div className="book-detail-footer">
-          {!book.sold && onMarkSold && (
+          {!book.sold && !book.kept && !book.pulled_to_read && onMarkSold && (
             <button
               className="btn btn-sold"
               onClick={() => setShowSaleForm(true)}
               disabled={!book.id}
             >
               Mark as Sold
+            </button>
+          )}
+          {!book.sold && !book.kept && !book.pulled_to_read && onPullToRead && (
+            <button
+              className="btn btn-kept"
+              onClick={() => {
+                if (book.id) onPullToRead(book.id);
+              }}
+              disabled={!book.id}
+            >
+              Pull to Read
+            </button>
+          )}
+          {book.pulled_to_read && !book.sold && !book.kept && onMarkKept && (
+            <button
+              className="btn btn-kept"
+              onClick={() => {
+                if (book.id && window.confirm('Keep this book for your personal library? It will be removed from active inventory.')) {
+                  onMarkKept(book.id);
+                }
+              }}
+              disabled={!book.id}
+            >
+              Keep
+            </button>
+          )}
+          {book.pulled_to_read && !book.sold && !book.kept && onReturnFromPull && (
+            <button
+              className="btn btn-secondary"
+              onClick={() => {
+                if (book.id) onReturnFromPull(book.id);
+              }}
+            >
+              Return to Inventory
             </button>
           )}
           {book.sold && onMarkAvailable && (
@@ -390,32 +435,58 @@ const BookDetail: React.FC<BookDetailProps> = ({ book, onClose, onEdit, onEnrich
               Mark Available
             </button>
           )}
-          <button
-            className="btn btn-secondary"
-            onClick={handleEnrich}
-            disabled={isEnriching || !book.id}
-          >
-            {isEnriching ? 'Enriching...' : (book.enriched_at ? 'Re-enrich' : 'Enrich')}
-          </button>
-          <button
-            className="btn btn-secondary btn-subgenre"
-            onClick={() => {
-              if (book.id && window.confirm(
-                `${book.subgenres?.length ? 'Re-tag' : 'Tag'} "${book.book_title}" with sub-genres using Gemini AI? This uses 1 API request.`
-              )) {
-                onTagSubgenres(book.id);
-              }
-            }}
-            disabled={isTagging || !book.id}
-          >
-            {isTagging ? 'Tagging...' : (book.subgenres?.length ? 'Re-tag' : 'Tag Sub-genres')}
-          </button>
-          <button
-            className="btn btn-secondary"
-            onClick={() => setShowCustomSearch(true)}
-          >
-            Custom Search
-          </button>
+          {book.kept && !book.pulled_to_read && onUnkeep && (
+            <button
+              className="btn btn-secondary"
+              onClick={() => {
+                if (book.id && window.confirm('Return this book to active inventory?')) {
+                  onUnkeep(book.id);
+                }
+              }}
+            >
+              Return to Inventory
+            </button>
+          )}
+          <div className="enrich-dropdown-wrapper">
+            <button
+              className="btn btn-secondary"
+              onClick={() => setShowEnrichMenu(!showEnrichMenu)}
+              disabled={(isEnriching || isTagging) && !showEnrichMenu}
+            >
+              {isEnriching ? 'Enriching...' : isTagging ? 'Tagging...' : 'Enrich'}
+            </button>
+            {showEnrichMenu && (
+              <div className="enrich-dropdown">
+                <button
+                  className="enrich-dropdown-item"
+                  onClick={() => { handleEnrich(); setShowEnrichMenu(false); }}
+                  disabled={isEnriching || !book.id}
+                >
+                  {book.enriched_at ? 'Re-enrich from Google Books' : 'Google Books Auto'}
+                </button>
+                <button
+                  className="enrich-dropdown-item"
+                  onClick={() => { setShowCustomSearch(true); setShowEnrichMenu(false); }}
+                >
+                  Google Books Custom Search
+                </button>
+                <button
+                  className="enrich-dropdown-item btn-subgenre"
+                  onClick={() => {
+                    if (book.id && window.confirm(
+                      `${book.subgenres?.length ? 'Re-tag' : 'Tag'} "${book.book_title}" with sub-genres using Gemini AI? This uses 1 API request.`
+                    )) {
+                      onTagSubgenres(book.id);
+                    }
+                    setShowEnrichMenu(false);
+                  }}
+                  disabled={isTagging || !book.id}
+                >
+                  {book.subgenres?.length ? 'Re-tag Sub-genres (Gemini)' : 'Tag Sub-genres (Gemini)'}
+                </button>
+              </div>
+            )}
+          </div>
           <button className="btn btn-secondary" onClick={() => onEdit(book)}>
             Edit
           </button>

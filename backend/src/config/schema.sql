@@ -47,6 +47,8 @@ CREATE TABLE IF NOT EXISTS books (
   profit_est DECIMAL(10, 2),
   author_fullname VARCHAR(200),
   pulled_to_read BOOLEAN DEFAULT FALSE,
+  kept BOOLEAN DEFAULT FALSE,
+  date_kept DATE,
   subgenres TEXT[],
   pacing VARCHAR(20),
   sold BOOLEAN DEFAULT FALSE,

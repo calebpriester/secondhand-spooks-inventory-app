@@ -59,7 +59,7 @@ This is a full-stack inventory management system for **Secondhand Spooks**, a ho
 - Physical: cover_type (Paper/Hard/Audiobook), category, condition
 - Purchase: date_purchased, source, seller, order_number
 - Pricing: purchase_price, our_price, profit_est (thriftbooks_price deprecated — column retained for historical data)
-- Status: cleaned (boolean), pulled_to_read (boolean)
+- Status: cleaned (boolean), pulled_to_read (boolean), kept (boolean), date_kept (date)
 - Gemini tags: subgenres (TEXT[]), pacing (VARCHAR — Slow Burn/Moderate/Fast-Paced)
 - Sales: sold (boolean), date_sold (date), sold_price (decimal), sale_event (varchar), sale_transaction_id (varchar), payment_method (varchar — Cash/Card)
 - Enrichment FK: google_enrichment_id (references google_books_enrichments)
@@ -210,6 +210,7 @@ docker compose ps
 ✅ Gemini 2.0 Flash integration (sub-genre tagging, pacing classification, batch processing, configurable sub-genre list)
 ✅ Sales tracking (Issue #2): single-book mark-as-sold (inline form in BookDetail), bulk sales via checkbox selection + BulkSaleModal, transaction grouping (UUID sale_transaction_id), payment method (Cash/Card), event tagging with autocomplete, dedicated Sales page (`/sales`) with transaction-centric view (cover thumbnail strips, expandable details, filters by event/date/payment, inline edit mode for date/event/payment/per-book prices, full transaction revert), "View Transaction" link from BookDetail, Inventory sold view with sale-relevant columns, Dashboard sales stats (5 cards: Books Sold, Transactions, Total Revenue, Actual Profit, Avg Sale Price) + Sales by Event breakdown table
 ✅ Bulk price management (Issue #3): select books via checkboxes + BulkPriceModal (per-book or flat price modes, nullable pricing for clearing), select-all checkbox in table header + mobile, "Missing Price" filter in stock status dropdown, Dashboard "Need Pricing" alert (purple #7C3AED), pricing suggestions (2x cost rounded up, min $3, whole dollars), below-cost warnings, fill-suggested helper, auto-calculates profit_est, thriftbooks_price deprecated (column retained, removed from UI/forms)
+✅ Pulled to Read & Kept Books: "Pull to Read" button in BookDetail moves book to reading pile (READING badge inline), "Keep" button on pulled books moves to permanent personal library (kept=true, removed from active inventory/value calculations), "Return to Inventory" reverses both states. Inventory stock status dropdown includes Pulled to Read and Kept filters. Kept view shows Date Kept, Purchase Price, Category columns. Dashboard shows Pulled to Read count, Books Kept count, and Total Kept Cost in Ghostly Blue (#6366F1) stats section. pulled_to_read and kept managed via action buttons (not edit form checkboxes).
 
 ### What's Missing (See GitHub Issues):
 ❌ Limited analytics (Issue #4)
@@ -229,7 +230,7 @@ docker compose ps
 - Handle errors with appropriate status codes
 - Sales endpoints: `GET /api/books/sale-events`, `GET /api/books/transactions`, `POST /api/books/bulk-sale`, `POST /api/books/update-transaction`, `POST /api/books/revert-transaction`
 - Pricing endpoints: `POST /api/books/bulk-price` (per-book or flat price mode, auto-calculates profit_est), `POST /api/books/clear-prices` (bulk clear our_price + profit_est to NULL)
-- Book filters include: `sold`, `sale_event`, `date_sold`, `sale_transaction_id`, `missing_price` (see `BookFilters` interface in `models/Book.ts`)
+- Book filters include: `sold`, `kept`, `pulled_to_read`, `sale_event`, `date_sold`, `sale_transaction_id`, `missing_price` (see `BookFilters` interface in `models/Book.ts`)
 
 ### Database
 - Use parameterized queries (avoid SQL injection)
@@ -238,7 +239,7 @@ docker compose ps
 - DECIMAL types return as strings from PostgreSQL (convert with Number())
 
 ### UI/UX
-- Dark horror theme (Ghostly Foam Green #00FFA3, Paper White #FFFFDC, Inky Black #1E1B1C, Pumpkin Orange #E85D04, Pricing Purple #7C3AED)
+- Dark horror theme (Ghostly Foam Green #00FFA3, Paper White #FFFFDC, Inky Black #1E1B1C, Pumpkin Orange #E85D04, Pricing Purple #7C3AED, Ghostly Blue #6366F1 for reading/kept)
 - Keep interface simple and intuitive
 - **Mobile is the primary use case** — this app is used at a booth during events; every feature MUST work well on phones
 - Mobile-responsive: breakpoints at 768px (mobile) and 1024px (tablet)

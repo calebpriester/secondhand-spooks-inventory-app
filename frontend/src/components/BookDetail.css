@@ -96,6 +96,7 @@
 .book-detail-badges {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 0.4rem;
   margin-bottom: 1rem;
 }
@@ -171,6 +172,7 @@
 .book-detail-subgenres {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 0.4rem;
   margin-bottom: 1rem;
 }
@@ -291,6 +293,55 @@
   gap: 0.75rem;
 }
 
+/* === Enrich Dropdown === */
+.enrich-dropdown-wrapper {
+  position: relative;
+}
+
+.enrich-dropdown {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  margin-bottom: 0.5rem;
+  background-color: #2a2627;
+  border: 1px solid #3d3839;
+  border-radius: 8px;
+  padding: 0.25rem 0;
+  min-width: 220px;
+  z-index: 10;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.enrich-dropdown-item {
+  display: block;
+  width: 100%;
+  padding: 0.6rem 1rem;
+  background: none;
+  border: none;
+  color: #e8e8e0;
+  font-size: 0.85rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.enrich-dropdown-item:hover:not(:disabled) {
+  background-color: rgba(0, 255, 163, 0.1);
+}
+
+.enrich-dropdown-item:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.enrich-dropdown-item.btn-subgenre {
+  color: #A78BFA;
+}
+
+.enrich-dropdown-item.btn-subgenre:hover:not(:disabled) {
+  background-color: rgba(167, 139, 250, 0.1);
+}
+
 /* === Sold Badge === */
 .badge-sold {
   background-color: #E85D04;
@@ -299,6 +350,36 @@
   padding: 0.2rem 0.6rem;
   border-radius: 12px;
   font-size: 0.8rem;
+}
+
+/* === Reading & Kept Badges === */
+.badge-reading {
+  background-color: #6366F1;
+  color: white;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+}
+
+.badge-kept {
+  background-color: #4F46E5;
+  color: white;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+}
+
+.btn-kept {
+  background-color: #4F46E5 !important;
+  border-color: #4F46E5 !important;
+  color: white !important;
+}
+
+.btn-kept:hover {
+  background-color: #4338CA !important;
+  border-color: #4338CA !important;
 }
 
 /* === Sale Info Section === */
@@ -438,6 +519,10 @@
     justify-content: center;
   }
 
+  .book-detail-subgenres {
+    justify-content: center;
+  }
+
   .book-detail-rating {
     justify-content: center;
   }
@@ -481,5 +566,19 @@
 
   .sale-form-footer {
     flex-direction: column;
+  }
+
+  .enrich-dropdown-wrapper {
+    width: 100%;
+  }
+
+  .enrich-dropdown {
+    width: 100%;
+  }
+
+  .enrich-dropdown-item {
+    font-size: 16px;
+    padding: 0.75rem 1rem;
+    min-height: 44px;
   }
 }

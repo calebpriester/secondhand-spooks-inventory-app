@@ -11,7 +11,7 @@ import { useIsMobile } from '../hooks/useIsMobile';
 import './Inventory.css';
 
 function Inventory() {
-  const [filters, setFilters] = useState<BookFilters>({ sold: false });
+  const [filters, setFilters] = useState<BookFilters>({ sold: false, kept: false });
   const [search, setSearch] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
@@ -121,7 +121,7 @@ function Inventory() {
   };
 
   const clearFilters = () => {
-    setFilters({ sold: false });
+    setFilters({ sold: false, kept: false });
     setSearch('');
     setSelectedIds(new Set());
     setSelectedBooksMap(new Map());
@@ -193,6 +193,41 @@ function Inventory() {
     });
   };
 
+  const handlePullToRead = (bookId: number) => {
+    updateMutation.mutate({
+      id: bookId,
+      book: { pulled_to_read: true },
+    });
+  };
+
+  const handleReturnFromPull = (bookId: number) => {
+    updateMutation.mutate({
+      id: bookId,
+      book: { pulled_to_read: false },
+    });
+  };
+
+  const handleMarkKept = (bookId: number) => {
+    updateMutation.mutate({
+      id: bookId,
+      book: {
+        kept: true,
+        date_kept: new Date().toISOString().split('T')[0],
+        pulled_to_read: false,
+      },
+    });
+  };
+
+  const handleUnkeep = (bookId: number) => {
+    updateMutation.mutate({
+      id: bookId,
+      book: {
+        kept: false,
+        date_kept: null,
+      },
+    });
+  };
+
   const toggleSelectBook = (bookId: number, book?: Book) => {
     setSelectedIds(prev => {
       const next = new Set(prev);
@@ -215,7 +250,7 @@ function Inventory() {
   };
 
   const selectedBooks = Array.from(selectedBooksMap.values());
-  const selectableBooks = books?.filter(b => !b.sold && b.id) || [];
+  const selectableBooks = books?.filter(b => !b.sold && !b.kept && b.id) || [];
   const allSelected = selectableBooks.length > 0 && selectedIds.size === selectableBooks.length;
 
   // Keep selectedBook in sync with latest data from the query
@@ -224,10 +259,16 @@ function Inventory() {
     : selectedBook;
 
   const stockStatusValue = filters.missing_price ? 'missing_price' :
-    filters.sold === undefined ? '' : filters.sold ? 'sold' : 'available';
+    filters.pulled_to_read ? 'pulled_to_read' :
+    filters.kept === true && filters.sold === undefined ? 'kept' :
+    filters.sold === undefined && filters.kept === undefined ? '' :
+    filters.sold ? 'sold' : 'available';
   const statusLabel = filters.missing_price ? 'unpriced' :
+    filters.pulled_to_read ? 'pulled to read' :
+    filters.kept === true && filters.sold === undefined ? 'kept' :
     filters.sold === true ? 'sold' : filters.sold === false ? 'available' : '';
   const viewingSold = filters.sold === true && !filters.missing_price;
+  const viewingKept = filters.kept === true && filters.sold === undefined;
 
   if (isLoading) {
     return <div className="loading">Loading inventory...</div>;
@@ -240,7 +281,7 @@ function Inventory() {
         <div className="inventory-header-actions">
           {selectedIds.size > 0 && (
             <>
-              {!viewingSold && (
+              {!viewingSold && !viewingKept && (
                 <button
                   onClick={() => setIsBulkPriceOpen(true)}
                   className="btn btn-price"
@@ -281,15 +322,25 @@ function Inventory() {
               const val = e.target.value;
               const newFilters = { ...filters };
               delete newFilters.sold;
+              delete newFilters.kept;
               delete newFilters.missing_price;
+              delete newFilters.pulled_to_read;
 
               if (val === 'sold') {
                 newFilters.sold = true;
               } else if (val === 'available') {
                 newFilters.sold = false;
+                newFilters.kept = false;
               } else if (val === 'missing_price') {
                 newFilters.sold = false;
+                newFilters.kept = false;
                 newFilters.missing_price = true;
+              } else if (val === 'pulled_to_read') {
+                newFilters.sold = false;
+                newFilters.kept = false;
+                newFilters.pulled_to_read = true;
+              } else if (val === 'kept') {
+                newFilters.kept = true;
               }
               setFilters(newFilters);
               setSelectedIds(new Set());
@@ -299,11 +350,13 @@ function Inventory() {
           >
             <option value="available">Available</option>
             <option value="missing_price">Missing Price</option>
+            <option value="pulled_to_read">Pulled to Read</option>
+            <option value="kept">Kept</option>
             <option value="sold">Sold</option>
             <option value="">All Books</option>
           </select>
 
-          {!viewingSold && (
+          {!viewingSold && !viewingKept && (
             <>
               <select
                 value={filters.category || ''}
@@ -372,7 +425,7 @@ function Inventory() {
 
       {isMobile ? (
         <div className="book-cards">
-          {!viewingSold && selectableBooks.length > 0 && (
+          {!viewingSold && !viewingKept && selectableBooks.length > 0 && (
             <label className="mobile-select-all">
               <input
                 type="checkbox"
@@ -391,9 +444,9 @@ function Inventory() {
             </label>
           )}
           {books?.map((book) => (
-            <div key={book.id} className={`book-card ${book.sold ? 'book-card-sold' : ''}`}>
+            <div key={book.id} className={`book-card ${book.sold ? 'book-card-sold' : book.kept ? 'book-card-kept' : ''}`}>
               <div className="book-card-content">
-                {!book.sold && (
+                {!book.sold && !book.kept && (
                   <input
                     type="checkbox"
                     className="book-select-checkbox"
@@ -422,6 +475,8 @@ function Inventory() {
                     <span className="book-card-title">
                       {book.book_title}
                       {book.sold && <span className="badge badge-sold badge-sold-inline">SOLD</span>}
+                      {book.kept && <span className="badge badge-kept badge-kept-inline">KEPT</span>}
+                      {book.pulled_to_read && !book.sold && !book.kept && <span className="badge badge-reading badge-reading-inline">READING</span>}
                     </span>
                     <button
                       onClick={() => handleEditBook(book)}
@@ -496,7 +551,7 @@ function Inventory() {
           <table className="books-table">
             <thead>
               <tr>
-                {!viewingSold && (
+                {!viewingSold && !viewingKept && (
                   <th className="select-cell">
                     {selectableBooks.length > 0 && (
                       <input
@@ -527,6 +582,12 @@ function Inventory() {
                     <th>Event</th>
                     <th>Payment</th>
                   </>
+                ) : viewingKept ? (
+                  <>
+                    <th>Category</th>
+                    <th>Purchase $</th>
+                    <th>Date Kept</th>
+                  </>
                 ) : (
                   <>
                     <th>Series</th>
@@ -544,17 +605,19 @@ function Inventory() {
             </thead>
             <tbody>
               {books?.map((book) => (
-                <tr key={book.id} className={book.sold && !viewingSold ? 'sold-row' : ''}>
-                  {!viewingSold && (
+                <tr key={book.id} className={book.sold && !viewingSold ? 'sold-row' : book.kept && !viewingKept ? 'kept-row' : ''}>
+                  {!viewingSold && !viewingKept && (
                     <td className="select-cell">
-                      {!book.sold ? (
+                      {!book.sold && !book.kept ? (
                         <input
                           type="checkbox"
                           checked={!!book.id && selectedIds.has(book.id)}
                           onChange={() => book.id && toggleSelectBook(book.id, book)}
                         />
-                      ) : (
+                      ) : book.sold ? (
                         <span className="badge badge-sold badge-sold-sm">SOLD</span>
+                      ) : (
+                        <span className="badge badge-kept badge-kept-sm">KEPT</span>
                       )}
                     </td>
                   )}
@@ -576,6 +639,9 @@ function Inventory() {
                   </td>
                   <td className="book-title">
                     {book.book_title}
+                    {book.pulled_to_read && !book.sold && !book.kept && (
+                      <span className="badge badge-reading badge-reading-inline">READING</span>
+                    )}
                     {book.google_rating && (
                       <span className="google-rating" title={`${book.google_ratings_count} ratings`}>
                         {Number(book.google_rating).toFixed(1)}
@@ -600,6 +666,18 @@ function Inventory() {
                           </span>
                         )}
                       </td>
+                    </>
+                  ) : viewingKept ? (
+                    <>
+                      <td>
+                        {book.category && (
+                          <span className={`badge badge-${book.category.toLowerCase().replace('/', '-')}`}>
+                            {book.category}
+                          </span>
+                        )}
+                      </td>
+                      <td>{book.purchase_price ? `$${Number(book.purchase_price).toFixed(2)}` : 'N/A'}</td>
+                      <td>{book.date_kept ? new Date(String(book.date_kept).split('T')[0] + 'T00:00:00').toLocaleDateString() : 'N/A'}</td>
                     </>
                   ) : (
                     <>
@@ -684,6 +762,10 @@ function Inventory() {
             isMarkingSold={updateMutation.isPending}
             saleEvents={saleEvents}
             onMarkAvailable={handleMarkAvailable}
+            onMarkKept={handleMarkKept}
+            onUnkeep={handleUnkeep}
+            onPullToRead={handlePullToRead}
+            onReturnFromPull={handleReturnFromPull}
           />
         )}
       </Modal>
