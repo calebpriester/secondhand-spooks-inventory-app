@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { bookApi, subgenreApi } from '../services/api';
 import { Book, BookFilters, BulkSaleRequest, BulkPriceRequest } from '../types/Book';
@@ -20,6 +20,7 @@ function Inventory() {
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [selectedBooksMap, setSelectedBooksMap] = useState<Map<number, Book>>(new Map());
+  const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
 
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
@@ -294,6 +295,46 @@ function Inventory() {
   const viewingSold = filters.sold === true && !filters.missing_price;
   const viewingKept = filters.kept === true && filters.sold === undefined;
 
+  const activeFilterCount = [
+    filters.category,
+    filters.condition,
+    filters.cover_type,
+    filters.subgenre,
+    filters.pacing,
+    filters.search,
+  ].filter(Boolean).length + (stockStatusValue !== 'available' ? 1 : 0);
+
+  // Lock body scroll when filter drawer is open (mobile)
+  useEffect(() => {
+    if (isFilterDrawerOpen) {
+      const scrollY = window.scrollY;
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.left = '0';
+      document.body.style.right = '0';
+      document.body.style.overflow = 'hidden';
+    } else {
+      const scrollY = document.body.style.top;
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.left = '';
+      document.body.style.right = '';
+      document.body.style.overflow = '';
+      window.scrollTo(0, parseInt(scrollY || '0') * -1);
+    }
+    return () => {
+      const scrollY = document.body.style.top;
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.left = '';
+      document.body.style.right = '';
+      document.body.style.overflow = '';
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY) * -1);
+      }
+    };
+  }, [isFilterDrawerOpen]);
+
   if (isLoading) {
     return <div className="loading">Loading inventory...</div>;
   }
@@ -303,7 +344,7 @@ function Inventory() {
       <div className="inventory-header">
         <h2>Inventory ({books?.length || 0} {statusLabel} books)</h2>
         <div className="inventory-header-actions">
-          {selectedIds.size > 0 && (
+          {!isMobile && selectedIds.size > 0 && (
             <>
               {!viewingSold && !viewingKept && (
                 <button
@@ -327,125 +368,324 @@ function Inventory() {
         </div>
       </div>
 
-      <div className="filters-section">
-        <form onSubmit={handleSearch} className="search-form">
-          <input
-            type="text"
-            placeholder="Search by title, author, or series..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="search-input"
-          />
-          <button type="submit" className="btn btn-primary">Search</button>
-        </form>
+      {/* Mobile: sticky action bar with search, filters toggle, and action buttons */}
+      {isMobile && (
+        <div className="mobile-action-bar">
+          <div className="mobile-action-bar-row">
+            <button
+              className={`mobile-filter-toggle ${activeFilterCount > 0 ? 'has-filters' : ''}`}
+              onClick={() => setIsFilterDrawerOpen(true)}
+            >
+              <span className="filter-icon">&#9776;</span>
+              {activeFilterCount > 0 && (
+                <span className="filter-badge">{activeFilterCount}</span>
+              )}
+            </button>
 
-        <div className="filters">
-          <select
-            value={stockStatusValue}
-            onChange={(e) => {
-              const val = e.target.value;
-              const newFilters = { ...filters };
-              delete newFilters.sold;
-              delete newFilters.kept;
-              delete newFilters.missing_price;
-              delete newFilters.pulled_to_read;
+            <form onSubmit={handleSearch} className="mobile-action-search">
+              <input
+                type="text"
+                placeholder="Search..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="mobile-search-input"
+              />
+              <button type="submit" className="mobile-search-btn">Go</button>
+            </form>
 
-              if (val === 'sold') {
-                newFilters.sold = true;
-              } else if (val === 'available') {
-                newFilters.sold = false;
-                newFilters.kept = false;
-              } else if (val === 'missing_price') {
-                newFilters.sold = false;
-                newFilters.kept = false;
-                newFilters.missing_price = true;
-              } else if (val === 'pulled_to_read') {
-                newFilters.sold = false;
-                newFilters.kept = false;
-                newFilters.pulled_to_read = true;
-              } else if (val === 'kept') {
-                newFilters.kept = true;
-              }
-              setFilters(newFilters);
-              setSelectedIds(new Set());
-              setSelectedBooksMap(new Map());
-            }}
-            className="filter-select"
-          >
-            <option value="available">Available</option>
-            <option value="missing_price">Missing Price</option>
-            <option value="pulled_to_read">Pulled to Read</option>
-            <option value="kept">Kept</option>
-            <option value="sold">Sold</option>
-            <option value="">All Books</option>
-          </select>
-
-          {!viewingSold && !viewingKept && (
-            <>
-              <select
-                value={filters.category || ''}
-                onChange={(e) => handleFilterChange('category', e.target.value)}
-                className="filter-select"
-              >
-                <option value="">All Categories</option>
-                <option value="YA/Nostalgia">YA/Nostalgia</option>
-                <option value="PFH/Vintage">PFH/Vintage</option>
-                <option value="Mainstream">Mainstream</option>
-                <option value="Comics/Ephemera">Comics/Ephemera</option>
-              </select>
-
-              <select
-                value={filters.condition || ''}
-                onChange={(e) => handleFilterChange('condition', e.target.value)}
-                className="filter-select"
-              >
-                <option value="">All Conditions</option>
-                <option value="Like New">Like New</option>
-                <option value="Very Good">Very Good</option>
-                <option value="Good">Good</option>
-                <option value="Acceptable">Acceptable</option>
-              </select>
-
-              <select
-                value={filters.cover_type || ''}
-                onChange={(e) => handleFilterChange('cover_type', e.target.value)}
-                className="filter-select"
-              >
-                <option value="">All Cover Types</option>
-                <option value="Paper">Paperback</option>
-                <option value="Hard">Hardcover</option>
-                <option value="Audiobook">Audiobook</option>
-              </select>
-
-              <select
-                value={filters.subgenre || ''}
-                onChange={(e) => handleFilterChange('subgenre', e.target.value)}
-                className="filter-select"
-              >
-                <option value="">All Sub-Genres</option>
-                {subgenreOptions?.map(sg => (
-                  <option key={sg.id} value={sg.name}>{sg.name}</option>
-                ))}
-              </select>
-
-              <select
-                value={filters.pacing || ''}
-                onChange={(e) => handleFilterChange('pacing', e.target.value)}
-                className="filter-select"
-              >
-                <option value="">All Pacing</option>
-                <option value="Slow Burn">Slow Burn</option>
-                <option value="Moderate">Moderate</option>
-                <option value="Fast-Paced">Fast-Paced</option>
-              </select>
-            </>
-          )}
-
-          <button onClick={clearFilters} className="btn btn-secondary">
-            Clear Filters
-          </button>
+            {selectedIds.size > 0 && (
+              <div className="mobile-action-buttons">
+                <span className="mobile-selection-count">{selectedIds.size}</span>
+                {!viewingSold && !viewingKept && (
+                  <button
+                    onClick={() => setIsBulkPriceOpen(true)}
+                    className="mobile-action-btn mobile-action-price"
+                    title={`Price ${selectedIds.size} book${selectedIds.size !== 1 ? 's' : ''}`}
+                  >
+                    $
+                  </button>
+                )}
+                <button
+                  onClick={() => setIsBulkSaleOpen(true)}
+                  className="mobile-action-btn mobile-action-sell"
+                  title={`Sell ${selectedIds.size} book${selectedIds.size !== 1 ? 's' : ''}`}
+                >
+                  Sell
+                </button>
+                <button
+                  onClick={() => { setSelectedIds(new Set()); setSelectedBooksMap(new Map()); }}
+                  className="mobile-action-btn mobile-action-clear"
+                  title="Clear selection"
+                >
+                  &times;
+                </button>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Mobile: filter drawer (bottom sheet) */}
+      {isMobile && isFilterDrawerOpen && (
+        <div className="filter-drawer-overlay" onClick={() => setIsFilterDrawerOpen(false)}>
+          <div className="filter-drawer" onClick={(e) => e.stopPropagation()}>
+            <div className="filter-drawer-header">
+              <h3>Filters</h3>
+              <button
+                className="filter-drawer-close"
+                onClick={() => setIsFilterDrawerOpen(false)}
+              >
+                &times;
+              </button>
+            </div>
+            <div className="filter-drawer-body">
+              <div className="filter-drawer-group">
+                <label className="filter-drawer-label">Stock Status</label>
+                <select
+                  value={stockStatusValue}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    const newFilters = { ...filters };
+                    delete newFilters.sold;
+                    delete newFilters.kept;
+                    delete newFilters.missing_price;
+                    delete newFilters.pulled_to_read;
+                    if (val === 'sold') { newFilters.sold = true; }
+                    else if (val === 'available') { newFilters.sold = false; newFilters.kept = false; }
+                    else if (val === 'missing_price') { newFilters.sold = false; newFilters.kept = false; newFilters.missing_price = true; }
+                    else if (val === 'pulled_to_read') { newFilters.sold = false; newFilters.kept = false; newFilters.pulled_to_read = true; }
+                    else if (val === 'kept') { newFilters.kept = true; }
+                    setFilters(newFilters);
+                    setSelectedIds(new Set());
+                    setSelectedBooksMap(new Map());
+                  }}
+                  className="filter-drawer-select"
+                >
+                  <option value="available">Available</option>
+                  <option value="missing_price">Missing Price</option>
+                  <option value="sold">Sold</option>
+                  <option value="pulled_to_read">Pulled to Read</option>
+                  <option value="kept">Kept</option>
+                  <option value="">All Books</option>
+                </select>
+              </div>
+
+              {!viewingSold && !viewingKept && (
+                <>
+                  <div className="filter-drawer-group">
+                    <label className="filter-drawer-label">Category</label>
+                    <select
+                      value={filters.category || ''}
+                      onChange={(e) => handleFilterChange('category', e.target.value)}
+                      className="filter-drawer-select"
+                    >
+                      <option value="">All Categories</option>
+                      <option value="YA/Nostalgia">YA/Nostalgia</option>
+                      <option value="PFH/Vintage">PFH/Vintage</option>
+                      <option value="Mainstream">Mainstream</option>
+                      <option value="Comics/Ephemera">Comics/Ephemera</option>
+                    </select>
+                  </div>
+
+                  <div className="filter-drawer-group">
+                    <label className="filter-drawer-label">Condition</label>
+                    <select
+                      value={filters.condition || ''}
+                      onChange={(e) => handleFilterChange('condition', e.target.value)}
+                      className="filter-drawer-select"
+                    >
+                      <option value="">All Conditions</option>
+                      <option value="Like New">Like New</option>
+                      <option value="Very Good">Very Good</option>
+                      <option value="Good">Good</option>
+                      <option value="Acceptable">Acceptable</option>
+                    </select>
+                  </div>
+
+                  <div className="filter-drawer-group">
+                    <label className="filter-drawer-label">Cover Type</label>
+                    <select
+                      value={filters.cover_type || ''}
+                      onChange={(e) => handleFilterChange('cover_type', e.target.value)}
+                      className="filter-drawer-select"
+                    >
+                      <option value="">All Cover Types</option>
+                      <option value="Paper">Paperback</option>
+                      <option value="Hard">Hardcover</option>
+                      <option value="Audiobook">Audiobook</option>
+                    </select>
+                  </div>
+
+                  <div className="filter-drawer-group">
+                    <label className="filter-drawer-label">Sub-Genre</label>
+                    <select
+                      value={filters.subgenre || ''}
+                      onChange={(e) => handleFilterChange('subgenre', e.target.value)}
+                      className="filter-drawer-select"
+                    >
+                      <option value="">All Sub-Genres</option>
+                      {subgenreOptions?.map(sg => (
+                        <option key={sg.id} value={sg.name}>{sg.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="filter-drawer-group">
+                    <label className="filter-drawer-label">Pacing</label>
+                    <select
+                      value={filters.pacing || ''}
+                      onChange={(e) => handleFilterChange('pacing', e.target.value)}
+                      className="filter-drawer-select"
+                    >
+                      <option value="">All Pacing</option>
+                      <option value="Slow Burn">Slow Burn</option>
+                      <option value="Moderate">Moderate</option>
+                      <option value="Fast-Paced">Fast-Paced</option>
+                    </select>
+                  </div>
+                </>
+              )}
+            </div>
+            <div className="filter-drawer-footer">
+              <button
+                onClick={() => { clearFilters(); setIsFilterDrawerOpen(false); }}
+                className="btn btn-secondary filter-drawer-clear-btn"
+              >
+                Clear All
+              </button>
+              <button
+                onClick={() => setIsFilterDrawerOpen(false)}
+                className="btn btn-primary filter-drawer-done-btn"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Desktop: filters section (unchanged) */}
+      {!isMobile && (
+        <div className="filters-section">
+          <form onSubmit={handleSearch} className="search-form">
+            <input
+              type="text"
+              placeholder="Search by title, author, or series..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="search-input"
+            />
+            <button type="submit" className="btn btn-primary">Search</button>
+          </form>
+
+          <div className="filters">
+            <select
+              value={stockStatusValue}
+              onChange={(e) => {
+                const val = e.target.value;
+                const newFilters = { ...filters };
+                delete newFilters.sold;
+                delete newFilters.kept;
+                delete newFilters.missing_price;
+                delete newFilters.pulled_to_read;
+
+                if (val === 'sold') {
+                  newFilters.sold = true;
+                } else if (val === 'available') {
+                  newFilters.sold = false;
+                  newFilters.kept = false;
+                } else if (val === 'missing_price') {
+                  newFilters.sold = false;
+                  newFilters.kept = false;
+                  newFilters.missing_price = true;
+                } else if (val === 'pulled_to_read') {
+                  newFilters.sold = false;
+                  newFilters.kept = false;
+                  newFilters.pulled_to_read = true;
+                } else if (val === 'kept') {
+                  newFilters.kept = true;
+                }
+                setFilters(newFilters);
+                setSelectedIds(new Set());
+                setSelectedBooksMap(new Map());
+              }}
+              className="filter-select"
+            >
+              <option value="available">Available</option>
+              <option value="missing_price">Missing Price</option>
+              <option value="sold">Sold</option>
+              <option value="pulled_to_read">Pulled to Read</option>
+              <option value="kept">Kept</option>
+              <option value="">All Books</option>
+            </select>
+
+            {!viewingSold && !viewingKept && (
+              <>
+                <select
+                  value={filters.category || ''}
+                  onChange={(e) => handleFilterChange('category', e.target.value)}
+                  className="filter-select"
+                >
+                  <option value="">All Categories</option>
+                  <option value="YA/Nostalgia">YA/Nostalgia</option>
+                  <option value="PFH/Vintage">PFH/Vintage</option>
+                  <option value="Mainstream">Mainstream</option>
+                  <option value="Comics/Ephemera">Comics/Ephemera</option>
+                </select>
+
+                <select
+                  value={filters.condition || ''}
+                  onChange={(e) => handleFilterChange('condition', e.target.value)}
+                  className="filter-select"
+                >
+                  <option value="">All Conditions</option>
+                  <option value="Like New">Like New</option>
+                  <option value="Very Good">Very Good</option>
+                  <option value="Good">Good</option>
+                  <option value="Acceptable">Acceptable</option>
+                </select>
+
+                <select
+                  value={filters.cover_type || ''}
+                  onChange={(e) => handleFilterChange('cover_type', e.target.value)}
+                  className="filter-select"
+                >
+                  <option value="">All Cover Types</option>
+                  <option value="Paper">Paperback</option>
+                  <option value="Hard">Hardcover</option>
+                  <option value="Audiobook">Audiobook</option>
+                </select>
+
+                <select
+                  value={filters.subgenre || ''}
+                  onChange={(e) => handleFilterChange('subgenre', e.target.value)}
+                  className="filter-select"
+                >
+                  <option value="">All Sub-Genres</option>
+                  {subgenreOptions?.map(sg => (
+                    <option key={sg.id} value={sg.name}>{sg.name}</option>
+                  ))}
+                </select>
+
+                <select
+                  value={filters.pacing || ''}
+                  onChange={(e) => handleFilterChange('pacing', e.target.value)}
+                  className="filter-select"
+                >
+                  <option value="">All Pacing</option>
+                  <option value="Slow Burn">Slow Burn</option>
+                  <option value="Moderate">Moderate</option>
+                  <option value="Fast-Paced">Fast-Paced</option>
+                </select>
+              </>
+            )}
+
+            <button onClick={clearFilters} className="btn btn-secondary">
+              Clear Filters
+            </button>
+          </div>
+        </div>
+      )}
 
       {isMobile ? (
         <div className="book-cards">
