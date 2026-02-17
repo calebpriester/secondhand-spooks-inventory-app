@@ -249,6 +249,18 @@ export class BookService {
     return results;
   }
 
+  async bulkClearPrice(bookIds: number[]): Promise<number> {
+    let count = 0;
+    for (const bookId of bookIds) {
+      const result = await query(
+        'UPDATE books SET our_price = NULL, profit_est = NULL WHERE id = $1 RETURNING id',
+        [bookId]
+      );
+      if (result.rows[0]) count++;
+    }
+    return count;
+  }
+
   async revertTransaction(saleTransactionId: string): Promise<number> {
     const result = await query(
       `UPDATE books SET sold = false, sold_price = NULL, date_sold = NULL,

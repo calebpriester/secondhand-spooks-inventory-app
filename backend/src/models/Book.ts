@@ -192,7 +192,7 @@ export interface BulkSaleRequest {
 
 export interface BulkPriceItem {
   book_id: number;
-  our_price: number;
+  our_price: number | null;
 }
 
 export interface BulkPriceRequest {

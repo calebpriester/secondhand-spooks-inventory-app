@@ -47,8 +47,9 @@ const BulkPriceModal: React.FC<BulkPriceModalProps> = ({ books, onConfirm, onCan
 
   const allPerBookPricesSet = books.length > 0 &&
     books.every(book => book.id && prices[book.id] && parseFloat(prices[book.id]) >= 0);
+  const anyPerBookPriceSet = books.some(book => book.id && prices[book.id] && parseFloat(prices[book.id]) >= 0);
   const flatPriceSet = flatPrice !== '' && parseFloat(flatPrice) >= 0;
-  const canConfirm = mode === 'per-book' ? allPerBookPricesSet : flatPriceSet;
+  const canConfirm = mode === 'per-book' ? books.length > 0 : flatPriceSet;
 
   // Pricing guidance computations
   const booksWithCost = books.filter(b => b.purchase_price != null && Number(b.purchase_price) > 0);
@@ -88,11 +89,17 @@ const BulkPriceModal: React.FC<BulkPriceModalProps> = ({ books, onConfirm, onCan
   const handleConfirm = () => {
     if (mode === 'per-book') {
       const items = books
-        .filter(book => book.id && prices[book.id])
+        .filter(book => book.id)
         .map(book => ({
           book_id: book.id!,
-          our_price: parseFloat(prices[book.id!]),
+          our_price: prices[book.id!] && parseFloat(prices[book.id!]) >= 0
+            ? parseFloat(prices[book.id!])
+            : null,
         }));
+      if (items.length === 0) {
+        onCancel();
+        return;
+      }
       onConfirm({ items });
     } else {
       const book_ids = books.filter(b => b.id).map(b => b.id!);
@@ -237,6 +244,11 @@ const BulkPriceModal: React.FC<BulkPriceModalProps> = ({ books, onConfirm, onCan
           <div className="bulk-price-avg">
             Avg: ${avgPrice.toFixed(2)}/book
           </div>
+          {mode === 'per-book' && !allPerBookPricesSet && anyPerBookPriceSet && (
+            <div className="bulk-price-footer-hint">
+              {books.filter(b => b.id && prices[b.id] && parseFloat(prices[b.id]) >= 0).length} of {books.length} priced
+            </div>
+          )}
           {belowCostCount > 0 && (
             <div className="bulk-price-footer-warning">
               {belowCostCount} below cost

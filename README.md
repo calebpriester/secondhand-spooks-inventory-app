@@ -160,6 +160,7 @@ The app tracks comprehensive book information:
 - `PUT /api/books/:id` - Update book
 - `DELETE /api/books/:id` - Delete book
 - `POST /api/books/bulk-price` - Set prices on multiple books at once
+- `POST /api/books/clear-prices` - Clear prices on multiple books
 
 ## 🔧 Development
 

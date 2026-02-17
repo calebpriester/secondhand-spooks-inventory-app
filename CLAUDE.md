@@ -228,7 +228,7 @@ docker compose ps
 - Return JSON responses
 - Handle errors with appropriate status codes
 - Sales endpoints: `GET /api/books/sale-events`, `GET /api/books/transactions`, `POST /api/books/bulk-sale`, `POST /api/books/update-transaction`, `POST /api/books/revert-transaction`
-- Pricing endpoints: `POST /api/books/bulk-price` (per-book or flat price mode, auto-calculates profit_est)
+- Pricing endpoints: `POST /api/books/bulk-price` (per-book or flat price mode, auto-calculates profit_est), `POST /api/books/clear-prices` (bulk clear our_price + profit_est to NULL)
 - Book filters include: `sold`, `sale_event`, `date_sold`, `sale_transaction_id`, `missing_price` (see `BookFilters` interface in `models/Book.ts`)
 
 ### Database

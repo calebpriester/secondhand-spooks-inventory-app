@@ -282,6 +282,11 @@
   color: #FF6B6B !important;
 }
 
+.bulk-price-footer-hint {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+}
+
 .bulk-price-footer-warning {
   color: #FF6B6B;
   font-size: 0.75rem;

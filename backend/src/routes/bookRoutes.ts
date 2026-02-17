@@ -262,6 +262,21 @@ router.post('/bulk-price', async (req: Request, res: Response) => {
   }
 });
 
+// Clear prices on multiple books
+router.post('/clear-prices', async (req: Request, res: Response) => {
+  try {
+    const { book_ids } = req.body;
+    if (!book_ids || !Array.isArray(book_ids) || book_ids.length === 0) {
+      return res.status(400).json({ error: 'book_ids array is required' });
+    }
+    const count = await bookService.bulkClearPrice(book_ids);
+    res.json({ message: `Cleared prices on ${count} book(s)`, count });
+  } catch (error) {
+    console.error('Error clearing prices:', error);
+    res.status(500).json({ error: 'Failed to clear prices' });
+  }
+});
+
 // Update transaction details (shared fields + per-book prices)
 router.post('/update-transaction', async (req: Request, res: Response) => {
   try {

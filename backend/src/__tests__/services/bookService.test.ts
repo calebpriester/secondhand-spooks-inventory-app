@@ -715,4 +715,28 @@ describe('BookService', () => {
     });
   });
 
+  describe('bulkClearPrice', () => {
+    it('clears our_price and profit_est for each book', async () => {
+      mockQuery
+        .mockResolvedValueOnce(mockRows([{ id: 1 }]))
+        .mockResolvedValueOnce(mockRows([{ id: 2 }]));
+
+      const result = await service.bulkClearPrice([1, 2]);
+
+      expect(result).toBe(2);
+      expect(mockQuery).toHaveBeenCalledTimes(2);
+
+      const [sql, params] = mockQuery.mock.calls[0];
+      expect(sql).toContain('UPDATE books SET our_price = NULL, profit_est = NULL');
+      expect(params).toEqual([1]);
+    });
+
+    it('returns 0 for empty array', async () => {
+      const result = await service.bulkClearPrice([]);
+
+      expect(result).toBe(0);
+      expect(mockQuery).not.toHaveBeenCalled();
+    });
+  });
+
 });
