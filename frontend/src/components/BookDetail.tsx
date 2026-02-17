@@ -447,52 +447,51 @@ const BookDetail: React.FC<BookDetailProps> = ({ book, onClose, onEdit, onEnrich
               Return to Inventory
             </button>
           )}
-          <div className="enrich-dropdown-wrapper">
-            <button
-              className="btn btn-secondary"
-              onClick={() => setShowEnrichMenu(!showEnrichMenu)}
-              disabled={(isEnriching || isTagging) && !showEnrichMenu}
-            >
-              {isEnriching ? 'Enriching...' : isTagging ? 'Tagging...' : 'Enrich'}
+          <div className="book-detail-secondary-actions">
+            <button className="btn btn-secondary" onClick={() => onEdit(book)}>
+              Edit
             </button>
-            {showEnrichMenu && (
-              <div className="enrich-dropdown">
-                <button
-                  className="enrich-dropdown-item"
-                  onClick={() => { handleEnrich(); setShowEnrichMenu(false); }}
-                  disabled={isEnriching || !book.id}
-                >
-                  {book.enriched_at ? 'Re-enrich from Google Books' : 'Google Books Auto'}
-                </button>
-                <button
-                  className="enrich-dropdown-item"
-                  onClick={() => { setShowCustomSearch(true); setShowEnrichMenu(false); }}
-                >
-                  Google Books Custom Search
-                </button>
-                <button
-                  className="enrich-dropdown-item btn-subgenre"
-                  onClick={() => {
-                    if (book.id && window.confirm(
-                      `${book.subgenres?.length ? 'Re-tag' : 'Tag'} "${book.book_title}" with sub-genres using Gemini AI? This uses 1 API request.`
-                    )) {
-                      onTagSubgenres(book.id);
-                    }
-                    setShowEnrichMenu(false);
-                  }}
-                  disabled={isTagging || !book.id}
-                >
-                  {book.subgenres?.length ? 'Re-tag Sub-genres (Gemini)' : 'Tag Sub-genres (Gemini)'}
-                </button>
-              </div>
-            )}
+            <div className="enrich-dropdown-wrapper">
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowEnrichMenu(!showEnrichMenu)}
+                disabled={(isEnriching || isTagging) && !showEnrichMenu}
+              >
+                {isEnriching ? 'Enriching...' : isTagging ? 'Tagging...' : 'Enrich'}
+              </button>
+              {showEnrichMenu && (
+                <div className="enrich-dropdown">
+                  <button
+                    className="enrich-dropdown-item"
+                    onClick={() => { handleEnrich(); setShowEnrichMenu(false); }}
+                    disabled={isEnriching || !book.id}
+                  >
+                    {book.enriched_at ? 'Re-enrich from Google Books' : 'Google Books Auto'}
+                  </button>
+                  <button
+                    className="enrich-dropdown-item"
+                    onClick={() => { setShowCustomSearch(true); setShowEnrichMenu(false); }}
+                  >
+                    Google Books Custom Search
+                  </button>
+                  <button
+                    className="enrich-dropdown-item btn-subgenre"
+                    onClick={() => {
+                      if (book.id && window.confirm(
+                        `${book.subgenres?.length ? 'Re-tag' : 'Tag'} "${book.book_title}" with sub-genres using Gemini AI? This uses 1 API request.`
+                      )) {
+                        onTagSubgenres(book.id);
+                      }
+                      setShowEnrichMenu(false);
+                    }}
+                    disabled={isTagging || !book.id}
+                  >
+                    {book.subgenres?.length ? 'Re-tag Sub-genres (Gemini)' : 'Tag Sub-genres (Gemini)'}
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
-          <button className="btn btn-secondary" onClick={() => onEdit(book)}>
-            Edit
-          </button>
-          <button className="btn btn-primary" onClick={onClose}>
-            Close
-          </button>
         </div>
       )}
     </div>
