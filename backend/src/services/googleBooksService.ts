@@ -30,7 +30,7 @@ export class GoogleBooksService {
       const cleanTitle = title.split(':')[0].trim();
       searchQuery = `intitle:${encodeURIComponent(cleanTitle)}+inauthor:${encodeURIComponent(author)}`;
     }
-    const url = `${GOOGLE_BOOKS_API_BASE}?q=${searchQuery}&maxResults=5&langRestrict=en&key=${this.apiKey}`;
+    const url = `${GOOGLE_BOOKS_API_BASE}?q=${searchQuery}&maxResults=10&langRestrict=en&key=${this.apiKey}`;
 
     const response = await fetch(url);
     if (!response.ok) {
