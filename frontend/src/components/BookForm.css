@@ -128,12 +128,29 @@
 
 .form-footer {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
   gap: 1rem;
   padding: 1.5rem;
   border-top: 2px solid #00FFA3;
   flex-shrink: 0;
   background: linear-gradient(135deg, #1E1B1C 0%, #2a2627 100%);
+}
+
+.form-footer-right {
+  display: flex;
+  gap: 1rem;
+  margin-left: auto;
+}
+
+.btn-delete {
+  background-color: #dc2626;
+  color: #fff;
+  font-weight: 600;
+}
+
+.btn-delete:hover {
+  background-color: #b91c1c;
 }
 
 .btn {
@@ -306,5 +323,16 @@
     width: 100%;
     text-align: center;
     padding: 0.85rem;
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .form-footer-right {
+    flex-direction: column-reverse;
+    width: 100%;
+  }
+
+  .form-footer .btn-delete {
+    order: -1;
   }
 }

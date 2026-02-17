@@ -202,7 +202,7 @@ docker compose ps
 ✅ CSV import from Google Sheets
 ✅ Data persistence across restarts
 ✅ Backup and restore functionality
-✅ Add/edit books through the UI (Issue #1 - closed)
+✅ Add/edit/delete books through the UI (Issue #1 - closed)
 ✅ Quick-toggle cleaned status checkbox
 ✅ Production deployment on Railway (auto-deploys from main)
 ✅ Mobile-responsive design (Issue #5 - closed)
