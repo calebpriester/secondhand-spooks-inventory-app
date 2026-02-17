@@ -94,35 +94,26 @@ function Dashboard() {
         </div>
       </div>
 
-      {(stats.reading.pulled_to_read_count > 0 || stats.reading.kept_count > 0) && (
-        <div className="stats-grid reading-stats-grid">
+      {(stats.reading.pulled_to_read_count > 0 || stats.reading.kept_count > 0 || stats.books_missing_price > 0) && (
+        <div className="inventory-alerts">
           {stats.reading.pulled_to_read_count > 0 && (
-            <div className="stat-card stat-card-reading">
-              <h3>Pulled to Read</h3>
-              <p className="stat-value">{stats.reading.pulled_to_read_count}</p>
-            </div>
+            <span className="inventory-alert-item alert-reading">
+              <span className="inventory-alert-count">{stats.reading.pulled_to_read_count}</span>
+              <span className="inventory-alert-label">pulled to read</span>
+            </span>
           )}
           {stats.reading.kept_count > 0 && (
-            <>
-              <div className="stat-card stat-card-reading">
-                <h3>Books Kept</h3>
-                <p className="stat-value">{stats.reading.kept_count}</p>
-              </div>
-              <div className="stat-card stat-card-reading">
-                <h3>Kept Cost</h3>
-                <p className="stat-value">${stats.reading.total_kept_cost.toFixed(2)}</p>
-              </div>
-            </>
+            <span className="inventory-alert-item alert-reading">
+              <span className="inventory-alert-count">{stats.reading.kept_count}</span>
+              <span className="inventory-alert-label">kept (${stats.reading.total_kept_cost.toFixed(2)})</span>
+            </span>
           )}
-        </div>
-      )}
-
-      {stats.books_missing_price > 0 && (
-        <div className="pricing-alert">
-          <span className="pricing-alert-count">{stats.books_missing_price}</span>
-          <span className="pricing-alert-text">
-            <strong>books need pricing</strong> — use Inventory → Missing Price filter to find them
-          </span>
+          {stats.books_missing_price > 0 && (
+            <span className="inventory-alert-item alert-pricing">
+              <span className="inventory-alert-count">{stats.books_missing_price}</span>
+              <span className="inventory-alert-label"><strong>need pricing</strong></span>
+            </span>
+          )}
         </div>
       )}
 

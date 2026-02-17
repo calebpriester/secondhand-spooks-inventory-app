@@ -91,23 +91,48 @@
   color: var(--success);
 }
 
-/* ===== Reading Stats ===== */
-.reading-stats-grid {
-  margin-top: 0;
-  grid-template-columns: repeat(3, 1fr);
+/* ===== Inventory Alerts ===== */
+.inventory-alerts {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  padding: 0.75rem 1.25rem;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  margin-top: -1.5rem;
 }
 
-.stat-card-reading {
-  border-color: #6366F1;
+.inventory-alert-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-.stat-card-reading:hover {
-  border-color: #6366F1;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+.inventory-alert-item + .inventory-alert-item {
+  padding-left: 1.25rem;
+  border-left: 1px solid var(--border);
 }
 
-.stat-card-reading h3 {
+.inventory-alert-count {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.alert-reading .inventory-alert-count {
   color: #6366F1;
+}
+
+.alert-pricing .inventory-alert-count {
+  color: #7C3AED;
+}
+
+.inventory-alert-label {
+  font-size: 0.85rem;
+  color: var(--text);
 }
 
 /* ===== Sales Stats ===== */
@@ -140,35 +165,6 @@
 
 .breakdown-card-sales h3 {
   color: #E85D04;
-}
-
-/* ===== Pricing Alert ===== */
-.pricing-alert {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.75rem 1.25rem;
-  background-color: var(--surface);
-  border: 1px solid #7C3AED;
-  border-radius: 8px;
-  margin-bottom: 1.5rem;
-  margin-top: -1.5rem;
-}
-
-.pricing-alert-count {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--text);
-  line-height: 1;
-}
-
-.pricing-alert-text {
-  font-size: 0.85rem;
-  color: var(--text);
-}
-
-.pricing-alert-text strong {
-  color: var(--text);
 }
 
 .profit-cell {
@@ -291,8 +287,12 @@
     margin-bottom: 2rem;
   }
 
-  .reading-stats-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .inventory-alerts {
+    gap: 0.75rem;
+  }
+
+  .inventory-alert-item + .inventory-alert-item {
+    padding-left: 0.75rem;
   }
 
   .stat-card {

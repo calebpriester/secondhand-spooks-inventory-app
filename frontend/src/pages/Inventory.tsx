@@ -43,11 +43,14 @@ function Inventory() {
       bookApi.update(id, book),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['books'] });
+      queryClient.invalidateQueries({ queryKey: ['book'] });
       queryClient.invalidateQueries({ queryKey: ['stats'] });
       queryClient.invalidateQueries({ queryKey: ['saleEvents'] });
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
-      setIsFormOpen(false);
-      setSelectedBook(null);
+      if (isFormOpen) {
+        setIsFormOpen(false);
+        setSelectedBook(null);
+      }
     },
   });
 
@@ -56,6 +59,7 @@ function Inventory() {
       bookApi.enrichBook(id, title, author, isbn),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['books'] });
+      queryClient.invalidateQueries({ queryKey: ['book'] });
     },
   });
 
@@ -63,6 +67,7 @@ function Inventory() {
     mutationFn: (id: number) => bookApi.tagBookSubgenres(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['books'] });
+      queryClient.invalidateQueries({ queryKey: ['book'] });
     },
   });
 
@@ -253,10 +258,14 @@ function Inventory() {
   const selectableBooks = books?.filter(b => !b.sold && !b.kept && b.id) || [];
   const allSelected = selectableBooks.length > 0 && selectedIds.size === selectableBooks.length;
 
-  // Keep selectedBook in sync with latest data from the query
-  const currentSelectedBook = selectedBook && books
-    ? books.find(b => b.id === selectedBook.id) || selectedBook
-    : selectedBook;
+  // Fetch the selected book directly by ID so it stays fresh even when filtered out of the list
+  const { data: fetchedSelectedBook } = useQuery({
+    queryKey: ['book', selectedBook?.id],
+    queryFn: () => bookApi.getById(selectedBook!.id!),
+    enabled: isDetailOpen && !!selectedBook?.id,
+  });
+
+  const currentSelectedBook = fetchedSelectedBook || selectedBook;
 
   const stockStatusValue = filters.missing_price ? 'missing_price' :
     filters.pulled_to_read ? 'pulled_to_read' :
