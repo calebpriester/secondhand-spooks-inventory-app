@@ -396,6 +396,17 @@ Before pushing changes:
 - Mock the database with `jest.mock('../../config/database')` — do not require a running DB for unit tests.
 - When modifying existing code (e.g., adding new stats queries or filters), update the corresponding test file and fixtures.
 
+### Coverage Enforcement
+- **Coverage thresholds are enforced in `jest.config.ts`** — CI will fail if coverage drops below thresholds.
+- Global floor: 50% statements, 25% branches, 40% functions, 50% lines
+- Per-file thresholds:
+  - `bookService.ts`: 80% statements/branches/lines, 75% functions
+  - `geminiService.ts`: 50% statements/lines, 30% branches, 80% functions
+  - `googleBooksService.ts`: 30% statements/lines/functions, 40% branches
+- Run `npx jest --coverage` locally to check before pushing.
+- CI runs `npx jest --ci --coverage` on PRs — coverage report uploaded as artifact.
+- Exported pure functions (`scoreResult`, `pickBestMatch`, `extractEnrichmentFromItem`, `filterValidSubgenres`, `enforceOtherRule`, `validatePacing`, `parseGeminiResponse`) should maintain 100% coverage.
+
 ## Need Help?
 
 - **Technical docs**: See README.md, docs/DATA_MANAGEMENT.md

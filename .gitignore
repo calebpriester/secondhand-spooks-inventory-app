@@ -31,3 +31,10 @@ yarn-error.log*
 data/backups/
 *.sql
 !backend/src/config/schema.sql
+
+# Test coverage (auto-generated)
+coverage/
+backend/coverage/
+
+# Node modules (installed locally for testing)
+backend/node_modules/

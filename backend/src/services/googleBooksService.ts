@@ -4,6 +4,89 @@ import { GoogleBooksEnrichment, EnrichmentResult, BatchEnrichmentProgress } from
 const GOOGLE_BOOKS_API_BASE = 'https://www.googleapis.com/books/v1/volumes';
 const RATE_LIMIT_DELAY_MS = 1100;
 
+/** Normalize a string for comparison (lowercase, strip punctuation) */
+export function normalizeStr(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim();
+}
+
+/** Score a Google Books result against a search title+author. Returns 0 if below threshold. */
+export function scoreResult(
+  item: any,
+  title: string,
+  author: string
+): number {
+  const vi = item.volumeInfo;
+  if (!vi) return 0;
+
+  // Skip non-English results
+  if (vi.language && vi.language !== 'en') return 0;
+
+  const normalizedTitle = normalizeStr(title);
+  const normalizedAuthor = normalizeStr(author);
+
+  let score = 0;
+  const resultTitle = normalizeStr(vi.title || '');
+  const resultAuthors = (vi.authors || []).map((a: string) => normalizeStr(a));
+
+  if (resultTitle === normalizedTitle) score += 10;
+  else if (resultTitle.includes(normalizedTitle) || normalizedTitle.includes(resultTitle)) score += 5;
+
+  for (const ra of resultAuthors) {
+    if (ra === normalizedAuthor || normalizedAuthor.includes(ra) || ra.includes(normalizedAuthor)) {
+      score += 10;
+      break;
+    }
+    const resultLast = ra.split(/\s+/).pop() || '';
+    const authorLast = normalizedAuthor.split(/\s+/).pop() || '';
+    if (resultLast && authorLast && resultLast === authorLast) {
+      score += 7;
+      break;
+    }
+  }
+
+  if (vi.imageLinks) score += 5;
+  if (vi.description) score += 3;
+  if (vi.pageCount) score += 1;
+
+  return score;
+}
+
+/** Extract enrichment fields from a Google Books API item */
+export function extractEnrichmentFromItem(item: any): GoogleBooksEnrichment {
+  const vi = item.volumeInfo;
+  const identifiers = vi.industryIdentifiers || [];
+
+  return {
+    google_books_id: item.id,
+    cover_image_url: vi.imageLinks?.thumbnail?.replace('http:', 'https:') || null,
+    description: vi.description ? vi.description.replace(/<[^>]+>/g, '') : null,
+    genres: vi.categories || [],
+    google_rating: vi.averageRating ?? null,
+    google_ratings_count: vi.ratingsCount ?? null,
+    page_count: vi.pageCount ?? null,
+    publisher: vi.publisher || null,
+    published_date: vi.publishedDate || null,
+    isbn_10: identifiers.find((id: any) => id.type === 'ISBN_10')?.identifier || null,
+    isbn_13: identifiers.find((id: any) => id.type === 'ISBN_13')?.identifier || null,
+  };
+}
+
+/** Pick the best matching item from Google Books results. Returns null if no item scores >= 10. */
+export function pickBestMatch(items: any[], title: string, author: string): any | null {
+  let bestItem = null;
+  let bestScore = 0;
+
+  for (const item of items) {
+    const score = scoreResult(item, title, author);
+    if (score > bestScore) {
+      bestScore = score;
+      bestItem = item;
+    }
+  }
+
+  return bestScore >= 10 ? bestItem : null;
+}
+
 export class GoogleBooksService {
   private apiKey: string | null;
   private batchProgress: BatchEnrichmentProgress | null = null;
@@ -44,78 +127,10 @@ export class GoogleBooksService {
       return null;
     }
 
-    const bestMatch = this.pickBestMatch(data.items, title, author);
+    const bestMatch = pickBestMatch(data.items, title, author);
     if (!bestMatch) return null;
 
-    return this.extractEnrichment(bestMatch);
-  }
-
-  private pickBestMatch(items: any[], title: string, author: string): any | null {
-    const normalizeStr = (s: string) => s.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim();
-    const normalizedTitle = normalizeStr(title);
-    const normalizedAuthor = normalizeStr(author);
-
-    let bestItem = null;
-    let bestScore = 0;
-
-    for (const item of items) {
-      const vi = item.volumeInfo;
-      if (!vi) continue;
-
-      // Skip non-English results (langRestrict=en isn't always enforced by the API)
-      if (vi.language && vi.language !== 'en') continue;
-
-      let score = 0;
-      const resultTitle = normalizeStr(vi.title || '');
-      const resultAuthors = (vi.authors || []).map((a: string) => normalizeStr(a));
-
-      if (resultTitle === normalizedTitle) score += 10;
-      else if (resultTitle.includes(normalizedTitle) || normalizedTitle.includes(resultTitle)) score += 5;
-
-      for (const ra of resultAuthors) {
-        if (ra === normalizedAuthor || normalizedAuthor.includes(ra) || ra.includes(normalizedAuthor)) {
-          score += 10;
-          break;
-        }
-        // Fallback: compare last names (handles middle name/initial variations like "Poppy Brite" vs "Poppy Z. Brite")
-        const resultLast = ra.split(/\s+/).pop() || '';
-        const authorLast = normalizedAuthor.split(/\s+/).pop() || '';
-        if (resultLast && authorLast && resultLast === authorLast) {
-          score += 7;
-          break;
-        }
-      }
-
-      if (vi.imageLinks) score += 5;
-      if (vi.description) score += 3;
-      if (vi.pageCount) score += 1;
-
-      if (score > bestScore) {
-        bestScore = score;
-        bestItem = item;
-      }
-    }
-
-    return bestScore >= 10 ? bestItem : null;
-  }
-
-  private extractEnrichment(item: any): GoogleBooksEnrichment {
-    const vi = item.volumeInfo;
-    const identifiers = vi.industryIdentifiers || [];
-
-    return {
-      google_books_id: item.id,
-      cover_image_url: vi.imageLinks?.thumbnail?.replace('http:', 'https:') || null,
-      description: vi.description ? vi.description.replace(/<[^>]+>/g, '') : null,
-      genres: vi.categories || [],
-      google_rating: vi.averageRating ?? null,
-      google_ratings_count: vi.ratingsCount ?? null,
-      page_count: vi.pageCount ?? null,
-      publisher: vi.publisher || null,
-      published_date: vi.publishedDate || null,
-      isbn_10: identifiers.find((id: any) => id.type === 'ISBN_10')?.identifier || null,
-      isbn_13: identifiers.find((id: any) => id.type === 'ISBN_13')?.identifier || null,
-    };
+    return extractEnrichmentFromItem(bestMatch);
   }
 
   async enrichBook(bookId: number, overrideTitle?: string, overrideAuthor?: string, isbn?: string): Promise<EnrichmentResult> {
