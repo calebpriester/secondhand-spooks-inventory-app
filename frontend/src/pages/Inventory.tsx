@@ -1,19 +1,23 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { bookApi, subgenreApi } from '../services/api';
-import { Book, BookFilters } from '../types/Book';
+import { Book, BookFilters, BulkSaleRequest } from '../types/Book';
 import Modal from '../components/Modal';
 import BookForm from '../components/BookForm';
 import BookDetail from '../components/BookDetail';
+import BulkSaleModal from '../components/BulkSaleModal';
 import { useIsMobile } from '../hooks/useIsMobile';
 import './Inventory.css';
 
 function Inventory() {
-  const [filters, setFilters] = useState<BookFilters>({});
+  const [filters, setFilters] = useState<BookFilters>({ sold: false });
   const [search, setSearch] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [isBulkSaleOpen, setIsBulkSaleOpen] = useState(false);
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [selectedBooksMap, setSelectedBooksMap] = useState<Map<number, Book>>(new Map());
 
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
@@ -37,6 +41,9 @@ function Inventory() {
       bookApi.update(id, book),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['books'] });
+      queryClient.invalidateQueries({ queryKey: ['stats'] });
+      queryClient.invalidateQueries({ queryKey: ['saleEvents'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
       setIsFormOpen(false);
       setSelectedBook(null);
     },
@@ -57,19 +64,37 @@ function Inventory() {
     },
   });
 
+  const bulkSaleMutation = useMutation({
+    mutationFn: (request: BulkSaleRequest) => bookApi.bulkMarkSold(request),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['books'] });
+      queryClient.invalidateQueries({ queryKey: ['stats'] });
+      queryClient.invalidateQueries({ queryKey: ['saleEvents'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      setIsBulkSaleOpen(false);
+      setSelectedIds(new Set());
+      setSelectedBooksMap(new Map());
+    },
+  });
+
   const { data: subgenreOptions } = useQuery({
     queryKey: ['subgenreOptions'],
     queryFn: subgenreApi.getAll,
   });
 
-  const toggleCleaned = (book: Book) => {
-    if (!book.id) return;
-    updateMutation.mutate({ id: book.id, book: { cleaned: !book.cleaned } });
-  };
+  const { data: saleEvents = [] } = useQuery({
+    queryKey: ['saleEvents'],
+    queryFn: bookApi.getSaleEvents,
+  });
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    setFilters({ ...filters, search });
+    setFilters({ ...filters, search: search || undefined });
+  };
+
+  const toggleCleaned = (book: Book) => {
+    if (!book.id) return;
+    updateMutation.mutate({ id: book.id, book: { cleaned: !book.cleaned } });
   };
 
   const handleFilterChange = (key: keyof BookFilters, value: string) => {
@@ -83,8 +108,10 @@ function Inventory() {
   };
 
   const clearFilters = () => {
-    setFilters({});
+    setFilters({ sold: false });
     setSearch('');
+    setSelectedIds(new Set());
+    setSelectedBooksMap(new Map());
   };
 
   const handleAddBook = () => {
@@ -125,10 +152,65 @@ function Inventory() {
     enrichMutation.mutate({ id: bookId, title, author, isbn });
   };
 
+  const handleMarkSold = (bookId: number, saleData: { sold_price: number; date_sold: string; sale_event?: string; payment_method: 'Cash' | 'Card'; sale_transaction_id: string }) => {
+    updateMutation.mutate({
+      id: bookId,
+      book: {
+        sold: true,
+        sold_price: saleData.sold_price,
+        date_sold: saleData.date_sold,
+        sale_event: saleData.sale_event || null,
+        payment_method: saleData.payment_method,
+        sale_transaction_id: saleData.sale_transaction_id,
+      },
+    });
+  };
+
+  const handleMarkAvailable = (bookId: number) => {
+    updateMutation.mutate({
+      id: bookId,
+      book: {
+        sold: false,
+        sold_price: null,
+        date_sold: null,
+        sale_event: null,
+        sale_transaction_id: null,
+        payment_method: null,
+      },
+    });
+  };
+
+  const toggleSelectBook = (bookId: number, book?: Book) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(bookId)) {
+        next.delete(bookId);
+      } else {
+        next.add(bookId);
+      }
+      return next;
+    });
+    setSelectedBooksMap(prev => {
+      const next = new Map(prev);
+      if (next.has(bookId)) {
+        next.delete(bookId);
+      } else if (book) {
+        next.set(bookId, book);
+      }
+      return next;
+    });
+  };
+
+  const selectedBooks = Array.from(selectedBooksMap.values());
+
   // Keep selectedBook in sync with latest data from the query
   const currentSelectedBook = selectedBook && books
     ? books.find(b => b.id === selectedBook.id) || selectedBook
     : selectedBook;
+
+  const stockStatusValue = filters.sold === undefined ? '' : filters.sold ? 'sold' : 'available';
+  const statusLabel = filters.sold === true ? 'sold' : filters.sold === false ? 'available' : '';
+  const viewingSold = filters.sold === true;
 
   if (isLoading) {
     return <div className="loading">Loading inventory...</div>;
@@ -137,10 +219,20 @@ function Inventory() {
   return (
     <div className="inventory">
       <div className="inventory-header">
-        <h2>Inventory ({books?.length || 0} books)</h2>
-        <button onClick={handleAddBook} className="btn btn-primary">
-          + Add Book
-        </button>
+        <h2>Inventory ({books?.length || 0} {statusLabel} books)</h2>
+        <div className="inventory-header-actions">
+          {selectedIds.size > 0 && (
+            <button
+              onClick={() => setIsBulkSaleOpen(true)}
+              className="btn btn-sold"
+            >
+              Mark {selectedIds.size} as Sold
+            </button>
+          )}
+          <button onClick={handleAddBook} className="btn btn-primary">
+            + Add Book
+          </button>
+        </div>
       </div>
 
       <div className="filters-section">
@@ -157,61 +249,88 @@ function Inventory() {
 
         <div className="filters">
           <select
-            value={filters.category || ''}
-            onChange={(e) => handleFilterChange('category', e.target.value)}
+            value={stockStatusValue}
+            onChange={(e) => {
+              const val = e.target.value;
+              const newFilters = { ...filters };
+              if (val === 'sold') {
+                newFilters.sold = true;
+              } else if (val === 'available') {
+                newFilters.sold = false;
+              } else {
+                delete newFilters.sold;
+              }
+              setFilters(newFilters);
+              setSelectedIds(new Set());
+              setSelectedBooksMap(new Map());
+            }}
             className="filter-select"
           >
-            <option value="">All Categories</option>
-            <option value="YA/Nostalgia">YA/Nostalgia</option>
-            <option value="PFH/Vintage">PFH/Vintage</option>
-            <option value="Mainstream">Mainstream</option>
-            <option value="Comics/Ephemera">Comics/Ephemera</option>
+            <option value="available">Available</option>
+            <option value="sold">Sold</option>
+            <option value="">All Books</option>
           </select>
 
-          <select
-            value={filters.condition || ''}
-            onChange={(e) => handleFilterChange('condition', e.target.value)}
-            className="filter-select"
-          >
-            <option value="">All Conditions</option>
-            <option value="Like New">Like New</option>
-            <option value="Very Good">Very Good</option>
-            <option value="Good">Good</option>
-            <option value="Acceptable">Acceptable</option>
-          </select>
+          {!viewingSold && (
+            <>
+              <select
+                value={filters.category || ''}
+                onChange={(e) => handleFilterChange('category', e.target.value)}
+                className="filter-select"
+              >
+                <option value="">All Categories</option>
+                <option value="YA/Nostalgia">YA/Nostalgia</option>
+                <option value="PFH/Vintage">PFH/Vintage</option>
+                <option value="Mainstream">Mainstream</option>
+                <option value="Comics/Ephemera">Comics/Ephemera</option>
+              </select>
 
-          <select
-            value={filters.cover_type || ''}
-            onChange={(e) => handleFilterChange('cover_type', e.target.value)}
-            className="filter-select"
-          >
-            <option value="">All Cover Types</option>
-            <option value="Paper">Paperback</option>
-            <option value="Hard">Hardcover</option>
-            <option value="Audiobook">Audiobook</option>
-          </select>
+              <select
+                value={filters.condition || ''}
+                onChange={(e) => handleFilterChange('condition', e.target.value)}
+                className="filter-select"
+              >
+                <option value="">All Conditions</option>
+                <option value="Like New">Like New</option>
+                <option value="Very Good">Very Good</option>
+                <option value="Good">Good</option>
+                <option value="Acceptable">Acceptable</option>
+              </select>
 
-          <select
-            value={filters.subgenre || ''}
-            onChange={(e) => handleFilterChange('subgenre', e.target.value)}
-            className="filter-select"
-          >
-            <option value="">All Sub-Genres</option>
-            {subgenreOptions?.map(sg => (
-              <option key={sg.id} value={sg.name}>{sg.name}</option>
-            ))}
-          </select>
+              <select
+                value={filters.cover_type || ''}
+                onChange={(e) => handleFilterChange('cover_type', e.target.value)}
+                className="filter-select"
+              >
+                <option value="">All Cover Types</option>
+                <option value="Paper">Paperback</option>
+                <option value="Hard">Hardcover</option>
+                <option value="Audiobook">Audiobook</option>
+              </select>
 
-          <select
-            value={filters.pacing || ''}
-            onChange={(e) => handleFilterChange('pacing', e.target.value)}
-            className="filter-select"
-          >
-            <option value="">All Pacing</option>
-            <option value="Slow Burn">Slow Burn</option>
-            <option value="Moderate">Moderate</option>
-            <option value="Fast-Paced">Fast-Paced</option>
-          </select>
+              <select
+                value={filters.subgenre || ''}
+                onChange={(e) => handleFilterChange('subgenre', e.target.value)}
+                className="filter-select"
+              >
+                <option value="">All Sub-Genres</option>
+                {subgenreOptions?.map(sg => (
+                  <option key={sg.id} value={sg.name}>{sg.name}</option>
+                ))}
+              </select>
+
+              <select
+                value={filters.pacing || ''}
+                onChange={(e) => handleFilterChange('pacing', e.target.value)}
+                className="filter-select"
+              >
+                <option value="">All Pacing</option>
+                <option value="Slow Burn">Slow Burn</option>
+                <option value="Moderate">Moderate</option>
+                <option value="Fast-Paced">Fast-Paced</option>
+              </select>
+            </>
+          )}
 
           <button onClick={clearFilters} className="btn btn-secondary">
             Clear Filters
@@ -222,8 +341,16 @@ function Inventory() {
       {isMobile ? (
         <div className="book-cards">
           {books?.map((book) => (
-            <div key={book.id} className="book-card">
+            <div key={book.id} className={`book-card ${book.sold ? 'book-card-sold' : ''}`}>
               <div className="book-card-content">
+                {!book.sold && (
+                  <input
+                    type="checkbox"
+                    className="book-select-checkbox"
+                    checked={!!book.id && selectedIds.has(book.id)}
+                    onChange={() => book.id && toggleSelectBook(book.id, book)}
+                  />
+                )}
                 {book.cover_image_url ? (
                   <img
                     src={book.cover_image_url}
@@ -242,7 +369,10 @@ function Inventory() {
                 )}
                 <div className="book-card-info">
                   <div className="book-card-header">
-                    <span className="book-card-title">{book.book_title}</span>
+                    <span className="book-card-title">
+                      {book.book_title}
+                      {book.sold && <span className="badge badge-sold badge-sold-inline">SOLD</span>}
+                    </span>
                     <button
                       onClick={() => handleEditBook(book)}
                       className="btn btn-action"
@@ -316,23 +446,49 @@ function Inventory() {
           <table className="books-table">
             <thead>
               <tr>
+                {!viewingSold && <th className="select-cell"></th>}
                 <th></th>
                 <th>Title</th>
                 <th>Author</th>
-                <th>Series</th>
-                <th>Category</th>
-                <th>Condition</th>
-                <th>Cover</th>
-                <th>Purchase $</th>
-                <th>Our Price</th>
-                <th>Source</th>
-                <th>Cleaned</th>
+                {viewingSold ? (
+                  <>
+                    <th>Sold Price</th>
+                    <th>Profit</th>
+                    <th>Date Sold</th>
+                    <th>Event</th>
+                    <th>Payment</th>
+                  </>
+                ) : (
+                  <>
+                    <th>Series</th>
+                    <th>Category</th>
+                    <th>Condition</th>
+                    <th>Cover</th>
+                    <th>Purchase $</th>
+                    <th>Our Price</th>
+                    <th>Source</th>
+                    <th>Cleaned</th>
+                  </>
+                )}
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {books?.map((book) => (
-                <tr key={book.id}>
+                <tr key={book.id} className={book.sold && !viewingSold ? 'sold-row' : ''}>
+                  {!viewingSold && (
+                    <td className="select-cell">
+                      {!book.sold ? (
+                        <input
+                          type="checkbox"
+                          checked={!!book.id && selectedIds.has(book.id)}
+                          onChange={() => book.id && toggleSelectBook(book.id, book)}
+                        />
+                      ) : (
+                        <span className="badge badge-sold badge-sold-sm">SOLD</span>
+                      )}
+                    </td>
+                  )}
                   <td className="cover-cell">
                     {book.cover_image_url ? (
                       <img
@@ -358,47 +514,69 @@ function Inventory() {
                     )}
                   </td>
                   <td>{book.author_fullname}</td>
-                  <td>
-                    {book.book_series && (
-                      <>
-                        {book.book_series}
-                        {book.vol_number && ` #${book.vol_number}`}
-                      </>
-                    )}
-                  </td>
-                  <td>
-                    {book.category && (
-                      <span className={`badge badge-${book.category.toLowerCase().replace('/', '-')}`}>
-                        {book.category}
-                      </span>
-                    )}
-                  </td>
-                  <td>
-                    {book.condition && (
-                      <span className={`badge badge-${book.condition.toLowerCase().replace(' ', '-')}`}>
-                        {book.condition}
-                      </span>
-                    )}
-                  </td>
-                  <td>
-                    {book.cover_type && (
-                      <span className={`badge badge-${book.cover_type.toLowerCase()}`}>
-                        {book.cover_type}
-                      </span>
-                    )}
-                  </td>
-                  <td>{book.purchase_price ? `$${Number(book.purchase_price).toFixed(2)}` : 'N/A'}</td>
-                  <td>{book.our_price ? `$${Number(book.our_price).toFixed(2)}` : 'N/A'}</td>
-                  <td className="source-cell">{book.source || '-'}</td>
-                  <td className="cleaned-cell">
-                    <input
-                      type="checkbox"
-                      checked={!!book.cleaned}
-                      onChange={() => toggleCleaned(book)}
-                      className="cleaned-checkbox"
-                      title={book.cleaned ? 'Mark as not cleaned' : 'Mark as cleaned'}
-                    />
-                  </td>
+                  {viewingSold ? (
+                    <>
+                      <td>{book.sold_price ? `$${Number(book.sold_price).toFixed(2)}` : 'N/A'}</td>
+                      <td className="profit-cell">
+                        {book.sold_price && book.purchase_price
+                          ? `$${(Number(book.sold_price) - Number(book.purchase_price)).toFixed(2)}`
+                          : 'N/A'}
+                      </td>
+                      <td>{book.date_sold ? new Date(String(book.date_sold).split('T')[0] + 'T00:00:00').toLocaleDateString() : 'N/A'}</td>
+                      <td className="source-cell">{book.sale_event || '-'}</td>
+                      <td>
+                        {book.payment_method && (
+                          <span className={`badge payment-badge-${book.payment_method.toLowerCase()}`}>
+                            {book.payment_method}
+                          </span>
+                        )}
+                      </td>
+                    </>
+                  ) : (
+                    <>
+                      <td>
+                        {book.book_series && (
+                          <>
+                            {book.book_series}
+                            {book.vol_number && ` #${book.vol_number}`}
+                          </>
+                        )}
+                      </td>
+                      <td>
+                        {book.category && (
+                          <span className={`badge badge-${book.category.toLowerCase().replace('/', '-')}`}>
+                            {book.category}
+                          </span>
+                        )}
+                      </td>
+                      <td>
+                        {book.condition && (
+                          <span className={`badge badge-${book.condition.toLowerCase().replace(' ', '-')}`}>
+                            {book.condition}
+                          </span>
+                        )}
+                      </td>
+                      <td>
+                        {book.cover_type && (
+                          <span className={`badge badge-${book.cover_type.toLowerCase()}`}>
+                            {book.cover_type}
+                          </span>
+                        )}
+                      </td>
+                      <td>{book.purchase_price ? `$${Number(book.purchase_price).toFixed(2)}` : 'N/A'}</td>
+                      <td>{book.our_price ? `$${Number(book.our_price).toFixed(2)}` : 'N/A'}</td>
+                      <td className="source-cell">{book.source || '-'}</td>
+                      <td className="cleaned-cell">
+                        <input
+                          type="checkbox"
+                          checked={!!book.cleaned}
+                          onChange={() => toggleCleaned(book)}
+                          className="cleaned-checkbox"
+                          title={book.cleaned ? 'Mark as not cleaned' : 'Mark as cleaned'}
+                        />
+                      </td>
+                    </>
+                  )}
                   <td className="actions-cell">
                     <button
                       onClick={() => handleEditBook(book)}
@@ -433,8 +611,23 @@ function Inventory() {
             isEnriching={enrichMutation.isPending}
             onTagSubgenres={(id) => tagMutation.mutate(id)}
             isTagging={tagMutation.isPending}
+            onMarkSold={handleMarkSold}
+            isMarkingSold={updateMutation.isPending}
+            saleEvents={saleEvents}
+            onMarkAvailable={handleMarkAvailable}
           />
         )}
+      </Modal>
+
+      <Modal isOpen={isBulkSaleOpen} onClose={() => setIsBulkSaleOpen(false)}>
+        <BulkSaleModal
+          books={selectedBooks}
+          onConfirm={(request) => bulkSaleMutation.mutate(request)}
+          onCancel={() => setIsBulkSaleOpen(false)}
+          onRemoveBook={(bookId) => toggleSelectBook(bookId)}
+          isSubmitting={bulkSaleMutation.isPending}
+          saleEvents={saleEvents}
+        />
       </Modal>
     </div>
   );

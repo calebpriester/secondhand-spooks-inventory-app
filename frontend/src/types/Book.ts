@@ -21,6 +21,12 @@ export interface Book {
   pulled_to_read: boolean;
   subgenres?: string[] | null;
   pacing?: string | null;
+  sold?: boolean;
+  date_sold?: string | null;
+  sold_price?: number | null;
+  sale_event?: string | null;
+  sale_transaction_id?: string | null;
+  payment_method?: string | null;
   google_books_id?: string | null;
   cover_image_url?: string | null;
   description?: string | null;
@@ -78,6 +84,10 @@ export interface BookFilters {
   search?: string;
   subgenre?: string;
   pacing?: string;
+  sold?: boolean;
+  sale_event?: string;
+  date_sold?: string;
+  sale_transaction_id?: string;
 }
 
 export interface BookStats {
@@ -92,6 +102,7 @@ export interface BookStats {
   by_subgenre: SubgenreBreakdown[];
   by_decade: DecadeBreakdown[];
   rating_distribution: RatingBucket[];
+  sales: SalesStats;
 }
 
 export interface CategoryBreakdown {
@@ -170,4 +181,60 @@ export interface GeminiTaggingStatus {
     tagged_count: string;
     untagged_count: string;
   } | null;
+}
+
+export interface BulkSaleItem {
+  book_id: number;
+  sold_price: number;
+}
+
+export interface BulkSaleRequest {
+  items: BulkSaleItem[];
+  date_sold: string;
+  sale_event?: string;
+  sale_transaction_id: string;
+  payment_method: 'Cash' | 'Card';
+}
+
+export interface UpdateTransactionRequest {
+  sale_transaction_id: string;
+  date_sold?: string;
+  sale_event?: string | null;
+  payment_method?: 'Cash' | 'Card';
+  items?: BulkSaleItem[];
+}
+
+export interface TransactionBook {
+  id: number;
+  book_title: string;
+  author_fullname: string;
+  sold_price: number;
+  purchase_price: number | null;
+  cover_image_url: string | null;
+}
+
+export interface Transaction {
+  sale_transaction_id: string;
+  date_sold: string;
+  sale_event: string | null;
+  payment_method: string | null;
+  book_count: number;
+  total_revenue: number;
+  total_profit: number;
+  books: TransactionBook[];
+}
+
+export interface SalesStats {
+  books_sold: number;
+  total_revenue: number;
+  actual_profit: number;
+  transaction_count: number;
+  by_event: SaleEventBreakdown[];
+}
+
+export interface SaleEventBreakdown {
+  event: string;
+  count: number;
+  revenue: number;
+  profit: number;
 }

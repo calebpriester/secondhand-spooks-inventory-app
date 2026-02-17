@@ -298,6 +298,16 @@ async function runMigrations(): Promise<void> {
     `);
   }
 
+  // --- Sales tracking migration ---
+  await query('ALTER TABLE books ADD COLUMN IF NOT EXISTS sold BOOLEAN DEFAULT FALSE');
+  await query('ALTER TABLE books ADD COLUMN IF NOT EXISTS date_sold DATE');
+  await query('ALTER TABLE books ADD COLUMN IF NOT EXISTS sold_price DECIMAL(10, 2)');
+  await query('ALTER TABLE books ADD COLUMN IF NOT EXISTS sale_event VARCHAR(200)');
+  await query('ALTER TABLE books ADD COLUMN IF NOT EXISTS sale_transaction_id VARCHAR(50)');
+  await query('ALTER TABLE books ADD COLUMN IF NOT EXISTS payment_method VARCHAR(10)');
+  await query('CREATE INDEX IF NOT EXISTS idx_books_sold ON books(sold)');
+  await query('CREATE INDEX IF NOT EXISTS idx_books_sale_transaction_id ON books(sale_transaction_id)');
+
   // Drop and recreate the view (CREATE OR REPLACE can fail if column types change)
   await query('DROP VIEW IF EXISTS books_with_enrichment');
   await query(`

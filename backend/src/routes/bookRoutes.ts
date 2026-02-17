@@ -22,6 +22,10 @@ router.get('/', async (req: Request, res: Response) => {
       search: req.query.search as string,
       subgenre: req.query.subgenre as string,
       pacing: req.query.pacing as string,
+      sold: req.query.sold === 'true' ? true : req.query.sold === 'false' ? false : undefined,
+      sale_event: req.query.sale_event as string,
+      date_sold: req.query.date_sold as string,
+      sale_transaction_id: req.query.sale_transaction_id as string,
     };
 
     const books = await bookService.getAllBooks(filters);
@@ -167,6 +171,101 @@ router.post('/enrichment/gemini/batch/cancel', async (_req: Request, res: Respon
   } catch (error) {
     console.error('Error cancelling batch tagging:', error);
     res.status(500).json({ error: 'Failed to cancel batch tagging' });
+  }
+});
+
+// --- Sales routes (before /:id to avoid path conflicts) ---
+
+// Get unique sale events for autocomplete
+router.get('/sale-events', async (_req: Request, res: Response) => {
+  try {
+    const events = await bookService.getUniqueSaleEvents();
+    res.json(events);
+  } catch (error) {
+    console.error('Error fetching sale events:', error);
+    res.status(500).json({ error: 'Failed to fetch sale events' });
+  }
+});
+
+// Get transactions (grouped sold books)
+router.get('/transactions', async (req: Request, res: Response) => {
+  try {
+    const filters = {
+      sale_event: req.query.sale_event as string,
+      date_sold: req.query.date_sold as string,
+      payment_method: req.query.payment_method as string,
+    };
+    const transactions = await bookService.getTransactions(filters);
+    res.json(transactions);
+  } catch (error) {
+    console.error('Error fetching transactions:', error);
+    res.status(500).json({ error: 'Failed to fetch transactions' });
+  }
+});
+
+// Mark multiple books as sold in one transaction
+router.post('/bulk-sale', async (req: Request, res: Response) => {
+  try {
+    const { items, date_sold, sale_event, sale_transaction_id, payment_method } = req.body;
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: 'Items array is required' });
+    }
+    if (!date_sold || !sale_transaction_id || !payment_method) {
+      return res.status(400).json({ error: 'date_sold, sale_transaction_id, and payment_method are required' });
+    }
+    const results = await bookService.markBulkSold({
+      items,
+      date_sold,
+      sale_event,
+      sale_transaction_id,
+      payment_method,
+    });
+    res.json(results);
+  } catch (error) {
+    console.error('Error processing bulk sale:', error);
+    res.status(500).json({ error: 'Failed to process bulk sale' });
+  }
+});
+
+// Update transaction details (shared fields + per-book prices)
+router.post('/update-transaction', async (req: Request, res: Response) => {
+  try {
+    const { sale_transaction_id, date_sold, sale_event, payment_method, items } = req.body;
+    if (!sale_transaction_id) {
+      return res.status(400).json({ error: 'sale_transaction_id is required' });
+    }
+    const count = await bookService.updateTransaction({
+      sale_transaction_id,
+      date_sold,
+      sale_event,
+      payment_method,
+      items,
+    });
+    if (count === 0) {
+      return res.status(404).json({ error: 'Transaction not found' });
+    }
+    res.json({ message: `Updated ${count} book(s)`, count });
+  } catch (error) {
+    console.error('Error updating transaction:', error);
+    res.status(500).json({ error: 'Failed to update transaction' });
+  }
+});
+
+// Revert an entire transaction (mark all books as available)
+router.post('/revert-transaction', async (req: Request, res: Response) => {
+  try {
+    const { sale_transaction_id } = req.body;
+    if (!sale_transaction_id) {
+      return res.status(400).json({ error: 'sale_transaction_id is required' });
+    }
+    const count = await bookService.revertTransaction(sale_transaction_id);
+    if (count === 0) {
+      return res.status(404).json({ error: 'Transaction not found' });
+    }
+    res.json({ message: `Reverted ${count} book(s)`, count });
+  } catch (error) {
+    console.error('Error reverting transaction:', error);
+    res.status(500).json({ error: 'Failed to revert transaction' });
   }
 });
 

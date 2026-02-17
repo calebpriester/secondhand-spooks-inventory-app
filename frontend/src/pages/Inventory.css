@@ -14,6 +14,12 @@
   font-size: 2rem;
 }
 
+.inventory-header-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
 .filters-section {
   margin-bottom: 2rem;
 }
@@ -73,6 +79,7 @@
 
 .books-table {
   border-collapse: collapse;
+  width: 100%;
 }
 
 .books-table th {
@@ -372,6 +379,84 @@
   cursor: pointer;
 }
 
+/* ===== Sold View Columns ===== */
+.profit-cell {
+  color: #00FFA3;
+  font-weight: 500;
+}
+
+.payment-badge-cash {
+  background-color: rgba(0, 255, 163, 0.15);
+  color: #00FFA3;
+  border: 1px solid rgba(0, 255, 163, 0.3);
+  padding: 0.2rem 0.5rem;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.payment-badge-card {
+  background-color: rgba(103, 232, 249, 0.15);
+  color: #67E8F9;
+  border: 1px solid rgba(103, 232, 249, 0.3);
+  padding: 0.2rem 0.5rem;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+/* ===== Selection & Sold Indicators ===== */
+.select-cell {
+  width: 36px;
+  text-align: center;
+}
+
+.select-cell input[type="checkbox"] {
+  width: 1.2rem;
+  height: 1.2rem;
+  cursor: pointer;
+  accent-color: var(--success);
+}
+
+.book-select-checkbox {
+  width: 1.2rem;
+  height: 1.2rem;
+  cursor: pointer;
+  accent-color: var(--success);
+  flex-shrink: 0;
+}
+
+.sold-row {
+  opacity: 0.6;
+}
+
+.sold-row:hover {
+  opacity: 0.8;
+}
+
+.book-card-sold {
+  opacity: 0.7;
+  border-color: #E85D04;
+}
+
+.badge-sold {
+  background-color: #E85D04;
+  color: white;
+  font-weight: 600;
+}
+
+.badge-sold-sm {
+  font-size: 0.6rem;
+  padding: 0.1rem 0.3rem;
+}
+
+.badge-sold-inline {
+  margin-left: 0.5rem;
+  font-size: 0.65rem;
+  padding: 0.1rem 0.35rem;
+  vertical-align: middle;
+}
+
 /* ===== Tablet ===== */
 @media (max-width: 1024px) {
   .books-table th,
@@ -397,7 +482,12 @@
     font-size: 1.4rem;
   }
 
-  .inventory-header .btn {
+  .inventory-header-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .inventory-header-actions .btn {
     text-align: center;
     padding: 0.75rem;
     font-size: 1rem;
@@ -422,5 +512,11 @@
 
   .books-table-container {
     display: none;
+  }
+
+  .book-select-checkbox {
+    width: 1.5rem;
+    height: 1.5rem;
+    min-width: 1.5rem;
   }
 }

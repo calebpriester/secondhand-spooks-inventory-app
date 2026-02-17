@@ -43,6 +43,46 @@ describe('Book Routes', () => {
       );
     });
 
+    it('parses sold boolean query param', async () => {
+      mockService.getAllBooks.mockResolvedValueOnce([]);
+
+      await request(app)
+        .get('/api/books?sold=true')
+        .expect(200);
+
+      expect(mockService.getAllBooks).toHaveBeenCalledWith(
+        expect.objectContaining({ sold: true })
+      );
+    });
+
+    it('parses sold=false query param', async () => {
+      mockService.getAllBooks.mockResolvedValueOnce([]);
+
+      await request(app)
+        .get('/api/books?sold=false')
+        .expect(200);
+
+      expect(mockService.getAllBooks).toHaveBeenCalledWith(
+        expect.objectContaining({ sold: false })
+      );
+    });
+
+    it('passes sale_event and sale_transaction_id as string filters', async () => {
+      mockService.getAllBooks.mockResolvedValueOnce([]);
+
+      await request(app)
+        .get('/api/books?sale_event=Flea+Market&sale_transaction_id=TX-001&date_sold=2026-02-15')
+        .expect(200);
+
+      expect(mockService.getAllBooks).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sale_event: 'Flea Market',
+          sale_transaction_id: 'TX-001',
+          date_sold: '2026-02-15',
+        })
+      );
+    });
+
     it('returns 500 on service error', async () => {
       mockService.getAllBooks.mockRejectedValueOnce(new Error('DB error'));
 
@@ -81,7 +121,7 @@ describe('Book Routes', () => {
   });
 
   describe('GET /api/books/stats', () => {
-    it('returns 200 with stats object', async () => {
+    it('returns 200 with stats object including sales', async () => {
       mockService.getStats.mockResolvedValueOnce({
         total_books: 682,
         total_value: 4523.50,
@@ -94,6 +134,13 @@ describe('Book Routes', () => {
         by_subgenre: [],
         by_decade: [],
         rating_distribution: [],
+        sales: {
+          books_sold: 5,
+          total_revenue: 42.50,
+          actual_profit: 28.00,
+          transaction_count: 3,
+          by_event: [],
+        },
       });
 
       const response = await request(app)
@@ -101,6 +148,172 @@ describe('Book Routes', () => {
         .expect(200);
 
       expect(response.body.total_books).toBe(682);
+      expect(response.body.sales).toBeDefined();
+      expect(response.body.sales.books_sold).toBe(5);
+      expect(response.body.sales.total_revenue).toBe(42.50);
+    });
+  });
+
+  describe('GET /api/books/sale-events', () => {
+    it('returns 200 with sale events list', async () => {
+      mockService.getUniqueSaleEvents.mockResolvedValueOnce(['Flea Market', 'Booth Sale']);
+
+      const response = await request(app)
+        .get('/api/books/sale-events')
+        .expect(200);
+
+      expect(response.body).toEqual(['Flea Market', 'Booth Sale']);
+    });
+
+    it('returns 500 on service error', async () => {
+      mockService.getUniqueSaleEvents.mockRejectedValueOnce(new Error('DB error'));
+
+      const response = await request(app)
+        .get('/api/books/sale-events')
+        .expect(500);
+
+      expect(response.body.error).toBe('Failed to fetch sale events');
+    });
+  });
+
+  describe('GET /api/books/transactions', () => {
+    it('returns 200 with transactions list', async () => {
+      mockService.getTransactions.mockResolvedValueOnce([
+        {
+          sale_transaction_id: 'TX-001',
+          date_sold: '2026-02-15',
+          sale_event: 'Flea Market',
+          payment_method: 'Cash',
+          book_count: 2,
+          total_revenue: 13.00,
+          total_profit: 7.51,
+          books: [],
+        },
+      ]);
+
+      const response = await request(app)
+        .get('/api/books/transactions')
+        .expect(200);
+
+      expect(response.body).toHaveLength(1);
+      expect(response.body[0].sale_transaction_id).toBe('TX-001');
+    });
+
+    it('passes filter query params to service', async () => {
+      mockService.getTransactions.mockResolvedValueOnce([]);
+
+      await request(app)
+        .get('/api/books/transactions?sale_event=Flea+Market&date_sold=2026-02-15&payment_method=Cash')
+        .expect(200);
+
+      expect(mockService.getTransactions).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sale_event: 'Flea Market',
+          date_sold: '2026-02-15',
+          payment_method: 'Cash',
+        })
+      );
+    });
+
+    it('returns 500 on service error', async () => {
+      mockService.getTransactions.mockRejectedValueOnce(new Error('DB error'));
+
+      const response = await request(app)
+        .get('/api/books/transactions')
+        .expect(500);
+
+      expect(response.body.error).toBe('Failed to fetch transactions');
+    });
+  });
+
+  describe('POST /api/books/bulk-sale', () => {
+    it('returns 200 with updated books on success', async () => {
+      mockService.markBulkSold.mockResolvedValueOnce([
+        { ...sampleBook, sold: true, sold_price: 8.00 },
+        { ...sampleBook2, sold: true, sold_price: 5.00 },
+      ]);
+
+      const response = await request(app)
+        .post('/api/books/bulk-sale')
+        .send({
+          items: [
+            { book_id: 1, sold_price: 8.00 },
+            { book_id: 2, sold_price: 5.00 },
+          ],
+          date_sold: '2026-02-15',
+          sale_event: 'Flea Market',
+          sale_transaction_id: 'TX-001',
+          payment_method: 'Cash',
+        })
+        .expect(200);
+
+      expect(response.body).toHaveLength(2);
+      expect(mockService.markBulkSold).toHaveBeenCalledWith(
+        expect.objectContaining({
+          items: [
+            { book_id: 1, sold_price: 8.00 },
+            { book_id: 2, sold_price: 5.00 },
+          ],
+          date_sold: '2026-02-15',
+          sale_event: 'Flea Market',
+          sale_transaction_id: 'TX-001',
+          payment_method: 'Cash',
+        })
+      );
+    });
+
+    it('returns 400 when items array is missing', async () => {
+      const response = await request(app)
+        .post('/api/books/bulk-sale')
+        .send({
+          date_sold: '2026-02-15',
+          sale_transaction_id: 'TX-001',
+          payment_method: 'Cash',
+        })
+        .expect(400);
+
+      expect(response.body.error).toBe('Items array is required');
+    });
+
+    it('returns 400 when items array is empty', async () => {
+      const response = await request(app)
+        .post('/api/books/bulk-sale')
+        .send({
+          items: [],
+          date_sold: '2026-02-15',
+          sale_transaction_id: 'TX-001',
+          payment_method: 'Cash',
+        })
+        .expect(400);
+
+      expect(response.body.error).toBe('Items array is required');
+    });
+
+    it('returns 400 when required fields are missing', async () => {
+      const response = await request(app)
+        .post('/api/books/bulk-sale')
+        .send({
+          items: [{ book_id: 1, sold_price: 8.00 }],
+        })
+        .expect(400);
+
+      expect(response.body.error).toBe('date_sold, sale_transaction_id, and payment_method are required');
+    });
+
+    it('returns 500 on service error', async () => {
+      mockService.markBulkSold.mockRejectedValueOnce(new Error('DB error'));
+
+      const response = await request(app)
+        .post('/api/books/bulk-sale')
+        .send({
+          items: [{ book_id: 1, sold_price: 8.00 }],
+          date_sold: '2026-02-15',
+          sale_transaction_id: 'TX-001',
+          payment_method: 'Cash',
+        })
+        .expect(500);
+
+      expect(response.body.error).toBe('Failed to process bulk sale');
     });
   });
 
