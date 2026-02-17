@@ -6,6 +6,7 @@ import {
 } from 'recharts';
 import { bookApi } from '../services/api';
 import BatchEnrichment from '../components/BatchEnrichment';
+import GeminiEnrichment from '../components/GeminiEnrichment';
 import './Dashboard.css';
 
 const PIE_COLORS = [
@@ -186,24 +187,24 @@ function Dashboard() {
           </div>
         )}
 
-        {/* Genre Horizontal Bar Chart */}
-        {stats.by_genre.length > 0 && (
+        {/* Sub-Genre Distribution */}
+        {stats.by_subgenre && stats.by_subgenre.length > 0 && (
           <div className="chart-card full-width">
-            <h3>Top Genres</h3>
-            <ResponsiveContainer width="100%" height={Math.max(300, stats.by_genre.length * 32)}>
-              <BarChart data={stats.by_genre} layout="vertical" margin={{ left: 20 }}>
+            <h3>Sub-Genre Distribution</h3>
+            <ResponsiveContainer width="100%" height={Math.max(300, stats.by_subgenre.length * 32)}>
+              <BarChart data={stats.by_subgenre} layout="vertical" margin={{ left: 20 }}>
                 <XAxis type="number" stroke="#a09c9d" fontSize={12} />
-                <YAxis dataKey="genre" type="category" width={150} stroke="#a09c9d" fontSize={12} />
+                <YAxis dataKey="subgenre" type="category" width={150} stroke="#a09c9d" fontSize={12} />
                 <Tooltip
                   {...tooltipStyle}
                   formatter={(value: any, _name: any, props: any) =>
                     [`${value} books (${props.payload.percentage}%)`, 'Count']
                   }
                 />
-                <Bar dataKey="count" fill={BAR_COLOR} radius={[0, 4, 4, 0]} />
+                <Bar dataKey="count" fill="#A78BFA" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
-            <p className="chart-note">Top 20 genres across {stats.by_genre.reduce((sum, g) => sum + g.count, 0)} genre tags ({filterLabel})</p>
+            <p className="chart-note">Across {stats.by_subgenre.reduce((sum, s) => sum + s.count, 0)} sub-genre tags ({filterLabel})</p>
           </div>
         )}
       </div>
@@ -279,6 +280,7 @@ function Dashboard() {
       </div>
 
       <BatchEnrichment />
+      <GeminiEnrichment />
     </div>
   );
 }

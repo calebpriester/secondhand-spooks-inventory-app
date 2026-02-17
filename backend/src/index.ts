@@ -3,6 +3,7 @@ import cors from 'cors';
 import path from 'path';
 import dotenv from 'dotenv';
 import bookRoutes from './routes/bookRoutes';
+import subgenreRoutes from './routes/subgenreRoutes';
 import { initializeDatabase } from './utils/initDb';
 
 dotenv.config();
@@ -17,6 +18,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use('/api/books', bookRoutes);
+app.use('/api/subgenres', subgenreRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

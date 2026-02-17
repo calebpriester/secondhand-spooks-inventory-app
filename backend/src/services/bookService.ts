@@ -41,6 +41,14 @@ export class BookService {
         params.push(`%${filters.search}%`);
         paramCount++;
       }
+      if (filters.subgenre) {
+        sql += ` AND $${paramCount++} = ANY(subgenres)`;
+        params.push(filters.subgenre);
+      }
+      if (filters.pacing) {
+        sql += ` AND pacing = $${paramCount++}`;
+        params.push(filters.pacing);
+      }
     }
 
     sql += ' ORDER BY author_last_name ASC, book_title ASC, id ASC';
@@ -98,7 +106,7 @@ export class BookService {
       'book_series', 'vol_number', 'cover_type', 'category', 'condition',
       'date_purchased', 'source', 'seller', 'order_number',
       'thriftbooks_price', 'purchase_price', 'our_price', 'profit_est',
-      'author_fullname', 'pulled_to_read', 'google_enrichment_id',
+      'author_fullname', 'pulled_to_read', 'subgenres', 'pacing', 'google_enrichment_id',
     ]);
 
     const fields: string[] = [];
@@ -236,6 +244,20 @@ export class BookService {
       ORDER BY FLOOR(CAST(LEFT(published_date, 4) AS INTEGER) / 10) * 10 ASC
     `, params);
 
+    const subgenreQuery = await query(`
+      SELECT
+        subgenre,
+        COUNT(*) as count,
+        ROUND(COUNT(*)::numeric / NULLIF(SUM(COUNT(*)) OVER(), 0) * 100, 1) as percentage
+      FROM (
+        SELECT UNNEST(subgenres) as subgenre
+        FROM books_with_enrichment
+        WHERE subgenres IS NOT NULL AND ${cleanedWhere}
+      ) s
+      GROUP BY subgenre
+      ORDER BY count DESC
+    `, params);
+
     const ratingQuery = await query(`
       SELECT
         CASE
@@ -285,6 +307,11 @@ export class BookService {
       })),
       by_genre: genreQuery.rows.map(row => ({
         genre: row.genre,
+        count: parseInt(row.count),
+        percentage: parseFloat(row.percentage),
+      })),
+      by_subgenre: subgenreQuery.rows.map(row => ({
+        subgenre: row.subgenre,
         count: parseInt(row.count),
         percentage: parseFloat(row.percentage),
       })),

@@ -36,8 +36,8 @@ This is a full-stack inventory management system for **Secondhand Spooks**, a ho
 - **Database config**: `src/config/database.ts` - PostgreSQL connection
 - **Schema**: `src/config/schema.sql` - Database schema (682 books currently)
 - **Models**: `src/models/Book.ts` - TypeScript interfaces
-- **Services**: `src/services/bookService.ts` - Business logic (CRUD, stats), `src/services/googleBooksService.ts` - Google Books API integration (enrichment, batch processing)
-- **Routes**: `src/routes/bookRoutes.ts` - API endpoints (including enrichment)
+- **Services**: `src/services/bookService.ts` - Business logic (CRUD, stats), `src/services/googleBooksService.ts` - Google Books API integration (enrichment, batch processing), `src/services/geminiService.ts` - Gemini 2.0 Flash integration (sub-genre tagging, pacing, batch processing)
+- **Routes**: `src/routes/bookRoutes.ts` - API endpoints (including enrichment + Gemini tagging), `src/routes/subgenreRoutes.ts` - Sub-genre options CRUD
 - **Utilities**: `src/utils/importCsv.ts` - CSV import logic, `src/utils/initDb.ts` - DB initialization, seeding, and migrations
 
 ### Frontend (`/frontend`)
@@ -46,7 +46,7 @@ This is a full-stack inventory management system for **Secondhand Spooks**, a ho
 - **Pages**:
   - `src/pages/Dashboard.tsx` - Analytics and stats
   - `src/pages/Inventory.tsx` - Book browsing and filtering (card view on mobile, table on desktop, cover images)
-- **Components**: `src/components/BookDetail.tsx` - Book detail popup (enrichment data, custom search), `src/components/BatchEnrichment.tsx` - Google Books batch enrichment panel (on Dashboard)
+- **Components**: `src/components/BookDetail.tsx` - Book detail popup (enrichment data, custom search, sub-genre tags), `src/components/BatchEnrichment.tsx` - Google Books batch enrichment panel (on Dashboard), `src/components/GeminiEnrichment.tsx` - Gemini sub-genre tagging panel (on Dashboard, includes sub-genre management CRUD)
 - **Hooks**: `src/hooks/useIsMobile.ts` - Responsive breakpoint hook using `matchMedia`
 - **API client**: `src/services/api.ts` - Backend communication
 - **Types**: `src/types/Book.ts` - TypeScript interfaces
@@ -59,6 +59,7 @@ This is a full-stack inventory management system for **Secondhand Spooks**, a ho
 - Purchase: date_purchased, source, seller, order_number
 - Pricing: thriftbooks_price, purchase_price, our_price, profit_est
 - Status: cleaned (boolean), pulled_to_read (boolean)
+- Gemini tags: subgenres (TEXT[]), pacing (VARCHAR — Slow Burn/Moderate/Fast-Paced)
 - Enrichment FK: google_enrichment_id (references google_books_enrichments)
 - Metadata: id, created_at, updated_at
 
@@ -70,6 +71,11 @@ This is a full-stack inventory management system for **Secondhand Spooks**, a ho
 **`books_with_enrichment` view** — JOINs books + enrichments, returns flat columns the frontend expects. Uses COALESCE for future multi-source support (add Hardcover/Open Library later by adding more LEFT JOINs).
 
 Multiple books can share one enrichment row (duplicates don't waste API calls).
+
+**`subgenre_options` table** (configurable list for Gemini tagging):
+- id, name (UNIQUE), sort_order, created_at
+- Seeded with 18 default horror sub-genres on first migration
+- CRUD via `/api/subgenres` — renaming/deleting propagates to all tagged books
 
 ### Infrastructure
 - **Docker Compose**: Orchestrates 3 containers for local dev (postgres, backend, frontend)
@@ -104,10 +110,11 @@ Multiple books can share one enrichment row (duplicates don't waste API calls).
 - `DATABASE_URL` — PostgreSQL connection string (required)
 - `PORT` — API port (default 3001)
 - `NODE_ENV` — 'production' or 'development'
-- `GOOGLE_BOOKS_API_KEY` — Google Books API key (optional, enables enrichment)
+- `GOOGLE_BOOKS_API_KEY` — Google API key (optional, enables Google Books enrichment + Gemini sub-genre tagging)
+  - Same key works for both Google Books API and Gemini 2.0 Flash API
   - Local: Set in `.env` file at project root (read by Docker Compose)
   - Railway: Set in Railway dashboard as environment variable
-  - If not set, app works normally but enrichment is unavailable
+  - If not set, app works normally but enrichment and tagging are unavailable
 
 ### Important Paths
 - Seed CSV (in container): `/inventory.csv`
@@ -143,6 +150,7 @@ docker compose logs -f
 **Database changes:**
 - Update `backend/src/config/schema.sql`
 - Requires fresh start: `./scripts/fresh-start.sh`
+- **IMPORTANT: schema.sql vs initDb.ts migrations** — `schema.sql` uses `CREATE TABLE IF NOT EXISTS`, so adding new columns/indexes to the table definition ONLY affects fresh databases. For existing databases, new columns and indexes MUST be added via `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` and `CREATE INDEX IF NOT EXISTS` in `runMigrations()` in `initDb.ts`. Never add indexes to `schema.sql` for columns that are only added via migration — the index will fail on existing databases where the column doesn't yet exist. Always put new column additions AND their indexes in the migration block BEFORE the view drop/recreate.
 
 ### Testing
 ```bash
@@ -196,6 +204,7 @@ docker compose ps
 ✅ Production deployment on Railway (auto-deploys from main)
 ✅ Mobile-responsive design (Issue #5 - closed)
 ✅ Google Books API integration (cover images, ratings, descriptions, genres, ISBNs)
+✅ Gemini 2.0 Flash integration (sub-genre tagging, pacing classification, batch processing, configurable sub-genre list)
 
 ### What's Missing (See GitHub Issues):
 ❌ No sales tracking (Issue #2)
@@ -239,6 +248,18 @@ docker compose ps
 - Duplicate titles share enrichment rows (0 API calls for duplicates)
 - Custom search supports ISBN, title, and author overrides
 - Future sources: add new table + FK + update view COALESCE (zero changes to existing code)
+
+### Gemini Sub-Genre Tagging
+- Uses Gemini 2.0 Flash API with same `GOOGLE_BOOKS_API_KEY`
+- Tags each book with 1-2 sub-genres from a configurable list + pacing (Slow Burn/Moderate/Fast-Paced)
+- Structured output with JSON schema + enum constraint — Gemini can ONLY return valid values
+- `subgenres TEXT[]` and `pacing VARCHAR(20)` stored directly on `books` table (included in view via `b.*`)
+- `subgenre_options` table holds the configurable sub-genre list (CRUD via `/api/subgenres`)
+- Renaming a sub-genre uses `array_replace()` on all books; deleting uses `array_remove()`
+- Batch tagging follows same pattern as Google Books: in-memory state, AbortController, 500ms rate limit
+- Deduplication: books with same title+author copy tags from already-tagged duplicates (0 API calls)
+- Purple accent (#A78BFA) distinguishes Gemini UI from Google Books green (#00FFA3)
+- Pacing is experimental — can be hidden in UI if data quality is poor
 
 ## Troubleshooting Common Issues
 

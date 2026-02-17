@@ -8,9 +8,11 @@ interface BookDetailProps {
   onEdit: (book: Book) => void;
   onEnrich: (bookId: number, title?: string, author?: string, isbn?: string) => void;
   isEnriching: boolean;
+  onTagSubgenres: (bookId: number) => void;
+  isTagging: boolean;
 }
 
-const BookDetail: React.FC<BookDetailProps> = ({ book, onClose, onEdit, onEnrich, isEnriching }) => {
+const BookDetail: React.FC<BookDetailProps> = ({ book, onClose, onEdit, onEnrich, isEnriching, onTagSubgenres, isTagging }) => {
   const [showCustomSearch, setShowCustomSearch] = useState(false);
   const [customTitle, setCustomTitle] = useState(book.book_title);
   const [customAuthor, setCustomAuthor] = useState(book.author_fullname || '');
@@ -141,6 +143,20 @@ const BookDetail: React.FC<BookDetailProps> = ({ book, onClose, onEdit, onEnrich
           </div>
         )}
 
+        {(book.subgenres && book.subgenres.length > 0) || book.pacing ? (
+          <div className="book-detail-subgenres">
+            <h3>Sub-Genres & Pacing</h3>
+            <div className="subgenre-tag-list">
+              {book.subgenres?.map(sg => (
+                <span key={sg} className="badge badge-subgenre">{sg}</span>
+              ))}
+              {book.pacing && (
+                <span className="badge badge-pacing">{book.pacing}</span>
+              )}
+            </div>
+          </div>
+        ) : null}
+
         <div className="book-detail-pricing">
           <h3>Pricing & Purchase</h3>
           <div className="pricing-grid">
@@ -234,6 +250,19 @@ const BookDetail: React.FC<BookDetailProps> = ({ book, onClose, onEdit, onEnrich
             disabled={isEnriching || !book.id}
           >
             {isEnriching ? 'Enriching...' : (book.enriched_at ? 'Re-enrich' : 'Enrich')}
+          </button>
+          <button
+            className="btn btn-secondary btn-subgenre"
+            onClick={() => {
+              if (book.id && window.confirm(
+                `${book.subgenres?.length ? 'Re-tag' : 'Tag'} "${book.book_title}" with sub-genres using Gemini AI? This uses 1 API request.`
+              )) {
+                onTagSubgenres(book.id);
+              }
+            }}
+            disabled={isTagging || !book.id}
+          >
+            {isTagging ? 'Tagging...' : (book.subgenres?.length ? 'Re-tag' : 'Tag Sub-genres')}
           </button>
           <button
             className="btn btn-secondary"
