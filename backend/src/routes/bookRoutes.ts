@@ -193,11 +193,21 @@ router.post('/', async (req: Request, res: Response) => {
     const book = await bookService.createBook(req.body);
     res.status(201).json(book);
 
-    // Fire-and-forget enrichment
-    if (googleBooksService.isConfigured() && book.id) {
-      googleBooksService.enrichBook(book.id).catch(err => {
-        console.error(`Auto-enrich failed for book ${book.id}:`, err);
-      });
+    // Fire-and-forget: enrich first, then auto-tag if enrichment succeeded
+    if (book.id) {
+      (async () => {
+        try {
+          if (googleBooksService.isConfigured()) {
+            const enrichResult = await googleBooksService.enrichBook(book.id!);
+            if (enrichResult.status !== 'success') return;
+          }
+          if (geminiService.isConfigured()) {
+            await geminiService.tagBook(book.id!);
+          }
+        } catch (err) {
+          console.error(`Auto-enrich/tag failed for book ${book.id}:`, err);
+        }
+      })();
     }
   } catch (error) {
     console.error('Error creating book:', error);
