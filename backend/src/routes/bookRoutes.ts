@@ -26,6 +26,7 @@ router.get('/', async (req: Request, res: Response) => {
       sale_event: req.query.sale_event as string,
       date_sold: req.query.date_sold as string,
       sale_transaction_id: req.query.sale_transaction_id as string,
+      missing_price: req.query.missing_price === 'true' ? true : undefined,
     };
 
     const books = await bookService.getAllBooks(filters);
@@ -224,6 +225,55 @@ router.post('/bulk-sale', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error processing bulk sale:', error);
     res.status(500).json({ error: 'Failed to process bulk sale' });
+  }
+});
+
+// Set prices on multiple books at once
+router.post('/bulk-price', async (req: Request, res: Response) => {
+  try {
+    const { items, book_ids, our_price } = req.body;
+
+    const hasItems = items && Array.isArray(items) && items.length > 0;
+    const hasFlat = book_ids && Array.isArray(book_ids) && book_ids.length > 0 && our_price !== undefined;
+
+    if (!hasItems && !hasFlat) {
+      return res.status(400).json({
+        error: 'Provide either items array (per-book prices) or book_ids + our_price (flat price)',
+      });
+    }
+
+    if (hasItems) {
+      for (const item of items) {
+        if (!item.book_id || item.our_price === undefined || item.our_price < 0) {
+          return res.status(400).json({ error: 'Each item must have book_id and a non-negative our_price' });
+        }
+      }
+    }
+
+    if (hasFlat && our_price < 0) {
+      return res.status(400).json({ error: 'our_price must be non-negative' });
+    }
+
+    const results = await bookService.bulkSetPrice({ items, book_ids, our_price });
+    res.json(results);
+  } catch (error) {
+    console.error('Error setting bulk prices:', error);
+    res.status(500).json({ error: 'Failed to set prices' });
+  }
+});
+
+// Clear prices on multiple books
+router.post('/clear-prices', async (req: Request, res: Response) => {
+  try {
+    const { book_ids } = req.body;
+    if (!book_ids || !Array.isArray(book_ids) || book_ids.length === 0) {
+      return res.status(400).json({ error: 'book_ids array is required' });
+    }
+    const count = await bookService.bulkClearPrice(book_ids);
+    res.json({ message: `Cleared prices on ${count} book(s)`, count });
+  } catch (error) {
+    console.error('Error clearing prices:', error);
+    res.status(500).json({ error: 'Failed to clear prices' });
   }
 });
 

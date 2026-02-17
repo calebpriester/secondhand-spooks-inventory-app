@@ -94,6 +94,15 @@ function Dashboard() {
         </div>
       </div>
 
+      {stats.books_missing_price > 0 && (
+        <div className="pricing-alert">
+          <span className="pricing-alert-count">{stats.books_missing_price}</span>
+          <span className="pricing-alert-text">
+            <strong>books need pricing</strong> — use Inventory → Missing Price filter to find them
+          </span>
+        </div>
+      )}
+
       {stats.sales && stats.sales.books_sold > 0 && (
         <>
           <div className="stats-grid sales-stats-grid">
@@ -130,6 +139,7 @@ function Dashboard() {
                     <tr>
                       <th>Event</th>
                       <th>Sold</th>
+                      <th>Txns</th>
                       <th>Revenue</th>
                       <th>Profit</th>
                     </tr>
@@ -139,6 +149,7 @@ function Dashboard() {
                       <tr key={ev.event}>
                         <td>{ev.event}</td>
                         <td>{ev.count}</td>
+                        <td>{ev.transaction_count}</td>
                         <td>${ev.revenue.toFixed(2)}</td>
                         <td className="profit-cell">${ev.profit.toFixed(2)}</td>
                       </tr>

@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Book, BookFilters, BookStats, EnrichmentStatus, EnrichmentResult, BatchEnrichmentProgress, SubgenreOption, GeminiTagResult, GeminiBatchProgress, GeminiTaggingStatus, BulkSaleRequest, UpdateTransactionRequest, Transaction } from '../types/Book';
+import { Book, BookFilters, BookStats, EnrichmentStatus, EnrichmentResult, BatchEnrichmentProgress, SubgenreOption, GeminiTagResult, GeminiBatchProgress, GeminiTaggingStatus, BulkSaleRequest, BulkPriceRequest, UpdateTransactionRequest, Transaction } from '../types/Book';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -114,6 +114,12 @@ export const bookApi = {
     const { data } = await api.post('/books/bulk-sale', request);
     return data;
   },
+
+  bulkSetPrice: async (request: BulkPriceRequest): Promise<Book[]> => {
+    const { data } = await api.post('/books/bulk-price', request);
+    return data;
+  },
+
 
   updateTransaction: async (request: UpdateTransactionRequest): Promise<{ message: string; count: number }> => {
     const { data } = await api.post('/books/update-transaction', request);

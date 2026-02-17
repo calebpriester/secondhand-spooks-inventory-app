@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { bookApi, subgenreApi } from '../services/api';
-import { Book, BookFilters, BulkSaleRequest } from '../types/Book';
+import { Book, BookFilters, BulkSaleRequest, BulkPriceRequest } from '../types/Book';
 import Modal from '../components/Modal';
 import BookForm from '../components/BookForm';
 import BookDetail from '../components/BookDetail';
 import BulkSaleModal from '../components/BulkSaleModal';
+import BulkPriceModal from '../components/BulkPriceModal';
 import { useIsMobile } from '../hooks/useIsMobile';
 import './Inventory.css';
 
@@ -15,6 +16,7 @@ function Inventory() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isBulkSaleOpen, setIsBulkSaleOpen] = useState(false);
+  const [isBulkPriceOpen, setIsBulkPriceOpen] = useState(false);
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [selectedBooksMap, setSelectedBooksMap] = useState<Map<number, Book>>(new Map());
@@ -72,6 +74,17 @@ function Inventory() {
       queryClient.invalidateQueries({ queryKey: ['saleEvents'] });
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       setIsBulkSaleOpen(false);
+      setSelectedIds(new Set());
+      setSelectedBooksMap(new Map());
+    },
+  });
+
+  const bulkPriceMutation = useMutation({
+    mutationFn: (request: BulkPriceRequest) => bookApi.bulkSetPrice(request),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['books'] });
+      queryClient.invalidateQueries({ queryKey: ['stats'] });
+      setIsBulkPriceOpen(false);
       setSelectedIds(new Set());
       setSelectedBooksMap(new Map());
     },
@@ -202,15 +215,19 @@ function Inventory() {
   };
 
   const selectedBooks = Array.from(selectedBooksMap.values());
+  const selectableBooks = books?.filter(b => !b.sold && b.id) || [];
+  const allSelected = selectableBooks.length > 0 && selectedIds.size === selectableBooks.length;
 
   // Keep selectedBook in sync with latest data from the query
   const currentSelectedBook = selectedBook && books
     ? books.find(b => b.id === selectedBook.id) || selectedBook
     : selectedBook;
 
-  const stockStatusValue = filters.sold === undefined ? '' : filters.sold ? 'sold' : 'available';
-  const statusLabel = filters.sold === true ? 'sold' : filters.sold === false ? 'available' : '';
-  const viewingSold = filters.sold === true;
+  const stockStatusValue = filters.missing_price ? 'missing_price' :
+    filters.sold === undefined ? '' : filters.sold ? 'sold' : 'available';
+  const statusLabel = filters.missing_price ? 'unpriced' :
+    filters.sold === true ? 'sold' : filters.sold === false ? 'available' : '';
+  const viewingSold = filters.sold === true && !filters.missing_price;
 
   if (isLoading) {
     return <div className="loading">Loading inventory...</div>;
@@ -222,12 +239,22 @@ function Inventory() {
         <h2>Inventory ({books?.length || 0} {statusLabel} books)</h2>
         <div className="inventory-header-actions">
           {selectedIds.size > 0 && (
-            <button
-              onClick={() => setIsBulkSaleOpen(true)}
-              className="btn btn-sold"
-            >
-              Mark {selectedIds.size} as Sold
-            </button>
+            <>
+              {!viewingSold && (
+                <button
+                  onClick={() => setIsBulkPriceOpen(true)}
+                  className="btn btn-price"
+                >
+                  Price {selectedIds.size} Book{selectedIds.size !== 1 ? 's' : ''}
+                </button>
+              )}
+              <button
+                onClick={() => setIsBulkSaleOpen(true)}
+                className="btn btn-sold"
+              >
+                Sell {selectedIds.size} Book{selectedIds.size !== 1 ? 's' : ''}
+              </button>
+            </>
           )}
           <button onClick={handleAddBook} className="btn btn-primary">
             + Add Book
@@ -253,12 +280,16 @@ function Inventory() {
             onChange={(e) => {
               const val = e.target.value;
               const newFilters = { ...filters };
+              delete newFilters.sold;
+              delete newFilters.missing_price;
+
               if (val === 'sold') {
                 newFilters.sold = true;
               } else if (val === 'available') {
                 newFilters.sold = false;
-              } else {
-                delete newFilters.sold;
+              } else if (val === 'missing_price') {
+                newFilters.sold = false;
+                newFilters.missing_price = true;
               }
               setFilters(newFilters);
               setSelectedIds(new Set());
@@ -267,6 +298,7 @@ function Inventory() {
             className="filter-select"
           >
             <option value="available">Available</option>
+            <option value="missing_price">Missing Price</option>
             <option value="sold">Sold</option>
             <option value="">All Books</option>
           </select>
@@ -340,6 +372,24 @@ function Inventory() {
 
       {isMobile ? (
         <div className="book-cards">
+          {!viewingSold && selectableBooks.length > 0 && (
+            <label className="mobile-select-all">
+              <input
+                type="checkbox"
+                checked={allSelected}
+                onChange={() => {
+                  if (allSelected) {
+                    setSelectedIds(new Set());
+                    setSelectedBooksMap(new Map());
+                  } else {
+                    setSelectedIds(new Set(selectableBooks.map(b => b.id!)));
+                    setSelectedBooksMap(new Map(selectableBooks.map(b => [b.id!, b])));
+                  }
+                }}
+              />
+              Select all
+            </label>
+          )}
           {books?.map((book) => (
             <div key={book.id} className={`book-card ${book.sold ? 'book-card-sold' : ''}`}>
               <div className="book-card-content">
@@ -446,7 +496,26 @@ function Inventory() {
           <table className="books-table">
             <thead>
               <tr>
-                {!viewingSold && <th className="select-cell"></th>}
+                {!viewingSold && (
+                  <th className="select-cell">
+                    {selectableBooks.length > 0 && (
+                      <input
+                        type="checkbox"
+                        checked={allSelected}
+                        onChange={() => {
+                          if (allSelected) {
+                            setSelectedIds(new Set());
+                            setSelectedBooksMap(new Map());
+                          } else {
+                            setSelectedIds(new Set(selectableBooks.map(b => b.id!)));
+                            setSelectedBooksMap(new Map(selectableBooks.map(b => [b.id!, b])));
+                          }
+                        }}
+                        title={allSelected ? 'Deselect all' : 'Select all'}
+                      />
+                    )}
+                  </th>
+                )}
                 <th></th>
                 <th>Title</th>
                 <th>Author</th>
@@ -627,6 +696,16 @@ function Inventory() {
           onRemoveBook={(bookId) => toggleSelectBook(bookId)}
           isSubmitting={bulkSaleMutation.isPending}
           saleEvents={saleEvents}
+        />
+      </Modal>
+
+      <Modal isOpen={isBulkPriceOpen} onClose={() => setIsBulkPriceOpen(false)}>
+        <BulkPriceModal
+          books={selectedBooks}
+          onConfirm={(request) => bulkPriceMutation.mutate(request)}
+          onCancel={() => setIsBulkPriceOpen(false)}
+          onRemoveBook={(bookId) => toggleSelectBook(bookId)}
+          isSubmitting={bulkPriceMutation.isPending}
         />
       </Modal>
     </div>

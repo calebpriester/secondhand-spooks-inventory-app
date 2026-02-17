@@ -12,7 +12,6 @@ export const sampleBook: Book = {
   date_purchased: new Date('2025-11-01'),
   source: 'ThriftBooks',
   seller: null,
-  thriftbooks_price: 4.59,
   purchase_price: 3.99,
   our_price: 8.00,
   profit_est: 4.01,
@@ -58,7 +57,8 @@ export const rawStatsRows = {
   ],
   sales: [{ books_sold: '5', total_revenue: '42.50', actual_profit: '28.00', transaction_count: '3' }],
   salesByEvent: [
-    { event: 'Flea Market', count: '3', revenue: '25.00', profit: '17.00' },
-    { event: 'No Event', count: '2', revenue: '17.50', profit: '11.00' },
+    { event: 'Flea Market', count: '3', transaction_count: '2', revenue: '25.00', profit: '17.00' },
+    { event: 'No Event', count: '2', transaction_count: '1', revenue: '17.50', profit: '11.00' },
   ],
+  missingPrice: [{ books_missing_price: '150' }],
 };

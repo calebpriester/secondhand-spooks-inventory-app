@@ -13,7 +13,6 @@ export interface Book {
   source: string | null;
   seller: string | null;
   order_number?: string;
-  thriftbooks_price?: number | null;
   purchase_price?: number | null;
   our_price?: number | null;
   profit_est?: number | null;
@@ -88,6 +87,7 @@ export interface BookFilters {
   sale_event?: string;
   date_sold?: string;
   sale_transaction_id?: string;
+  missing_price?: boolean;
 }
 
 export interface BookStats {
@@ -103,6 +103,7 @@ export interface BookStats {
   by_decade: DecadeBreakdown[];
   rating_distribution: RatingBucket[];
   sales: SalesStats;
+  books_missing_price: number;
 }
 
 export interface CategoryBreakdown {
@@ -196,6 +197,17 @@ export interface BulkSaleRequest {
   payment_method: 'Cash' | 'Card';
 }
 
+export interface BulkPriceItem {
+  book_id: number;
+  our_price: number | null;
+}
+
+export interface BulkPriceRequest {
+  items?: BulkPriceItem[];
+  book_ids?: number[];
+  our_price?: number;
+}
+
 export interface UpdateTransactionRequest {
   sale_transaction_id: string;
   date_sold?: string;
@@ -235,6 +247,7 @@ export interface SalesStats {
 export interface SaleEventBreakdown {
   event: string;
   count: number;
+  transaction_count: number;
   revenue: number;
   profit: number;
 }

@@ -169,10 +169,6 @@ const BookDetail: React.FC<BookDetailProps> = ({ book, onClose, onEdit, onEnrich
               <span className="meta-value">{book.our_price ? `$${Number(book.our_price).toFixed(2)}` : 'N/A'}</span>
             </div>
             <div className="pricing-item">
-              <span className="meta-label">ThriftBooks</span>
-              <span className="meta-value">{book.thriftbooks_price ? `$${Number(book.thriftbooks_price).toFixed(2)}` : 'N/A'}</span>
-            </div>
-            <div className="pricing-item">
               <span className="meta-label">Profit Est.</span>
               <span className="meta-value">{book.profit_est ? `$${Number(book.profit_est).toFixed(2)}` : 'N/A'}</span>
             </div>

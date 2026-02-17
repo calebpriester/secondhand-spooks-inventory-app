@@ -26,7 +26,6 @@ const BookForm: React.FC<BookFormProps> = ({ book, onSubmit, onCancel }) => {
     source: '',
     seller: '',
     order_number: '',
-    thriftbooks_price: null,
     purchase_price: null,
     our_price: null,
     profit_est: null,
@@ -360,19 +359,6 @@ const BookForm: React.FC<BookFormProps> = ({ book, onSubmit, onCancel }) => {
             </div>
           </div>
 
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="thriftbooks_price">ThriftBooks Price</label>
-              <input
-                type="number"
-                step="0.01"
-                id="thriftbooks_price"
-                name="thriftbooks_price"
-                value={formData.thriftbooks_price || ''}
-                onChange={handleChange}
-              />
-            </div>
-          </div>
         </div>
 
       </div>
