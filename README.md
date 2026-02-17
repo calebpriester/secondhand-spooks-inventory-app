@@ -25,7 +25,7 @@ This full-stack inventory management system helps track and analyze our horror b
 - **CSV Import**: Easily import existing inventory data
 - **Author Insights**: See top authors and series in the collection
 - **Dark Horror Theme**: Custom-designed UI matching the Secondhand Spooks aesthetic
-- **Mobile Responsive**: Full mobile support with card-based inventory view, stacked filters, and touch-friendly controls
+- **Mobile Responsive**: Full mobile support with card-based inventory view, sticky action bar (search, filters, Price/Sell buttons always visible while scrolling), filter drawer (bottom-sheet with all dropdowns), and touch-friendly controls
 - **Google Books Integration**: Auto-enrich books with cover images, ratings, descriptions, genres, ISBNs, and more via Google Books API. Batch enrichment tool on Dashboard. Custom search by ISBN/title/author for tricky matches. Duplicates share enrichment data (no wasted API calls). Normalized schema supports adding future enrichment sources (Hardcover, Open Library).
 - **Sales Tracking**: Mark books as sold (single or bulk), track sale price, date, event, and payment method (Cash/Card). Transaction grouping ties books from the same purchase together. Dedicated Sales page with transaction-centric view, cover thumbnails, inline editing, and revert support. Dashboard sales stats with event breakdowns.
 - **Bulk Price Management**: Select multiple books and set prices in bulk (per-book or flat price for all). Filter to show books missing prices. Dashboard widget shows how many books need pricing. Auto-calculates profit estimates.

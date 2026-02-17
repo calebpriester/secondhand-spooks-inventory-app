@@ -45,7 +45,7 @@ This is a full-stack inventory management system for **Secondhand Spooks**, a ho
 - **App**: `src/App.tsx` - Routing and layout
 - **Pages**:
   - `src/pages/Dashboard.tsx` - Analytics and stats (including sales stats)
-  - `src/pages/Inventory.tsx` - Book browsing and filtering (card view on mobile, table on desktop, cover images, checkbox selection for bulk sales)
+  - `src/pages/Inventory.tsx` - Book browsing and filtering (card view on mobile, table on desktop, cover images, checkbox selection for bulk sales, mobile sticky action bar with search/filters/actions, mobile filter drawer bottom-sheet)
   - `src/pages/Sales.tsx` + `Sales.css` - Transaction-centric sales history (expandable transactions with cover thumbnails, filters by event/date/payment, inline edit mode, transaction revert)
 - **Components**: `src/components/BookDetail.tsx` - Book detail popup (enrichment data, custom search, sub-genre tags, mark as sold with inline form, sale details, "View Transaction" link), `src/components/BulkSaleModal.tsx` + `BulkSaleModal.css` - Bulk sale form (per-book prices, shared event/date/payment), `src/components/BulkPriceModal.tsx` + `BulkPriceModal.css` - Bulk price setting (per-book or flat price mode, nullable pricing, suggestions with fill helper, below-cost warnings, purple #7C3AED accent), `src/components/BatchEnrichment.tsx` - Google Books batch enrichment panel (on Dashboard), `src/components/GeminiEnrichment.tsx` - Gemini sub-genre tagging panel (on Dashboard, includes sub-genre management CRUD)
 - **Hooks**: `src/hooks/useIsMobile.ts` - Responsive breakpoint hook using `matchMedia`
@@ -205,7 +205,7 @@ docker compose ps
 ✅ Add/edit/delete books through the UI (Issue #1 - closed)
 ✅ Quick-toggle cleaned status checkbox
 ✅ Production deployment on Railway (auto-deploys from main)
-✅ Mobile-responsive design (Issue #5 - closed)
+✅ Mobile-responsive design (Issue #5 - closed) — Inventory page has sticky action bar (search + filter toggle + Price/Sell buttons always visible while scrolling), filter drawer (bottom-sheet modal for all filter dropdowns), no more scroll-to-top on checkbox selection
 ✅ Google Books API integration (cover images, ratings, descriptions, genres, ISBNs)
 ✅ Gemini 2.0 Flash integration (sub-genre tagging, pacing classification, batch processing, configurable sub-genre list)
 ✅ Sales tracking (Issue #2): single-book mark-as-sold (inline form in BookDetail), bulk sales via checkbox selection + BulkSaleModal, transaction grouping (UUID sale_transaction_id), payment method (Cash/Card), event tagging with autocomplete, dedicated Sales page (`/sales`) with transaction-centric view (cover thumbnail strips, expandable details, filters by event/date/payment, inline edit mode for date/event/payment/per-book prices, full transaction revert), "View Transaction" link from BookDetail, Inventory sold view with sale-relevant columns, Dashboard sales stats (5 cards: Books Sold, Transactions, Total Revenue, Actual Profit, Avg Sale Price) + Sales by Event breakdown table
@@ -244,6 +244,8 @@ docker compose ps
 - **Mobile is the primary use case** — this app is used at a booth during events; every feature MUST work well on phones
 - Mobile-responsive: breakpoints at 768px (mobile) and 1024px (tablet)
 - Inventory uses card layout on mobile via `useIsMobile` hook, table on desktop
+- Mobile Inventory has a sticky action bar (`position: sticky`) with filter toggle, search, and Price/Sell/Clear buttons — eliminates scroll-to-top and keeps actions accessible while scrolling
+- Mobile filter drawer is a bottom-sheet overlay (75vh, z-index 500) with labeled dropdowns; filters apply immediately; opened via hamburger button with active filter count badge
 - Cover images are clickable to open BookDetail popup (enrichment data, custom search, edit/enrich actions)
 - Modals use `overflow: hidden` + `min-height: 0` flex pattern to stay within 90vh
 - Use React Query for data fetching
@@ -394,7 +396,7 @@ Before pushing changes:
 - [ ] Null values handled gracefully
 - [ ] No console errors in browser
 - [ ] Data persists after restart
-- [ ] Changes documented in README if user-facing
+- [ ] **README.md updated for ANY user-facing change** — README is equally important as code; features, UI changes, API changes, and workflow updates MUST be reflected there
 - [ ] CLAUDE.md updated if architecture, colors, or workflows changed
 - [ ] Existing tests still pass and are updated if relevant
 - [ ] **New unit tests written for any new backend logic** (services, validation, utilities)
