@@ -250,6 +250,8 @@ function Inventory() {
   };
 
   const toggleSelectBook = (bookId: number, book?: Book) => {
+    // Save scroll position — iOS Safari aggressively scrolls on checkbox re-renders
+    const scrollY = window.scrollY;
     setSelectedIds(prev => {
       const next = new Set(prev);
       if (next.has(bookId)) {
@@ -267,6 +269,10 @@ function Inventory() {
         next.set(bookId, book);
       }
       return next;
+    });
+    // Restore scroll position after React re-render
+    requestAnimationFrame(() => {
+      window.scrollTo(0, scrollY);
     });
   };
 
@@ -695,6 +701,7 @@ function Inventory() {
                 type="checkbox"
                 checked={allSelected}
                 onChange={() => {
+                  const scrollY = window.scrollY;
                   if (allSelected) {
                     setSelectedIds(new Set());
                     setSelectedBooksMap(new Map());
@@ -702,6 +709,7 @@ function Inventory() {
                     setSelectedIds(new Set(selectableBooks.map(b => b.id!)));
                     setSelectedBooksMap(new Map(selectableBooks.map(b => [b.id!, b])));
                   }
+                  requestAnimationFrame(() => window.scrollTo(0, scrollY));
                 }}
               />
               Select all
@@ -822,6 +830,7 @@ function Inventory() {
                         type="checkbox"
                         checked={allSelected}
                         onChange={() => {
+                          const scrollY = window.scrollY;
                           if (allSelected) {
                             setSelectedIds(new Set());
                             setSelectedBooksMap(new Map());
@@ -829,6 +838,7 @@ function Inventory() {
                             setSelectedIds(new Set(selectableBooks.map(b => b.id!)));
                             setSelectedBooksMap(new Map(selectableBooks.map(b => [b.id!, b])));
                           }
+                          requestAnimationFrame(() => window.scrollTo(0, scrollY));
                         }}
                         title={allSelected ? 'Deselect all' : 'Select all'}
                       />

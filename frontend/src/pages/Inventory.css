@@ -677,8 +677,8 @@
     z-index: 100;
     background-color: var(--surface);
     border-bottom: 1px solid var(--border);
-    padding: 0.5rem 0;
-    margin-bottom: 0.75rem;
+    padding: 0.5rem 1rem;
+    margin: 0 -1rem 0.75rem;
   }
 
   .mobile-action-bar-row {
