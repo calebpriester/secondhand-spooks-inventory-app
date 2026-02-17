@@ -1,5 +1,5 @@
 import { query } from '../config/database';
-import { Book, BookFilters, BookStats, BulkSaleRequest, UpdateTransactionRequest, Transaction } from '../models/Book';
+import { Book, BookFilters, BookStats, BulkSaleRequest, BulkPriceRequest, UpdateTransactionRequest, Transaction } from '../models/Book';
 
 export class BookService {
   async getAllBooks(filters?: BookFilters): Promise<Book[]> {
@@ -65,6 +65,9 @@ export class BookService {
         sql += ` AND sale_transaction_id = $${paramCount++}`;
         params.push(filters.sale_transaction_id);
       }
+      if (filters.missing_price) {
+        sql += ' AND our_price IS NULL';
+      }
     }
 
     sql += ' ORDER BY author_last_name ASC, book_title ASC, id ASC';
@@ -83,9 +86,9 @@ export class BookService {
       INSERT INTO books (
         book_title, cleaned, author_last_name, author_first_middle, book_series,
         vol_number, cover_type, category, condition, date_purchased, source,
-        seller, order_number, thriftbooks_price, purchase_price, our_price,
+        seller, order_number, purchase_price, our_price,
         profit_est, author_fullname, pulled_to_read
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
       RETURNING *
     `;
 
@@ -103,7 +106,6 @@ export class BookService {
       book.source,
       book.seller,
       book.order_number,
-      book.thriftbooks_price,
       book.purchase_price,
       book.our_price,
       book.profit_est,
@@ -121,7 +123,7 @@ export class BookService {
       'book_title', 'cleaned', 'author_last_name', 'author_first_middle',
       'book_series', 'vol_number', 'cover_type', 'category', 'condition',
       'date_purchased', 'source', 'seller', 'order_number',
-      'thriftbooks_price', 'purchase_price', 'our_price', 'profit_est',
+      'purchase_price', 'our_price', 'profit_est',
       'author_fullname', 'pulled_to_read', 'subgenres', 'pacing', 'google_enrichment_id',
       'sold', 'date_sold', 'sold_price', 'sale_event', 'sale_transaction_id', 'payment_method',
     ]);
@@ -212,6 +214,38 @@ export class BookService {
         results.push(result.rows[0]);
       }
     }
+    return results;
+  }
+
+  async bulkSetPrice(request: BulkPriceRequest): Promise<Book[]> {
+    const results: Book[] = [];
+
+    if (request.items && request.items.length > 0) {
+      for (const item of request.items) {
+        const result = await query(
+          `UPDATE books SET our_price = $1,
+           profit_est = CASE WHEN purchase_price IS NOT NULL THEN $1 - purchase_price ELSE NULL END
+           WHERE id = $2 RETURNING *`,
+          [item.our_price, item.book_id]
+        );
+        if (result.rows[0]) {
+          results.push(result.rows[0]);
+        }
+      }
+    } else if (request.book_ids && request.book_ids.length > 0 && request.our_price !== undefined) {
+      for (const bookId of request.book_ids) {
+        const result = await query(
+          `UPDATE books SET our_price = $1,
+           profit_est = CASE WHEN purchase_price IS NOT NULL THEN $1 - purchase_price ELSE NULL END
+           WHERE id = $2 RETURNING *`,
+          [request.our_price, bookId]
+        );
+        if (result.rows[0]) {
+          results.push(result.rows[0]);
+        }
+      }
+    }
+
     return results;
   }
 
@@ -465,12 +499,19 @@ export class BookService {
       SELECT
         COALESCE(sale_event, 'No Event') as event,
         COUNT(*) as count,
+        COUNT(DISTINCT sale_transaction_id) as transaction_count,
         COALESCE(SUM(sold_price), 0) as revenue,
         COALESCE(SUM(sold_price - purchase_price), 0) as profit
       FROM books_with_enrichment
       WHERE sold = true AND ${cleanedWhere}
       GROUP BY sale_event
       ORDER BY count DESC
+    `, params);
+
+    const missingPriceQuery = await query(`
+      SELECT COUNT(*) as books_missing_price
+      FROM books_with_enrichment
+      WHERE our_price IS NULL AND sold = false AND ${cleanedWhere}
     `, params);
 
     return {
@@ -522,10 +563,12 @@ export class BookService {
         by_event: salesByEventQuery.rows.map(row => ({
           event: row.event,
           count: parseInt(row.count),
+          transaction_count: parseInt(row.transaction_count),
           revenue: parseFloat(row.revenue),
           profit: parseFloat(row.profit),
         })),
       },
+      books_missing_price: parseInt(missingPriceQuery.rows[0].books_missing_price),
     };
   }
 }

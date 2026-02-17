@@ -28,11 +28,11 @@ This full-stack inventory management system helps track and analyze our horror b
 - **Mobile Responsive**: Full mobile support with card-based inventory view, stacked filters, and touch-friendly controls
 - **Google Books Integration**: Auto-enrich books with cover images, ratings, descriptions, genres, ISBNs, and more via Google Books API. Batch enrichment tool on Dashboard. Custom search by ISBN/title/author for tricky matches. Duplicates share enrichment data (no wasted API calls). Normalized schema supports adding future enrichment sources (Hardcover, Open Library).
 - **Sales Tracking**: Mark books as sold (single or bulk), track sale price, date, event, and payment method (Cash/Card). Transaction grouping ties books from the same purchase together. Dedicated Sales page with transaction-centric view, cover thumbnails, inline editing, and revert support. Dashboard sales stats with event breakdowns.
+- **Bulk Price Management**: Select multiple books and set prices in bulk (per-book or flat price for all). Filter to show books missing prices. Dashboard widget shows how many books need pricing. Auto-calculates profit estimates.
 
 ### Planned Features
 
 See [GitHub Issues](https://github.com/calebpriester/secondhand-spooks-inventory-app/issues) for upcoming features:
-- #3: Bulk price management tools
 - #4: Enhanced analytics and insights
 
 ## 🛠 Tech Stack
@@ -148,17 +148,18 @@ The app tracks comprehensive book information:
 - **Categories**: YA/Nostalgia, PFH/Vintage, Mainstream, Comics/Ephemera
 - **Physical Details**: Cover Type (Paperback, Hardcover, Audiobook), Condition
 - **Purchase Info**: Date purchased, source, seller, order number
-- **Pricing**: ThriftBooks price, purchase price, your price, profit estimate
+- **Pricing**: Purchase price, your price, profit estimate
 - **Status Flags**: Cleaned status, pulled to read flag
 
 ## 📝 API Endpoints
 
-- `GET /api/books` - Get all books (supports filtering)
+- `GET /api/books` - Get all books (supports filtering, including `missing_price=true`)
 - `GET /api/books/:id` - Get single book
-- `GET /api/books/stats` - Get inventory statistics
+- `GET /api/books/stats` - Get inventory statistics (includes `books_missing_price`)
 - `POST /api/books` - Create new book
 - `PUT /api/books/:id` - Update book
 - `DELETE /api/books/:id` - Delete book
+- `POST /api/books/bulk-price` - Set prices on multiple books at once
 
 ## 🔧 Development
 
@@ -391,9 +392,9 @@ When working on new features:
 
 ### Roadmap Priority
 
-**Phase 1 - Essential Operations** (In Progress)
+**Phase 1 - Essential Operations** ✅ Complete
 - ~~Issue #1: Add/edit books UI~~ ✅ Done
-- Issue #3: Price management tools
+- ~~Issue #3: Price management tools~~ ✅ Done
 
 **Phase 2 - Business Intelligence**
 - ~~Issue #2: Sales tracking~~ ✅ Done

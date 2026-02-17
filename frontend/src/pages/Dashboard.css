@@ -123,6 +123,35 @@
   color: #E85D04;
 }
 
+/* ===== Pricing Alert ===== */
+.pricing-alert {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1.25rem;
+  background-color: var(--surface);
+  border: 1px solid #7C3AED;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  margin-top: -1.5rem;
+}
+
+.pricing-alert-count {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1;
+}
+
+.pricing-alert-text {
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.pricing-alert-text strong {
+  color: var(--text);
+}
+
 .profit-cell {
   color: #00FFA3;
   font-weight: 500;

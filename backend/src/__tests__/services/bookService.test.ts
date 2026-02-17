@@ -155,7 +155,7 @@ describe('BookService', () => {
   });
 
   describe('createBook', () => {
-    it('inserts book with all 19 fields in correct order', async () => {
+    it('inserts book with all 18 fields in correct order', async () => {
       mockQuery.mockResolvedValueOnce(mockRows([{ ...sampleBook, id: 1 }]));
 
       const result = await service.createBook(sampleBook);
@@ -163,12 +163,13 @@ describe('BookService', () => {
       const [sql, params] = mockQuery.mock.calls[0];
       expect(sql).toContain('INSERT INTO books');
       expect(sql).toContain('RETURNING *');
-      expect(params).toHaveLength(19);
+      expect(sql).not.toContain('thriftbooks_price');
+      expect(params).toHaveLength(18);
       expect(params![0]).toBe(sampleBook.book_title);
       expect(params![1]).toBe(sampleBook.cleaned);
       expect(params![2]).toBe(sampleBook.author_last_name);
-      expect(params![17]).toBe(sampleBook.author_fullname);
-      expect(params![18]).toBe(sampleBook.pulled_to_read);
+      expect(params![16]).toBe(sampleBook.author_fullname);
+      expect(params![17]).toBe(sampleBook.pulled_to_read);
       expect(result.id).toBe(1);
     });
   });
@@ -287,7 +288,8 @@ describe('BookService', () => {
         .mockResolvedValueOnce(mockRows([{ subgenre: 'Supernatural', count: '20', percentage: '40.0' }])) // subgenreQuery
         .mockResolvedValueOnce(mockRows([{ rating_bucket: '4.0-4.4', count: '15', avg_rating: '4.20' }])) // ratingQuery
         .mockResolvedValueOnce(mockRows(rawStatsRows.sales))        // salesQuery
-        .mockResolvedValueOnce(mockRows(rawStatsRows.salesByEvent)); // salesByEventQuery
+        .mockResolvedValueOnce(mockRows(rawStatsRows.salesByEvent)) // salesByEventQuery
+        .mockResolvedValueOnce(mockRows(rawStatsRows.missingPrice)); // missingPriceQuery
     };
 
     it('converts string values from PostgreSQL to numbers', async () => {
@@ -300,6 +302,8 @@ describe('BookService', () => {
       expect(result.total_value).toBe(4523.50);
       expect(result.total_cost).toBe(1890.25);
       expect(result.estimated_profit).toBe(2633.25);
+      expect(result.books_missing_price).toBe(150);
+      expect(typeof result.books_missing_price).toBe('number');
     });
 
     it('parses category and condition breakdowns correctly', async () => {
@@ -324,8 +328,8 @@ describe('BookService', () => {
       expect(result.sales.actual_profit).toBe(28.00);
       expect(result.sales.transaction_count).toBe(3);
       expect(result.sales.by_event).toHaveLength(2);
-      expect(result.sales.by_event[0]).toEqual({ event: 'Flea Market', count: 3, revenue: 25.00, profit: 17.00 });
-      expect(result.sales.by_event[1]).toEqual({ event: 'No Event', count: 2, revenue: 17.50, profit: 11.00 });
+      expect(result.sales.by_event[0]).toEqual({ event: 'Flea Market', count: 3, transaction_count: 2, revenue: 25.00, profit: 17.00 });
+      expect(result.sales.by_event[1]).toEqual({ event: 'No Event', count: 2, transaction_count: 1, revenue: 17.50, profit: 11.00 });
     });
   });
 
@@ -606,4 +610,109 @@ describe('BookService', () => {
       expect(result).toBe(0);
     });
   });
+
+  describe('getAllBooks - missing_price filter', () => {
+    it('adds AND our_price IS NULL when missing_price is true', async () => {
+      mockQuery.mockResolvedValueOnce(mockRows([]));
+
+      await service.getAllBooks({ missing_price: true });
+
+      const [sql] = mockQuery.mock.calls[0];
+      expect(sql).toContain('AND our_price IS NULL');
+    });
+
+    it('does not add our_price filter when missing_price is undefined', async () => {
+      mockQuery.mockResolvedValueOnce(mockRows([]));
+
+      await service.getAllBooks({});
+
+      const [sql] = mockQuery.mock.calls[0];
+      expect(sql).not.toContain('our_price IS NULL');
+    });
+
+    it('combines missing_price with other filters', async () => {
+      mockQuery.mockResolvedValueOnce(mockRows([]));
+
+      await service.getAllBooks({ category: 'Mainstream', missing_price: true });
+
+      const [sql, params] = mockQuery.mock.calls[0];
+      expect(sql).toContain('AND category = $1');
+      expect(sql).toContain('AND our_price IS NULL');
+      expect(params).toEqual(['Mainstream']);
+    });
+  });
+
+  describe('bulkSetPrice', () => {
+    it('updates per-book prices and auto-calculates profit_est', async () => {
+      const updatedBook1 = { ...sampleBook, our_price: 10.00, profit_est: 6.01 };
+      const updatedBook2 = { ...sampleBook2, our_price: 7.00, profit_est: 5.50 };
+
+      mockQuery
+        .mockResolvedValueOnce(mockRows([updatedBook1]))
+        .mockResolvedValueOnce(mockRows([updatedBook2]));
+
+      const result = await service.bulkSetPrice({
+        items: [
+          { book_id: 1, our_price: 10.00 },
+          { book_id: 2, our_price: 7.00 },
+        ],
+      });
+
+      expect(result).toHaveLength(2);
+      expect(mockQuery).toHaveBeenCalledTimes(2);
+
+      const [sql1, params1] = mockQuery.mock.calls[0];
+      expect(sql1).toContain('UPDATE books SET our_price = $1');
+      expect(sql1).toContain('profit_est');
+      expect(params1).toEqual([10.00, 1]);
+
+      const [, params2] = mockQuery.mock.calls[1];
+      expect(params2).toEqual([7.00, 2]);
+    });
+
+    it('updates flat price for all specified book_ids', async () => {
+      const updatedBook1 = { ...sampleBook, our_price: 5.00 };
+      const updatedBook2 = { ...sampleBook2, our_price: 5.00 };
+
+      mockQuery
+        .mockResolvedValueOnce(mockRows([updatedBook1]))
+        .mockResolvedValueOnce(mockRows([updatedBook2]));
+
+      const result = await service.bulkSetPrice({
+        book_ids: [1, 2],
+        our_price: 5.00,
+      });
+
+      expect(result).toHaveLength(2);
+      expect(mockQuery).toHaveBeenCalledTimes(2);
+
+      const [sql1, params1] = mockQuery.mock.calls[0];
+      expect(sql1).toContain('UPDATE books SET our_price = $1');
+      expect(params1).toEqual([5.00, 1]);
+      expect(mockQuery.mock.calls[1][1]).toEqual([5.00, 2]);
+    });
+
+    it('skips books that return no rows', async () => {
+      mockQuery
+        .mockResolvedValueOnce(mockRows([{ ...sampleBook, our_price: 5.00 }]))
+        .mockResolvedValueOnce(mockRows([]));
+
+      const result = await service.bulkSetPrice({
+        items: [
+          { book_id: 1, our_price: 5.00 },
+          { book_id: 999, our_price: 5.00 },
+        ],
+      });
+
+      expect(result).toHaveLength(1);
+    });
+
+    it('returns empty array when neither items nor book_ids provided', async () => {
+      const result = await service.bulkSetPrice({});
+
+      expect(result).toEqual([]);
+      expect(mockQuery).not.toHaveBeenCalled();
+    });
+  });
+
 });

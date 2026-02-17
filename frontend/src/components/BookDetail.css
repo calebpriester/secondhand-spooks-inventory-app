@@ -360,6 +360,21 @@
   cursor: not-allowed;
 }
 
+.btn-price {
+  background-color: #7C3AED !important;
+  border-color: #7C3AED !important;
+  color: white !important;
+}
+
+.btn-price:hover {
+  background-color: #6D28D9 !important;
+}
+
+.btn-price:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* === Payment Toggle === */
 .payment-toggle {
   display: flex;

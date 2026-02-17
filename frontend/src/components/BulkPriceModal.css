@@ -1,0 +1,377 @@
+.bulk-price-modal {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.bulk-price-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 2px solid #7C3AED;
+  background: linear-gradient(135deg, #1E1B1C 0%, #2a2627 100%);
+  flex-shrink: 0;
+}
+
+.bulk-price-header h2 {
+  margin: 0;
+  color: #7C3AED;
+  font-size: 1.3rem;
+}
+
+.bulk-price-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 1.5rem;
+}
+
+/* Mode toggle */
+.bulk-price-mode-toggle {
+  display: flex;
+  gap: 0;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid #3d3839;
+  margin-bottom: 1.5rem;
+}
+
+.mode-btn {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border: none;
+  background-color: #1E1B1C;
+  color: #b8b8a0;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+}
+
+.mode-btn.active {
+  background-color: #7C3AED;
+  color: white;
+  font-weight: 600;
+}
+
+.mode-btn:not(.active):hover {
+  background-color: rgba(124, 58, 237, 0.1);
+}
+
+/* Flat price section */
+.bulk-price-flat-section {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #3d3839;
+}
+
+.bulk-price-flat-section label {
+  display: block;
+  color: #b8b8a0;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.15rem;
+}
+
+.bulk-price-flat-input {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.bulk-price-flat-input .price-prefix {
+  color: #b8b8a0;
+  font-size: 1.2rem;
+}
+
+.bulk-price-flat-input input {
+  width: 120px;
+  padding: 0.5rem;
+  border: 1px solid #3d3839;
+  border-radius: 4px;
+  background-color: #1E1B1C;
+  color: #FFFFDC;
+  font-size: 1.1rem;
+  text-align: right;
+}
+
+.bulk-price-flat-input input:focus {
+  outline: none;
+  border-color: #7C3AED;
+}
+
+.flat-price-note {
+  color: #b8b8a0;
+  font-size: 0.85rem;
+  margin-left: 0.5rem;
+}
+
+.bulk-price-hint {
+  color: #b8b8a0;
+  font-size: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.bulk-price-warning {
+  color: #FF6B6B;
+  font-size: 0.75rem;
+  margin-top: 0.35rem;
+}
+
+/* Book list */
+.bulk-price-books-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.bulk-price-books-header h3 {
+  color: #FFFFDC;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.bulk-price-fill-btn {
+  background: none;
+  border: 1px solid #3d3839;
+  color: #b8b8a0;
+  font-size: 0.7rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.bulk-price-fill-btn:hover {
+  border-color: #7C3AED;
+  color: #FFFFDC;
+}
+
+.bulk-price-book-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #2a2627;
+}
+
+.bulk-price-book-item:last-child {
+  border-bottom: none;
+}
+
+.bulk-price-remove-btn {
+  background: none;
+  border: none;
+  color: #7C3AED;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0.25rem;
+  line-height: 1;
+  opacity: 0.6;
+  flex-shrink: 0;
+  min-width: 28px;
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bulk-price-remove-btn:hover {
+  opacity: 1;
+}
+
+.bulk-price-book-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.bulk-price-cover {
+  width: 32px;
+  height: 48px;
+  border-radius: 2px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.bulk-price-cover-placeholder {
+  width: 32px;
+  height: 48px;
+  background-color: #2a2627;
+  border: 1px dashed #3d3839;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.bulk-price-book-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.bulk-price-book-title {
+  color: #FFFFDC;
+  font-size: 0.85rem;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bulk-price-book-author {
+  color: #b8b8a0;
+  font-size: 0.75rem;
+}
+
+.bulk-price-book-cost {
+  color: #a09c9d;
+  font-size: 0.7rem;
+  font-style: italic;
+}
+
+.bulk-price-book-price {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.bulk-price-book-price .price-prefix {
+  color: #b8b8a0;
+  font-size: 0.9rem;
+}
+
+.bulk-price-book-price input {
+  width: 80px;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid #3d3839;
+  border-radius: 4px;
+  background-color: #1E1B1C;
+  color: #FFFFDC;
+  font-size: 0.9rem;
+  text-align: right;
+}
+
+.bulk-price-book-price input:focus {
+  outline: none;
+  border-color: #7C3AED;
+}
+
+.bulk-price-below-cost {
+  background-color: rgba(255, 107, 107, 0.06);
+  border-radius: 4px;
+  padding: 0.5rem 0.25rem;
+}
+
+.bulk-price-book-price input.input-below-cost {
+  border-color: #FF6B6B;
+}
+
+.bulk-price-book-price input.input-below-cost:focus {
+  border-color: #FF6B6B;
+}
+
+.flat-below-cost {
+  color: #FF6B6B !important;
+}
+
+.bulk-price-footer-warning {
+  color: #FF6B6B;
+  font-size: 0.75rem;
+}
+
+.bulk-price-flat-display {
+  color: #7C3AED;
+  font-size: 0.9rem;
+  font-weight: 500;
+  flex-shrink: 0;
+  min-width: 60px;
+  text-align: right;
+}
+
+/* Footer */
+.bulk-price-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-top: 2px solid #7C3AED;
+  background: linear-gradient(135deg, #1E1B1C 0%, #2a2627 100%);
+  flex-shrink: 0;
+}
+
+.bulk-price-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.bulk-price-total {
+  color: #FFFFDC;
+  font-size: 1.1rem;
+}
+
+.bulk-price-total strong {
+  color: #7C3AED;
+}
+
+.bulk-price-avg {
+  color: #b8b8a0;
+  font-size: 0.8rem;
+}
+
+.bulk-price-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .bulk-price-header {
+    padding: 1rem;
+  }
+
+  .bulk-price-body {
+    padding: 1rem;
+  }
+
+  .mode-btn {
+    font-size: 16px;
+    padding: 0.75rem;
+    min-height: 44px;
+  }
+
+  .bulk-price-flat-input input {
+    font-size: 16px;
+    padding: 0.85rem;
+    width: 100%;
+  }
+
+  .bulk-price-book-price input {
+    font-size: 16px;
+    width: 90px;
+    padding: 0.65rem 0.5rem;
+  }
+
+  .bulk-price-footer {
+    padding: 1rem;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .bulk-price-actions {
+    width: 100%;
+  }
+
+  .bulk-price-actions .btn {
+    flex: 1;
+    text-align: center;
+  }
+}

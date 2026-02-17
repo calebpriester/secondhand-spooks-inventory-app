@@ -141,6 +141,7 @@ describe('Book Routes', () => {
           transaction_count: 3,
           by_event: [],
         },
+        books_missing_price: 150,
       });
 
       const response = await request(app)

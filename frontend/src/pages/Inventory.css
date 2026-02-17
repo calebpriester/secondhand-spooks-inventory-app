@@ -24,6 +24,22 @@
   margin-bottom: 2rem;
 }
 
+.mobile-select-all {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  cursor: pointer;
+  margin-bottom: 0.5rem;
+}
+
+.mobile-select-all input[type="checkbox"] {
+  accent-color: var(--success);
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
 .search-form {
   display: flex;
   gap: 1rem;
