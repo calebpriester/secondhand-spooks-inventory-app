@@ -73,6 +73,13 @@ export class GoogleBooksService {
           score += 10;
           break;
         }
+        // Fallback: compare last names (handles middle name/initial variations like "Poppy Brite" vs "Poppy Z. Brite")
+        const resultLast = ra.split(/\s+/).pop() || '';
+        const authorLast = normalizedAuthor.split(/\s+/).pop() || '';
+        if (resultLast && authorLast && resultLast === authorLast) {
+          score += 7;
+          break;
+        }
       }
 
       if (vi.imageLinks) score += 5;
