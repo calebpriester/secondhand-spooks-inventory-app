@@ -28,7 +28,8 @@ export class GoogleBooksService {
       searchQuery = `isbn:${encodeURIComponent(isbn.replace(/[-\s]/g, ''))}`;
     } else {
       const cleanTitle = title.split(':')[0].trim();
-      searchQuery = `intitle:${encodeURIComponent(cleanTitle)}+inauthor:${encodeURIComponent(author)}`;
+      const cleanAuthor = author.replace(/\./g, '').trim();
+      searchQuery = `intitle:${encodeURIComponent(cleanTitle)}+inauthor:${encodeURIComponent(cleanAuthor)}`;
     }
     const url = `${GOOGLE_BOOKS_API_BASE}?q=${searchQuery}&maxResults=10&langRestrict=en&key=${this.apiKey}`;
 
@@ -207,6 +208,17 @@ export class GoogleBooksService {
 
     // Link the book to this enrichment
     await query('UPDATE books SET google_enrichment_id = $1 WHERE id = $2', [enrichmentId, bookId]);
+
+    // Propagate to duplicates (same title+author)
+    const bookData = await query('SELECT book_title, author_fullname FROM books WHERE id = $1', [bookId]);
+    if (bookData.rows.length > 0) {
+      const { book_title, author_fullname } = bookData.rows[0];
+      await query(
+        `UPDATE books SET google_enrichment_id = $1
+         WHERE book_title = $2 AND author_fullname = $3 AND id != $4`,
+        [enrichmentId, book_title, author_fullname, bookId]
+      );
+    }
   }
 
   async startBatchEnrichment(limit: number = 3): Promise<void> {
