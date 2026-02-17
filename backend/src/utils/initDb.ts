@@ -282,8 +282,31 @@ async function runMigrations(): Promise<void> {
   `);
 }
 
+async function waitForDatabase(maxRetries = 10, initialDelayMs = 2000): Promise<void> {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      await query('SELECT 1');
+      console.log(`Database connected (attempt ${attempt}/${maxRetries}).`);
+      return;
+    } catch (err: any) {
+      const retryable = ['ETIMEDOUT', 'ECONNREFUSED', 'ENOTFOUND', 'EAI_AGAIN'].includes(err.code)
+        || err.code === 'ETIMEDOUT'
+        || (err.errors && err.errors.some((e: any) => ['ETIMEDOUT', 'ECONNREFUSED'].includes(e.code)));
+
+      if (!retryable || attempt === maxRetries) {
+        throw err;
+      }
+
+      const delay = initialDelayMs * Math.pow(2, attempt - 1); // 2s, 4s, 8s, ...
+      console.log(`Database not ready (attempt ${attempt}/${maxRetries}): ${err.code || err.message}. Retrying in ${delay / 1000}s...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+}
+
 export async function initializeDatabase(): Promise<void> {
   console.log('Initializing database...');
+  await waitForDatabase();
   await runSchema();
   await runMigrations();
   await seedFromCsv();

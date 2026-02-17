@@ -37,7 +37,8 @@ async function start() {
   try {
     await initializeDatabase();
   } catch (err) {
-    console.error('Database initialization error:', err);
+    console.error('Database initialization failed after retries:', err);
+    process.exit(1);
   }
 
   app.listen(PORT, () => {
