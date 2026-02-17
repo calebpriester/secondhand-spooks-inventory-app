@@ -396,7 +396,7 @@ Before pushing changes:
 - [ ] Null values handled gracefully
 - [ ] No console errors in browser
 - [ ] Data persists after restart
-- [ ] Changes documented in README if user-facing
+- [ ] **README.md updated for ANY user-facing change** — README is equally important as code; features, UI changes, API changes, and workflow updates MUST be reflected there
 - [ ] CLAUDE.md updated if architecture, colors, or workflows changed
 - [ ] Existing tests still pass and are updated if relevant
 - [ ] **New unit tests written for any new backend logic** (services, validation, utilities)
