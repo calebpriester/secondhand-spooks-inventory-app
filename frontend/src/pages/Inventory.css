@@ -771,37 +771,32 @@
     white-space: nowrap;
   }
 
-  .mobile-action-buttons {
+  /* Selection action row (second row, below search) */
+  .mobile-action-bar-selection {
     display: flex;
     align-items: center;
-    gap: 0.25rem;
-    flex-shrink: 0;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--border);
   }
 
   .mobile-selection-count {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: var(--primary);
-    color: var(--surface);
-    font-size: 0.75rem;
-    font-weight: 700;
-    min-width: 24px;
-    height: 24px;
-    border-radius: 12px;
-    padding: 0 0.4rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--primary);
+    margin-right: auto;
   }
 
   .mobile-action-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 44px;
-    min-width: 44px;
-    padding: 0 0.6rem;
+    height: 40px;
+    padding: 0 1rem;
     border: none;
     border-radius: 6px;
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     font-weight: 600;
     cursor: pointer;
     white-space: nowrap;
@@ -821,7 +816,7 @@
     background-color: transparent;
     color: var(--text-secondary);
     font-size: 1.3rem;
-    min-width: 36px;
+    padding: 0 0.5rem;
   }
 
   .books-table-container {

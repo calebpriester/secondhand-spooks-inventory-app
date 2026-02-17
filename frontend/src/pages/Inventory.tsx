@@ -10,6 +10,162 @@ import BulkPriceModal from '../components/BulkPriceModal';
 import { useIsMobile } from '../hooks/useIsMobile';
 import './Inventory.css';
 
+interface FilterDrawerProps {
+  filters: BookFilters;
+  subgenreOptions: { id: number; name: string }[] | undefined;
+  onApply: (filters: BookFilters) => void;
+  onClear: () => void;
+  onClose: () => void;
+}
+
+function FilterDrawer({ filters, subgenreOptions, onApply, onClear, onClose }: FilterDrawerProps) {
+  const [draft, setDraft] = useState<BookFilters>({ ...filters });
+
+  const draftStockStatus = draft.missing_price ? 'missing_price' :
+    draft.pulled_to_read ? 'pulled_to_read' :
+    draft.kept === true && draft.sold === undefined ? 'kept' :
+    draft.sold === undefined && draft.kept === undefined ? '' :
+    draft.sold ? 'sold' : 'available';
+  const draftViewingSold = draft.sold === true && !draft.missing_price;
+  const draftViewingKept = draft.kept === true && draft.sold === undefined;
+
+  const handleStockStatusChange = (val: string) => {
+    const next = { ...draft };
+    delete next.sold;
+    delete next.kept;
+    delete next.missing_price;
+    delete next.pulled_to_read;
+    if (val === 'sold') { next.sold = true; }
+    else if (val === 'available') { next.sold = false; next.kept = false; }
+    else if (val === 'missing_price') { next.sold = false; next.kept = false; next.missing_price = true; }
+    else if (val === 'pulled_to_read') { next.sold = false; next.kept = false; next.pulled_to_read = true; }
+    else if (val === 'kept') { next.kept = true; }
+    setDraft(next);
+  };
+
+  const handleDraftFilterChange = (key: keyof BookFilters, value: string) => {
+    const next = { ...draft };
+    if (value === '') {
+      delete next[key];
+    } else {
+      next[key] = value as any;
+    }
+    setDraft(next);
+  };
+
+  return (
+    <div className="filter-drawer-overlay" onClick={onClose}>
+      <div className="filter-drawer" onClick={(e) => e.stopPropagation()}>
+        <div className="filter-drawer-header">
+          <h3>Filters</h3>
+          <button className="filter-drawer-close" onClick={onClose}>&times;</button>
+        </div>
+        <div className="filter-drawer-body">
+          <div className="filter-drawer-group">
+            <label className="filter-drawer-label">Stock Status</label>
+            <select
+              value={draftStockStatus}
+              onChange={(e) => handleStockStatusChange(e.target.value)}
+              className="filter-drawer-select"
+            >
+              <option value="available">Available</option>
+              <option value="missing_price">Missing Price</option>
+              <option value="sold">Sold</option>
+              <option value="pulled_to_read">Pulled to Read</option>
+              <option value="kept">Kept</option>
+              <option value="">All Books</option>
+            </select>
+          </div>
+
+          {!draftViewingSold && !draftViewingKept && (
+            <>
+              <div className="filter-drawer-group">
+                <label className="filter-drawer-label">Category</label>
+                <select
+                  value={draft.category || ''}
+                  onChange={(e) => handleDraftFilterChange('category', e.target.value)}
+                  className="filter-drawer-select"
+                >
+                  <option value="">All Categories</option>
+                  <option value="YA/Nostalgia">YA/Nostalgia</option>
+                  <option value="PFH/Vintage">PFH/Vintage</option>
+                  <option value="Mainstream">Mainstream</option>
+                  <option value="Comics/Ephemera">Comics/Ephemera</option>
+                </select>
+              </div>
+
+              <div className="filter-drawer-group">
+                <label className="filter-drawer-label">Condition</label>
+                <select
+                  value={draft.condition || ''}
+                  onChange={(e) => handleDraftFilterChange('condition', e.target.value)}
+                  className="filter-drawer-select"
+                >
+                  <option value="">All Conditions</option>
+                  <option value="Like New">Like New</option>
+                  <option value="Very Good">Very Good</option>
+                  <option value="Good">Good</option>
+                  <option value="Acceptable">Acceptable</option>
+                </select>
+              </div>
+
+              <div className="filter-drawer-group">
+                <label className="filter-drawer-label">Cover Type</label>
+                <select
+                  value={draft.cover_type || ''}
+                  onChange={(e) => handleDraftFilterChange('cover_type', e.target.value)}
+                  className="filter-drawer-select"
+                >
+                  <option value="">All Cover Types</option>
+                  <option value="Paper">Paperback</option>
+                  <option value="Hard">Hardcover</option>
+                  <option value="Audiobook">Audiobook</option>
+                </select>
+              </div>
+
+              <div className="filter-drawer-group">
+                <label className="filter-drawer-label">Sub-Genre</label>
+                <select
+                  value={draft.subgenre || ''}
+                  onChange={(e) => handleDraftFilterChange('subgenre', e.target.value)}
+                  className="filter-drawer-select"
+                >
+                  <option value="">All Sub-Genres</option>
+                  {subgenreOptions?.map(sg => (
+                    <option key={sg.id} value={sg.name}>{sg.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="filter-drawer-group">
+                <label className="filter-drawer-label">Pacing</label>
+                <select
+                  value={draft.pacing || ''}
+                  onChange={(e) => handleDraftFilterChange('pacing', e.target.value)}
+                  className="filter-drawer-select"
+                >
+                  <option value="">All Pacing</option>
+                  <option value="Slow Burn">Slow Burn</option>
+                  <option value="Moderate">Moderate</option>
+                  <option value="Fast-Paced">Fast-Paced</option>
+                </select>
+              </div>
+            </>
+          )}
+        </div>
+        <div className="filter-drawer-footer">
+          <button onClick={onClear} className="btn btn-secondary filter-drawer-clear-btn">
+            Clear All
+          </button>
+          <button onClick={() => onApply(draft)} className="btn btn-primary filter-drawer-done-btn">
+            Apply
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Inventory() {
   const [filters, setFilters] = useState<BookFilters>({ sold: false, kept: false });
   const [search, setSearch] = useState('');
@@ -398,176 +554,56 @@ function Inventory() {
               />
               <button type="submit" className="mobile-search-btn">Go</button>
             </form>
-
-            {selectedIds.size > 0 && (
-              <div className="mobile-action-buttons">
-                <span className="mobile-selection-count">{selectedIds.size}</span>
-                {!viewingSold && !viewingKept && (
-                  <button
-                    onClick={() => setIsBulkPriceOpen(true)}
-                    className="mobile-action-btn mobile-action-price"
-                    title={`Price ${selectedIds.size} book${selectedIds.size !== 1 ? 's' : ''}`}
-                  >
-                    $
-                  </button>
-                )}
-                <button
-                  onClick={() => setIsBulkSaleOpen(true)}
-                  className="mobile-action-btn mobile-action-sell"
-                  title={`Sell ${selectedIds.size} book${selectedIds.size !== 1 ? 's' : ''}`}
-                >
-                  Sell
-                </button>
-                <button
-                  onClick={() => { setSelectedIds(new Set()); setSelectedBooksMap(new Map()); }}
-                  className="mobile-action-btn mobile-action-clear"
-                  title="Clear selection"
-                >
-                  &times;
-                </button>
-              </div>
-            )}
           </div>
-        </div>
-      )}
 
-      {/* Mobile: filter drawer (bottom sheet) */}
-      {isMobile && isFilterDrawerOpen && (
-        <div className="filter-drawer-overlay" onClick={() => setIsFilterDrawerOpen(false)}>
-          <div className="filter-drawer" onClick={(e) => e.stopPropagation()}>
-            <div className="filter-drawer-header">
-              <h3>Filters</h3>
+          {selectedIds.size > 0 && (
+            <div className="mobile-action-bar-selection">
+              <span className="mobile-selection-count">{selectedIds.size} selected</span>
+              {!viewingSold && !viewingKept && (
+                <button
+                  onClick={() => setIsBulkPriceOpen(true)}
+                  className="mobile-action-btn mobile-action-price"
+                  title={`Price ${selectedIds.size} book${selectedIds.size !== 1 ? 's' : ''}`}
+                >
+                  Price
+                </button>
+              )}
               <button
-                className="filter-drawer-close"
-                onClick={() => setIsFilterDrawerOpen(false)}
+                onClick={() => setIsBulkSaleOpen(true)}
+                className="mobile-action-btn mobile-action-sell"
+                title={`Sell ${selectedIds.size} book${selectedIds.size !== 1 ? 's' : ''}`}
+              >
+                Sell
+              </button>
+              <button
+                onClick={() => { setSelectedIds(new Set()); setSelectedBooksMap(new Map()); }}
+                className="mobile-action-btn mobile-action-clear"
+                title="Clear selection"
               >
                 &times;
               </button>
             </div>
-            <div className="filter-drawer-body">
-              <div className="filter-drawer-group">
-                <label className="filter-drawer-label">Stock Status</label>
-                <select
-                  value={stockStatusValue}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    const newFilters = { ...filters };
-                    delete newFilters.sold;
-                    delete newFilters.kept;
-                    delete newFilters.missing_price;
-                    delete newFilters.pulled_to_read;
-                    if (val === 'sold') { newFilters.sold = true; }
-                    else if (val === 'available') { newFilters.sold = false; newFilters.kept = false; }
-                    else if (val === 'missing_price') { newFilters.sold = false; newFilters.kept = false; newFilters.missing_price = true; }
-                    else if (val === 'pulled_to_read') { newFilters.sold = false; newFilters.kept = false; newFilters.pulled_to_read = true; }
-                    else if (val === 'kept') { newFilters.kept = true; }
-                    setFilters(newFilters);
-                    setSelectedIds(new Set());
-                    setSelectedBooksMap(new Map());
-                  }}
-                  className="filter-drawer-select"
-                >
-                  <option value="available">Available</option>
-                  <option value="missing_price">Missing Price</option>
-                  <option value="sold">Sold</option>
-                  <option value="pulled_to_read">Pulled to Read</option>
-                  <option value="kept">Kept</option>
-                  <option value="">All Books</option>
-                </select>
-              </div>
-
-              {!viewingSold && !viewingKept && (
-                <>
-                  <div className="filter-drawer-group">
-                    <label className="filter-drawer-label">Category</label>
-                    <select
-                      value={filters.category || ''}
-                      onChange={(e) => handleFilterChange('category', e.target.value)}
-                      className="filter-drawer-select"
-                    >
-                      <option value="">All Categories</option>
-                      <option value="YA/Nostalgia">YA/Nostalgia</option>
-                      <option value="PFH/Vintage">PFH/Vintage</option>
-                      <option value="Mainstream">Mainstream</option>
-                      <option value="Comics/Ephemera">Comics/Ephemera</option>
-                    </select>
-                  </div>
-
-                  <div className="filter-drawer-group">
-                    <label className="filter-drawer-label">Condition</label>
-                    <select
-                      value={filters.condition || ''}
-                      onChange={(e) => handleFilterChange('condition', e.target.value)}
-                      className="filter-drawer-select"
-                    >
-                      <option value="">All Conditions</option>
-                      <option value="Like New">Like New</option>
-                      <option value="Very Good">Very Good</option>
-                      <option value="Good">Good</option>
-                      <option value="Acceptable">Acceptable</option>
-                    </select>
-                  </div>
-
-                  <div className="filter-drawer-group">
-                    <label className="filter-drawer-label">Cover Type</label>
-                    <select
-                      value={filters.cover_type || ''}
-                      onChange={(e) => handleFilterChange('cover_type', e.target.value)}
-                      className="filter-drawer-select"
-                    >
-                      <option value="">All Cover Types</option>
-                      <option value="Paper">Paperback</option>
-                      <option value="Hard">Hardcover</option>
-                      <option value="Audiobook">Audiobook</option>
-                    </select>
-                  </div>
-
-                  <div className="filter-drawer-group">
-                    <label className="filter-drawer-label">Sub-Genre</label>
-                    <select
-                      value={filters.subgenre || ''}
-                      onChange={(e) => handleFilterChange('subgenre', e.target.value)}
-                      className="filter-drawer-select"
-                    >
-                      <option value="">All Sub-Genres</option>
-                      {subgenreOptions?.map(sg => (
-                        <option key={sg.id} value={sg.name}>{sg.name}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="filter-drawer-group">
-                    <label className="filter-drawer-label">Pacing</label>
-                    <select
-                      value={filters.pacing || ''}
-                      onChange={(e) => handleFilterChange('pacing', e.target.value)}
-                      className="filter-drawer-select"
-                    >
-                      <option value="">All Pacing</option>
-                      <option value="Slow Burn">Slow Burn</option>
-                      <option value="Moderate">Moderate</option>
-                      <option value="Fast-Paced">Fast-Paced</option>
-                    </select>
-                  </div>
-                </>
-              )}
-            </div>
-            <div className="filter-drawer-footer">
-              <button
-                onClick={() => { clearFilters(); setIsFilterDrawerOpen(false); }}
-                className="btn btn-secondary filter-drawer-clear-btn"
-              >
-                Clear All
-              </button>
-              <button
-                onClick={() => setIsFilterDrawerOpen(false)}
-                className="btn btn-primary filter-drawer-done-btn"
-              >
-                Done
-              </button>
-            </div>
-          </div>
+          )}
         </div>
+      )}
+
+      {/* Mobile: filter drawer (bottom sheet) — staged filters, applied on Done */}
+      {isMobile && isFilterDrawerOpen && (
+        <FilterDrawer
+          filters={filters}
+          subgenreOptions={subgenreOptions}
+          onApply={(newFilters) => {
+            setFilters(newFilters);
+            setSelectedIds(new Set());
+            setSelectedBooksMap(new Map());
+            setIsFilterDrawerOpen(false);
+          }}
+          onClear={() => {
+            clearFilters();
+            setIsFilterDrawerOpen(false);
+          }}
+          onClose={() => setIsFilterDrawerOpen(false)}
+        />
       )}
 
       {/* Desktop: filters section (unchanged) */}
