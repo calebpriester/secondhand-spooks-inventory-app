@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { bookApi } from '../services/api';
+import { bookApi, subgenreApi } from '../services/api';
 import { Book, BookFilters } from '../types/Book';
 import Modal from '../components/Modal';
 import BookForm from '../components/BookForm';
@@ -48,6 +48,18 @@ function Inventory() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['books'] });
     },
+  });
+
+  const tagMutation = useMutation({
+    mutationFn: (id: number) => bookApi.tagBookSubgenres(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['books'] });
+    },
+  });
+
+  const { data: subgenreOptions } = useQuery({
+    queryKey: ['subgenreOptions'],
+    queryFn: subgenreApi.getAll,
   });
 
   const toggleCleaned = (book: Book) => {
@@ -177,6 +189,28 @@ function Inventory() {
             <option value="Paper">Paperback</option>
             <option value="Hard">Hardcover</option>
             <option value="Audiobook">Audiobook</option>
+          </select>
+
+          <select
+            value={filters.subgenre || ''}
+            onChange={(e) => handleFilterChange('subgenre', e.target.value)}
+            className="filter-select"
+          >
+            <option value="">All Sub-Genres</option>
+            {subgenreOptions?.map(sg => (
+              <option key={sg.id} value={sg.name}>{sg.name}</option>
+            ))}
+          </select>
+
+          <select
+            value={filters.pacing || ''}
+            onChange={(e) => handleFilterChange('pacing', e.target.value)}
+            className="filter-select"
+          >
+            <option value="">All Pacing</option>
+            <option value="Slow Burn">Slow Burn</option>
+            <option value="Moderate">Moderate</option>
+            <option value="Fast-Paced">Fast-Paced</option>
           </select>
 
           <button onClick={clearFilters} className="btn btn-secondary">
@@ -397,6 +431,8 @@ function Inventory() {
             onEdit={handleEditBook}
             onEnrich={handleEnrichBook}
             isEnriching={enrichMutation.isPending}
+            onTagSubgenres={(id) => tagMutation.mutate(id)}
+            isTagging={tagMutation.isPending}
           />
         )}
       </Modal>

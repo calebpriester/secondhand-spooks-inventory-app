@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Book, BookFilters, BookStats, EnrichmentStatus, EnrichmentResult, BatchEnrichmentProgress } from '../types/Book';
+import { Book, BookFilters, BookStats, EnrichmentStatus, EnrichmentResult, BatchEnrichmentProgress, SubgenreOption, GeminiTagResult, GeminiBatchProgress, GeminiTaggingStatus } from '../types/Book';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -76,5 +76,52 @@ export const bookApi = {
   cancelBatchEnrichment: async (): Promise<{ message: string }> => {
     const { data } = await api.post('/books/enrichment/batch/cancel');
     return data;
+  },
+
+  // Gemini sub-genre tagging
+  tagBookSubgenres: async (id: number): Promise<GeminiTagResult> => {
+    const { data } = await api.post(`/books/${id}/tag-subgenres`);
+    return data;
+  },
+
+  getGeminiStatus: async (): Promise<GeminiTaggingStatus> => {
+    const { data } = await api.get('/books/enrichment/gemini/status');
+    return data;
+  },
+
+  startBatchTagging: async (limit: number = 5): Promise<{ message: string }> => {
+    const { data } = await api.post('/books/enrichment/gemini/batch', { limit });
+    return data;
+  },
+
+  getBatchTaggingProgress: async (): Promise<GeminiBatchProgress> => {
+    const { data } = await api.get('/books/enrichment/gemini/batch/progress');
+    return data;
+  },
+
+  cancelBatchTagging: async (): Promise<{ message: string }> => {
+    const { data } = await api.post('/books/enrichment/gemini/batch/cancel');
+    return data;
+  },
+};
+
+export const subgenreApi = {
+  getAll: async (): Promise<SubgenreOption[]> => {
+    const { data } = await api.get('/subgenres');
+    return data;
+  },
+
+  create: async (name: string): Promise<SubgenreOption> => {
+    const { data } = await api.post('/subgenres', { name });
+    return data;
+  },
+
+  update: async (id: number, updates: Partial<SubgenreOption>): Promise<SubgenreOption> => {
+    const { data } = await api.put(`/subgenres/${id}`, updates);
+    return data;
+  },
+
+  delete: async (id: number): Promise<void> => {
+    await api.delete(`/subgenres/${id}`);
   },
 };

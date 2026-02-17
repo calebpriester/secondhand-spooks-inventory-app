@@ -19,6 +19,8 @@ export interface Book {
   profit_est?: number | null;
   author_fullname?: string | null;
   pulled_to_read: boolean;
+  subgenres?: string[] | null;
+  pacing?: string | null;
   google_books_id?: string | null;
   cover_image_url?: string | null;
   description?: string | null;
@@ -74,6 +76,8 @@ export interface BookFilters {
   cleaned?: boolean;
   pulled_to_read?: boolean;
   search?: string;
+  subgenre?: string;
+  pacing?: string;
 }
 
 export interface BookStats {
@@ -85,6 +89,7 @@ export interface BookStats {
   by_condition: ConditionBreakdown[];
   top_authors: AuthorBreakdown[];
   by_genre: GenreBreakdown[];
+  by_subgenre: SubgenreBreakdown[];
   by_decade: DecadeBreakdown[];
   rating_distribution: RatingBucket[];
 }
@@ -124,4 +129,45 @@ export interface AuthorBreakdown {
   author: string;
   count: number;
   total_value: number;
+}
+
+export interface SubgenreBreakdown {
+  subgenre: string;
+  count: number;
+  percentage: number;
+}
+
+export interface SubgenreOption {
+  id: number;
+  name: string;
+  sort_order: number;
+  created_at?: string;
+}
+
+export interface GeminiTagResult {
+  book_id: number;
+  book_title: string;
+  status: 'success' | 'skipped' | 'error';
+  subgenres?: string[];
+  pacing?: string;
+  error?: string;
+}
+
+export interface GeminiBatchProgress {
+  total: number;
+  processed: number;
+  succeeded: number;
+  skipped: number;
+  errors: number;
+  is_running: boolean;
+  results: GeminiTagResult[];
+}
+
+export interface GeminiTaggingStatus {
+  configured: boolean;
+  stats: {
+    total_books: string;
+    tagged_count: string;
+    untagged_count: string;
+  } | null;
 }

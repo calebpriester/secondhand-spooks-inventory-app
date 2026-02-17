@@ -168,20 +168,38 @@
   overflow-y: auto;
 }
 
-.book-detail-genres {
-  margin-bottom: 1.5rem;
-}
-
-.book-detail-genres h3 {
-  color: #00FFA3;
-  font-size: 1rem;
-  margin-bottom: 0.5rem;
-}
-
-.genre-list {
+.book-detail-subgenres {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+
+.badge-subgenre {
+  background-color: rgba(167, 139, 250, 0.15);
+  color: #A78BFA;
+  border: 1px solid rgba(167, 139, 250, 0.3);
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+}
+
+.badge-pacing {
+  background-color: rgba(103, 232, 249, 0.15);
+  color: #67E8F9;
+  border: 1px solid rgba(103, 232, 249, 0.3);
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+}
+
+.btn-subgenre {
+  border-color: #A78BFA !important;
+  color: #A78BFA !important;
+}
+
+.btn-subgenre:hover {
+  background-color: rgba(167, 139, 250, 0.1) !important;
 }
 
 .book-detail-pricing {

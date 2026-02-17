@@ -1,10 +1,12 @@
 import { Router, Request, Response } from 'express';
 import { BookService } from '../services/bookService';
 import { GoogleBooksService } from '../services/googleBooksService';
+import { GeminiService } from '../services/geminiService';
 
 const router = Router();
 const bookService = new BookService();
 const googleBooksService = new GoogleBooksService();
+const geminiService = new GeminiService();
 
 // Get all books with optional filters
 router.get('/', async (req: Request, res: Response) => {
@@ -18,6 +20,8 @@ router.get('/', async (req: Request, res: Response) => {
       cleaned: req.query.cleaned === 'true' ? true : req.query.cleaned === 'false' ? false : undefined,
       pulled_to_read: req.query.pulled_to_read === 'true' ? true : req.query.pulled_to_read === 'false' ? false : undefined,
       search: req.query.search as string,
+      subgenre: req.query.subgenre as string,
+      pacing: req.query.pacing as string,
     };
 
     const books = await bookService.getAllBooks(filters);
@@ -115,6 +119,57 @@ router.post('/enrichment/batch/cancel', async (_req: Request, res: Response) => 
   }
 });
 
+// --- Gemini tagging routes ---
+
+// Get Gemini tagging status
+router.get('/enrichment/gemini/status', async (_req: Request, res: Response) => {
+  try {
+    const configured = geminiService.isConfigured();
+    const stats = configured ? await geminiService.getTaggingStats() : null;
+    res.json({ configured, stats });
+  } catch (error) {
+    console.error('Error checking Gemini status:', error);
+    res.status(500).json({ error: 'Failed to check Gemini status' });
+  }
+});
+
+// Start batch tagging
+router.post('/enrichment/gemini/batch', async (req: Request, res: Response) => {
+  try {
+    if (!geminiService.isConfigured()) {
+      return res.status(503).json({ error: 'Gemini API key not configured' });
+    }
+    const limit = req.body.limit || 5;
+    await geminiService.startBatchTagging(limit);
+    res.json({ message: 'Batch tagging started', limit });
+  } catch (error: any) {
+    console.error('Error starting batch tagging:', error);
+    res.status(500).json({ error: error.message || 'Failed to start batch tagging' });
+  }
+});
+
+// Get batch tagging progress
+router.get('/enrichment/gemini/batch/progress', async (_req: Request, res: Response) => {
+  try {
+    const progress = geminiService.getBatchProgress();
+    res.json(progress || { is_running: false, total: 0, processed: 0, succeeded: 0, skipped: 0, errors: 0, results: [] });
+  } catch (error) {
+    console.error('Error fetching batch tagging progress:', error);
+    res.status(500).json({ error: 'Failed to fetch batch tagging progress' });
+  }
+});
+
+// Cancel batch tagging
+router.post('/enrichment/gemini/batch/cancel', async (_req: Request, res: Response) => {
+  try {
+    geminiService.cancelBatchTagging();
+    res.json({ message: 'Batch tagging cancelled' });
+  } catch (error) {
+    console.error('Error cancelling batch tagging:', error);
+    res.status(500).json({ error: 'Failed to cancel batch tagging' });
+  }
+});
+
 // Get single book
 router.get('/:id', async (req: Request, res: Response) => {
   try {
@@ -197,6 +252,21 @@ router.post('/:id/enrich', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error enriching book:', error);
     res.status(500).json({ error: 'Failed to enrich book' });
+  }
+});
+
+// Tag single book sub-genres via Gemini
+router.post('/:id/tag-subgenres', async (req: Request, res: Response) => {
+  try {
+    if (!geminiService.isConfigured()) {
+      return res.status(503).json({ error: 'Gemini API key not configured' });
+    }
+    const id = parseInt(req.params.id);
+    const result = await geminiService.tagBook(id);
+    res.json(result);
+  } catch (error) {
+    console.error('Error tagging book:', error);
+    res.status(500).json({ error: 'Failed to tag book' });
   }
 });
 

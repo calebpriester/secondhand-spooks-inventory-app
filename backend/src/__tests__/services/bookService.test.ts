@@ -22,7 +22,7 @@ describe('BookService', () => {
       const result = await service.getAllBooks();
 
       expect(mockQuery).toHaveBeenCalledWith(
-        expect.stringContaining('SELECT * FROM books WHERE 1=1'),
+        expect.stringContaining('SELECT * FROM books_with_enrichment WHERE 1=1'),
         []
       );
       expect(result).toHaveLength(2);
@@ -92,7 +92,7 @@ describe('BookService', () => {
       const result = await service.getBookById(1);
 
       expect(result).toEqual(sampleBook);
-      expect(mockQuery).toHaveBeenCalledWith('SELECT * FROM books WHERE id = $1', [1]);
+      expect(mockQuery).toHaveBeenCalledWith('SELECT * FROM books_with_enrichment WHERE id = $1', [1]);
     });
 
     it('returns null when not found', async () => {
@@ -139,7 +139,7 @@ describe('BookService', () => {
 
       const result = await service.updateBook(1, {});
 
-      expect(mockQuery).toHaveBeenCalledWith('SELECT * FROM books WHERE id = $1', [1]);
+      expect(mockQuery).toHaveBeenCalledWith('SELECT * FROM books_with_enrichment WHERE id = $1', [1]);
       expect(result).toEqual(sampleBook);
     });
 
@@ -211,12 +211,20 @@ describe('BookService', () => {
   });
 
   describe('getStats', () => {
-    it('converts string values from PostgreSQL to numbers', async () => {
+    const mockAllStatQueries = () => {
       mockQuery
-        .mockResolvedValueOnce(mockRows(rawStatsRows.totals))
-        .mockResolvedValueOnce(mockRows(rawStatsRows.categories))
-        .mockResolvedValueOnce(mockRows(rawStatsRows.conditions))
-        .mockResolvedValueOnce(mockRows(rawStatsRows.authors));
+        .mockResolvedValueOnce(mockRows(rawStatsRows.totals))       // totalQuery
+        .mockResolvedValueOnce(mockRows(rawStatsRows.categories))   // categoryQuery
+        .mockResolvedValueOnce(mockRows(rawStatsRows.conditions))   // conditionQuery
+        .mockResolvedValueOnce(mockRows(rawStatsRows.authors))      // authorQuery
+        .mockResolvedValueOnce(mockRows([]))                        // genreQuery
+        .mockResolvedValueOnce(mockRows([]))                        // subgenreQuery
+        .mockResolvedValueOnce(mockRows([]))                        // decadeQuery
+        .mockResolvedValueOnce(mockRows([]));                       // ratingQuery
+    };
+
+    it('converts string values from PostgreSQL to numbers', async () => {
+      mockAllStatQueries();
 
       const result = await service.getStats();
 
@@ -228,17 +236,13 @@ describe('BookService', () => {
     });
 
     it('parses category and condition breakdowns correctly', async () => {
-      mockQuery
-        .mockResolvedValueOnce(mockRows(rawStatsRows.totals))
-        .mockResolvedValueOnce(mockRows(rawStatsRows.categories))
-        .mockResolvedValueOnce(mockRows(rawStatsRows.conditions))
-        .mockResolvedValueOnce(mockRows(rawStatsRows.authors));
+      mockAllStatQueries();
 
       const result = await service.getStats();
 
       expect(result.by_category).toHaveLength(2);
-      expect(result.by_category[0]).toEqual({ category: 'Mainstream', count: 280, total_value: 2100.00 });
-      expect(result.by_condition[0]).toEqual({ condition: 'Good', count: 300 });
+      expect(result.by_category[0]).toEqual({ category: 'Mainstream', count: 280, total_value: 2100.00, percentage: 58.3 });
+      expect(result.by_condition[0]).toEqual({ condition: 'Good', count: 300, percentage: 60.0 });
       expect(result.top_authors[0]).toEqual({ author: 'Stephen King', count: 45, total_value: 350.00 });
     });
   });

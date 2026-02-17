@@ -1,5 +1,13 @@
 -- Secondhand Spooks Inventory Database Schema
 
+-- Sub-genre options (configurable list for Gemini tagging)
+CREATE TABLE IF NOT EXISTS subgenre_options (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(100) UNIQUE NOT NULL,
+  sort_order INTEGER DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Enrichment source tables (one per provider)
 CREATE TABLE IF NOT EXISTS google_books_enrichments (
   id SERIAL PRIMARY KEY,
@@ -39,6 +47,8 @@ CREATE TABLE IF NOT EXISTS books (
   profit_est DECIMAL(10, 2),
   author_fullname VARCHAR(200),
   pulled_to_read BOOLEAN DEFAULT FALSE,
+  subgenres TEXT[],
+  pacing VARCHAR(20),
   google_enrichment_id INTEGER REFERENCES google_books_enrichments(id),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -51,6 +61,9 @@ CREATE INDEX IF NOT EXISTS idx_books_condition ON books(condition);
 CREATE INDEX IF NOT EXISTS idx_books_date_purchased ON books(date_purchased);
 CREATE INDEX IF NOT EXISTS idx_books_source ON books(source);
 CREATE INDEX IF NOT EXISTS idx_books_book_series ON books(book_series);
+
+-- Note: idx_books_subgenres GIN index is created by runMigrations() in initDb.ts
+-- (handles both fresh and existing databases safely, after column is ensured)
 
 -- Note: google_enrichment_id index, books_with_enrichment view, and
 -- google_books_enrichments trigger are created by runMigrations() in initDb.ts

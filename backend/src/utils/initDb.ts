@@ -252,6 +252,52 @@ async function runMigrations(): Promise<void> {
   // Always ensure FK index exists
   await query('CREATE INDEX IF NOT EXISTS idx_books_google_enrichment_id ON books(google_enrichment_id)');
 
+  // --- Gemini sub-genre tagging migration ---
+
+  // Ensure subgenre_options table exists
+  await query(`
+    CREATE TABLE IF NOT EXISTS subgenre_options (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(100) UNIQUE NOT NULL,
+      sort_order INTEGER DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // Add subgenres and pacing columns to books
+  await query('ALTER TABLE books ADD COLUMN IF NOT EXISTS subgenres TEXT[]');
+  await query('ALTER TABLE books ADD COLUMN IF NOT EXISTS pacing VARCHAR(20)');
+  await query('CREATE INDEX IF NOT EXISTS idx_books_subgenres ON books USING GIN(subgenres)');
+
+  // Seed default sub-genre options (only if table is empty)
+  const subgenreCount = await query('SELECT COUNT(*) as count FROM subgenre_options');
+  if (parseInt(subgenreCount.rows[0].count) === 0) {
+    console.log('Seeding default sub-genre options...');
+    await query(`
+      INSERT INTO subgenre_options (name, sort_order) VALUES
+        ('Supernatural', 1),
+        ('Vampire', 2),
+        ('Occult/Demonic', 3),
+        ('Psychological', 4),
+        ('Creature Feature', 5),
+        ('Slasher/Survival', 6),
+        ('Gothic', 7),
+        ('Body Horror', 8),
+        ('Apocalyptic', 9),
+        ('Dark Fantasy', 10),
+        ('Cosmic Horror', 11),
+        ('Thriller/Suspense', 12),
+        ('Splatterpunk', 13),
+        ('Small Town Horror', 14),
+        ('Paranormal Romance', 15),
+        ('True Crime/Nonfiction', 16),
+        ('Anthology/Collection', 17),
+        ('Humor/Satire', 18),
+        ('Other', 19)
+      ON CONFLICT (name) DO NOTHING
+    `);
+  }
+
   // Drop and recreate the view (CREATE OR REPLACE can fail if column types change)
   await query('DROP VIEW IF EXISTS books_with_enrichment');
   await query(`

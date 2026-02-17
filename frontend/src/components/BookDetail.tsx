@@ -8,9 +8,11 @@ interface BookDetailProps {
   onEdit: (book: Book) => void;
   onEnrich: (bookId: number, title?: string, author?: string, isbn?: string) => void;
   isEnriching: boolean;
+  onTagSubgenres: (bookId: number) => void;
+  isTagging: boolean;
 }
 
-const BookDetail: React.FC<BookDetailProps> = ({ book, onClose, onEdit, onEnrich, isEnriching }) => {
+const BookDetail: React.FC<BookDetailProps> = ({ book, onClose, onEdit, onEnrich, isEnriching, onTagSubgenres, isTagging }) => {
   const [showCustomSearch, setShowCustomSearch] = useState(false);
   const [customTitle, setCustomTitle] = useState(book.book_title);
   const [customAuthor, setCustomAuthor] = useState(book.author_fullname || '');
@@ -77,7 +79,18 @@ const BookDetail: React.FC<BookDetailProps> = ({ book, onClose, onEdit, onEnrich
                   {book.cover_type}
                 </span>
               )}
+              {book.pacing && (
+                <span className="badge badge-pacing">{book.pacing}</span>
+              )}
             </div>
+
+            {book.subgenres && book.subgenres.length > 0 && (
+              <div className="book-detail-subgenres">
+                {book.subgenres.map(sg => (
+                  <span key={sg} className="badge badge-subgenre">{sg}</span>
+                ))}
+              </div>
+            )}
 
             {book.google_rating && (
               <div className="book-detail-rating">
@@ -127,17 +140,6 @@ const BookDetail: React.FC<BookDetailProps> = ({ book, onClose, onEdit, onEnrich
           <div className="book-detail-description">
             <h3>Description</h3>
             <p>{book.description}</p>
-          </div>
-        )}
-
-        {book.genres && book.genres.length > 0 && (
-          <div className="book-detail-genres">
-            <h3>Genres</h3>
-            <div className="genre-list">
-              {book.genres.map(genre => (
-                <span key={genre} className="badge badge-genre">{genre}</span>
-              ))}
-            </div>
           </div>
         )}
 
@@ -234,6 +236,19 @@ const BookDetail: React.FC<BookDetailProps> = ({ book, onClose, onEdit, onEnrich
             disabled={isEnriching || !book.id}
           >
             {isEnriching ? 'Enriching...' : (book.enriched_at ? 'Re-enrich' : 'Enrich')}
+          </button>
+          <button
+            className="btn btn-secondary btn-subgenre"
+            onClick={() => {
+              if (book.id && window.confirm(
+                `${book.subgenres?.length ? 'Re-tag' : 'Tag'} "${book.book_title}" with sub-genres using Gemini AI? This uses 1 API request.`
+              )) {
+                onTagSubgenres(book.id);
+              }
+            }}
+            disabled={isTagging || !book.id}
+          >
+            {isTagging ? 'Tagging...' : (book.subgenres?.length ? 'Re-tag' : 'Tag Sub-genres')}
           </button>
           <button
             className="btn btn-secondary"

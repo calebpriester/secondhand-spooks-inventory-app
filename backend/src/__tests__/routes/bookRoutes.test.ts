@@ -1,4 +1,6 @@
 jest.mock('../../services/bookService');
+jest.mock('../../services/geminiService');
+jest.mock('../../services/googleBooksService');
 
 import request from 'supertest';
 import express from 'express';
@@ -88,6 +90,10 @@ describe('Book Routes', () => {
         by_category: [],
         by_condition: [],
         top_authors: [],
+        by_genre: [],
+        by_subgenre: [],
+        by_decade: [],
+        rating_distribution: [],
       });
 
       const response = await request(app)

@@ -1,0 +1,98 @@
+.gemini-panel h3 {
+  color: #A78BFA !important;
+}
+
+.gemini-fill {
+  background-color: #A78BFA !important;
+}
+
+.subgenre-management-toggle {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.subgenre-management {
+  margin-top: 0.75rem;
+}
+
+.subgenre-add {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.subgenre-add input {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background-color: var(--surface);
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.subgenre-add input:focus {
+  outline: none;
+  border-color: #A78BFA;
+}
+
+.subgenre-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.subgenre-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.subgenre-item input {
+  flex: 1;
+  padding: 0.3rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background-color: var(--surface);
+  color: var(--text);
+  font-size: 0.85rem;
+}
+
+.subgenre-item input:focus {
+  outline: none;
+  border-color: #A78BFA;
+}
+
+.subgenre-name {
+  flex: 1;
+}
+
+.btn-small {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8rem;
+}
+
+.btn-danger {
+  color: #FF6B6B;
+  border-color: #FF6B6B;
+}
+
+.btn-danger:hover {
+  background-color: rgba(255, 107, 107, 0.1);
+}
+
+@media (max-width: 768px) {
+  .subgenre-add input {
+    font-size: 16px;
+  }
+
+  .subgenre-item input {
+    font-size: 16px;
+  }
+}
