@@ -282,10 +282,10 @@ describe('BookService', () => {
         .mockResolvedValueOnce(mockRows(rawStatsRows.categories))   // categoryQuery
         .mockResolvedValueOnce(mockRows(rawStatsRows.conditions))   // conditionQuery
         .mockResolvedValueOnce(mockRows(rawStatsRows.authors))      // authorQuery
-        .mockResolvedValueOnce(mockRows([]))                        // genreQuery
-        .mockResolvedValueOnce(mockRows([]))                        // decadeQuery
-        .mockResolvedValueOnce(mockRows([]))                        // subgenreQuery
-        .mockResolvedValueOnce(mockRows([]))                        // ratingQuery
+        .mockResolvedValueOnce(mockRows([{ genre: 'Horror', count: '50', percentage: '100.0' }]))  // genreQuery
+        .mockResolvedValueOnce(mockRows([{ decade: '1980s', count: '30', percentage: '60.0' }])) // decadeQuery
+        .mockResolvedValueOnce(mockRows([{ subgenre: 'Supernatural', count: '20', percentage: '40.0' }])) // subgenreQuery
+        .mockResolvedValueOnce(mockRows([{ rating_bucket: '4.0-4.4', count: '15', avg_rating: '4.20' }])) // ratingQuery
         .mockResolvedValueOnce(mockRows(rawStatsRows.sales))        // salesQuery
         .mockResolvedValueOnce(mockRows(rawStatsRows.salesByEvent)); // salesByEventQuery
     };
@@ -527,6 +527,83 @@ describe('BookService', () => {
       expect(result[0].total_revenue).toBe(6.00);
       expect(result[0].total_profit).toBe(6.00); // sold_price - 0 (null purchase_price)
       expect(result[0].books[0].purchase_price).toBeNull();
+    });
+  });
+
+  describe('updateTransaction', () => {
+    it('updates shared fields on all books in transaction', async () => {
+      mockQuery.mockResolvedValueOnce(mockRows([])); // shared fields UPDATE
+      mockQuery.mockResolvedValueOnce(mockRows([{ count: '2' }])); // count query
+
+      const result = await service.updateTransaction({
+        sale_transaction_id: 'tx-123',
+        date_sold: '2026-02-17',
+        sale_event: 'New Event',
+        payment_method: 'Card',
+      });
+
+      expect(result).toBe(2);
+      const [sql, params] = mockQuery.mock.calls[0];
+      expect(sql).toContain('UPDATE books SET');
+      expect(sql).toContain('date_sold');
+      expect(sql).toContain('sale_event');
+      expect(sql).toContain('payment_method');
+      expect(params).toContain('tx-123');
+    });
+
+    it('updates per-book prices', async () => {
+      mockQuery.mockResolvedValueOnce(mockRows([])); // shared fields UPDATE
+      mockQuery.mockResolvedValueOnce(mockRows([])); // item 1 UPDATE
+      mockQuery.mockResolvedValueOnce(mockRows([])); // item 2 UPDATE
+      mockQuery.mockResolvedValueOnce(mockRows([{ count: '2' }])); // count query
+
+      await service.updateTransaction({
+        sale_transaction_id: 'tx-123',
+        date_sold: '2026-02-17',
+        items: [
+          { book_id: 1, sold_price: 5.00 },
+          { book_id: 2, sold_price: 3.00 },
+        ],
+      });
+
+      // calls[1] and calls[2] are the per-book updates
+      expect(mockQuery.mock.calls[1][0]).toContain('UPDATE books SET sold_price');
+      expect(mockQuery.mock.calls[1][1]).toEqual([5.00, 1, 'tx-123']);
+      expect(mockQuery.mock.calls[2][1]).toEqual([3.00, 2, 'tx-123']);
+    });
+
+    it('skips shared fields update when none provided', async () => {
+      mockQuery.mockResolvedValueOnce(mockRows([{ count: '1' }])); // count query only
+
+      await service.updateTransaction({
+        sale_transaction_id: 'tx-123',
+      });
+
+      // Only the count query should have been called
+      expect(mockQuery).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('revertTransaction', () => {
+    it('clears sale fields and returns count', async () => {
+      mockQuery.mockResolvedValueOnce(mockRows([{ id: 1 }, { id: 2 }], 2));
+
+      const result = await service.revertTransaction('tx-123');
+
+      expect(result).toBe(2);
+      const [sql, params] = mockQuery.mock.calls[0];
+      expect(sql).toContain('UPDATE books SET sold = false');
+      expect(sql).toContain('sold_price = NULL');
+      expect(sql).toContain('sale_transaction_id = NULL');
+      expect(params).toEqual(['tx-123']);
+    });
+
+    it('returns 0 when transaction not found', async () => {
+      mockQuery.mockResolvedValueOnce(mockRows([], 0));
+
+      const result = await service.revertTransaction('nonexistent');
+
+      expect(result).toBe(0);
     });
   });
 });
