@@ -159,8 +159,13 @@ Return a JSON object with:
         return { book_id: bookId, book_title: book.book_title, status: 'error', error: 'Gemini returned no valid sub-genres' };
       }
 
-      // Save to books table
+      // Save to books table and propagate to duplicates (same title+author)
       await query('UPDATE books SET subgenres = $1, pacing = $2 WHERE id = $3', [validSubgenres, validPacing, bookId]);
+      await query(
+        `UPDATE books SET subgenres = $1, pacing = $2
+         WHERE book_title = $3 AND author_fullname = $4 AND id != $5`,
+        [validSubgenres, validPacing, book.book_title, book.author_fullname, bookId]
+      );
 
       return { book_id: bookId, book_title: book.book_title, status: 'success', subgenres: validSubgenres, pacing: validPacing };
     } catch (error: any) {
