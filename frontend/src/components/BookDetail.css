@@ -168,36 +168,11 @@
   overflow-y: auto;
 }
 
-.book-detail-genres {
-  margin-bottom: 1.5rem;
-}
-
-.book-detail-genres h3 {
-  color: #00FFA3;
-  font-size: 1rem;
-  margin-bottom: 0.5rem;
-}
-
-.genre-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-}
-
 .book-detail-subgenres {
-  margin-bottom: 1.5rem;
-}
-
-.book-detail-subgenres h3 {
-  color: #A78BFA;
-  font-size: 1rem;
-  margin-bottom: 0.5rem;
-}
-
-.subgenre-tag-list {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
+  margin-bottom: 1rem;
 }
 
 .badge-subgenre {

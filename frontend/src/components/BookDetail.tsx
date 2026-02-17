@@ -79,7 +79,18 @@ const BookDetail: React.FC<BookDetailProps> = ({ book, onClose, onEdit, onEnrich
                   {book.cover_type}
                 </span>
               )}
+              {book.pacing && (
+                <span className="badge badge-pacing">{book.pacing}</span>
+              )}
             </div>
+
+            {book.subgenres && book.subgenres.length > 0 && (
+              <div className="book-detail-subgenres">
+                {book.subgenres.map(sg => (
+                  <span key={sg} className="badge badge-subgenre">{sg}</span>
+                ))}
+              </div>
+            )}
 
             {book.google_rating && (
               <div className="book-detail-rating">
@@ -131,31 +142,6 @@ const BookDetail: React.FC<BookDetailProps> = ({ book, onClose, onEdit, onEnrich
             <p>{book.description}</p>
           </div>
         )}
-
-        {book.genres && book.genres.length > 0 && (
-          <div className="book-detail-genres">
-            <h3>Genres</h3>
-            <div className="genre-list">
-              {book.genres.map(genre => (
-                <span key={genre} className="badge badge-genre">{genre}</span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {(book.subgenres && book.subgenres.length > 0) || book.pacing ? (
-          <div className="book-detail-subgenres">
-            <h3>Sub-Genres & Pacing</h3>
-            <div className="subgenre-tag-list">
-              {book.subgenres?.map(sg => (
-                <span key={sg} className="badge badge-subgenre">{sg}</span>
-              ))}
-              {book.pacing && (
-                <span className="badge badge-pacing">{book.pacing}</span>
-              )}
-            </div>
-          </div>
-        ) : null}
 
         <div className="book-detail-pricing">
           <h3>Pricing & Purchase</h3>
