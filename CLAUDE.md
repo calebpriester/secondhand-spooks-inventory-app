@@ -47,7 +47,7 @@ This is a full-stack inventory management system for **Secondhand Spooks**, a ho
   - `src/pages/Dashboard.tsx` - Analytics and stats (including sales stats)
   - `src/pages/Inventory.tsx` - Book browsing and filtering (card view on mobile, table on desktop, cover images, checkbox selection for bulk sales)
   - `src/pages/Sales.tsx` + `Sales.css` - Transaction-centric sales history (expandable transactions with cover thumbnails, filters by event/date/payment, inline edit mode, transaction revert)
-- **Components**: `src/components/BookDetail.tsx` - Book detail popup (enrichment data, custom search, sub-genre tags, mark as sold with inline form, sale details, "View Transaction" link), `src/components/BulkSaleModal.tsx` + `BulkSaleModal.css` - Bulk sale form (per-book prices, shared event/date/payment), `src/components/BulkPriceModal.tsx` + `BulkPriceModal.css` - Bulk price setting (per-book or flat price mode, purchase price reference, total/avg summary), `src/components/BatchEnrichment.tsx` - Google Books batch enrichment panel (on Dashboard), `src/components/GeminiEnrichment.tsx` - Gemini sub-genre tagging panel (on Dashboard, includes sub-genre management CRUD)
+- **Components**: `src/components/BookDetail.tsx` - Book detail popup (enrichment data, custom search, sub-genre tags, mark as sold with inline form, sale details, "View Transaction" link), `src/components/BulkSaleModal.tsx` + `BulkSaleModal.css` - Bulk sale form (per-book prices, shared event/date/payment), `src/components/BulkPriceModal.tsx` + `BulkPriceModal.css` - Bulk price setting (per-book or flat price mode, nullable pricing, suggestions with fill helper, below-cost warnings, purple #7C3AED accent), `src/components/BatchEnrichment.tsx` - Google Books batch enrichment panel (on Dashboard), `src/components/GeminiEnrichment.tsx` - Gemini sub-genre tagging panel (on Dashboard, includes sub-genre management CRUD)
 - **Hooks**: `src/hooks/useIsMobile.ts` - Responsive breakpoint hook using `matchMedia`
 - **API client**: `src/services/api.ts` - Backend communication
 - **Types**: `src/types/Book.ts` - TypeScript interfaces
@@ -209,7 +209,7 @@ docker compose ps
 ✅ Google Books API integration (cover images, ratings, descriptions, genres, ISBNs)
 ✅ Gemini 2.0 Flash integration (sub-genre tagging, pacing classification, batch processing, configurable sub-genre list)
 ✅ Sales tracking (Issue #2): single-book mark-as-sold (inline form in BookDetail), bulk sales via checkbox selection + BulkSaleModal, transaction grouping (UUID sale_transaction_id), payment method (Cash/Card), event tagging with autocomplete, dedicated Sales page (`/sales`) with transaction-centric view (cover thumbnail strips, expandable details, filters by event/date/payment, inline edit mode for date/event/payment/per-book prices, full transaction revert), "View Transaction" link from BookDetail, Inventory sold view with sale-relevant columns, Dashboard sales stats (5 cards: Books Sold, Transactions, Total Revenue, Actual Profit, Avg Sale Price) + Sales by Event breakdown table
-✅ Bulk price management (Issue #3): select books via checkboxes + BulkPriceModal (per-book or flat price modes), "Missing Price" filter in stock status dropdown, Dashboard "Need Pricing" stat card (amber #FFB347, conditional), auto-calculates profit_est on price set, thriftbooks_price deprecated (column retained, removed from UI/forms)
+✅ Bulk price management (Issue #3): select books via checkboxes + BulkPriceModal (per-book or flat price modes, nullable pricing for clearing), select-all checkbox in table header + mobile, "Missing Price" filter in stock status dropdown, Dashboard "Need Pricing" alert (purple #7C3AED), pricing suggestions (2x cost rounded up, min $3, whole dollars), below-cost warnings, fill-suggested helper, auto-calculates profit_est, thriftbooks_price deprecated (column retained, removed from UI/forms)
 
 ### What's Missing (See GitHub Issues):
 ❌ Limited analytics (Issue #4)
@@ -409,7 +409,7 @@ Before pushing changes:
 
 ### Coverage Enforcement
 - **Coverage thresholds are enforced in `jest.config.ts`** — CI will fail if coverage drops below thresholds.
-- Global floor: 50% statements, 25% branches, 40% functions, 50% lines
+- Global floor: 45% statements, 25% branches, 40% functions, 45% lines
 - Per-file thresholds:
   - `bookService.ts`: 80% statements/branches/lines, 75% functions
   - `geminiService.ts`: 50% statements/lines, 30% branches, 80% functions

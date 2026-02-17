@@ -429,4 +429,114 @@ describe('Book Routes', () => {
         .expect(500);
     });
   });
+
+  describe('POST /api/books/bulk-price', () => {
+    it('returns 200 with per-book items', async () => {
+      mockService.bulkSetPrice.mockResolvedValueOnce([
+        { ...sampleBook, our_price: 8.00 },
+        { ...sampleBook2, our_price: 5.00 },
+      ]);
+
+      const response = await request(app)
+        .post('/api/books/bulk-price')
+        .send({ items: [{ book_id: 1, our_price: 8 }, { book_id: 2, our_price: 5 }] })
+        .expect(200);
+
+      expect(response.body).toHaveLength(2);
+    });
+
+    it('returns 200 with flat price mode', async () => {
+      mockService.bulkSetPrice.mockResolvedValueOnce([sampleBook]);
+
+      await request(app)
+        .post('/api/books/bulk-price')
+        .send({ book_ids: [1], our_price: 5 })
+        .expect(200);
+    });
+
+    it('accepts null our_price in items for clearing', async () => {
+      mockService.bulkSetPrice.mockResolvedValueOnce([{ ...sampleBook, our_price: undefined }] as any);
+
+      await request(app)
+        .post('/api/books/bulk-price')
+        .send({ items: [{ book_id: 1, our_price: null }] })
+        .expect(200);
+    });
+
+    it('returns 400 when no items or book_ids provided', async () => {
+      await request(app)
+        .post('/api/books/bulk-price')
+        .send({})
+        .expect(400);
+    });
+
+    it('returns 400 for negative price in items', async () => {
+      await request(app)
+        .post('/api/books/bulk-price')
+        .send({ items: [{ book_id: 1, our_price: -5 }] })
+        .expect(400);
+    });
+
+    it('returns 500 on service error', async () => {
+      mockService.bulkSetPrice.mockRejectedValueOnce(new Error('DB error'));
+
+      await request(app)
+        .post('/api/books/bulk-price')
+        .send({ items: [{ book_id: 1, our_price: 5 }] })
+        .expect(500);
+    });
+  });
+
+  describe('POST /api/books/clear-prices', () => {
+    it('returns 200 with count', async () => {
+      mockService.bulkClearPrice.mockResolvedValueOnce(2);
+
+      const response = await request(app)
+        .post('/api/books/clear-prices')
+        .send({ book_ids: [1, 2] })
+        .expect(200);
+
+      expect(response.body.count).toBe(2);
+    });
+
+    it('returns 400 when book_ids missing', async () => {
+      await request(app)
+        .post('/api/books/clear-prices')
+        .send({})
+        .expect(400);
+    });
+
+    it('returns 400 when book_ids is empty', async () => {
+      await request(app)
+        .post('/api/books/clear-prices')
+        .send({ book_ids: [] })
+        .expect(400);
+    });
+
+    it('returns 500 on service error', async () => {
+      mockService.bulkClearPrice.mockRejectedValueOnce(new Error('DB error'));
+
+      await request(app)
+        .post('/api/books/clear-prices')
+        .send({ book_ids: [1] })
+        .expect(500);
+    });
+  });
+
+  describe('GET /api/books with missing_price filter', () => {
+    it('passes missing_price=true as boolean filter', async () => {
+      mockService.getAllBooks.mockResolvedValueOnce([]);
+
+      await request(app)
+        .get('/api/books?missing_price=true&sold=false')
+        .expect(200);
+
+      expect(mockService.getAllBooks).toHaveBeenCalledWith(
+        expect.objectContaining({
+          missing_price: true,
+          sold: false,
+        })
+      );
+    });
+  });
 });
