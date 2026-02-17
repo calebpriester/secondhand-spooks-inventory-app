@@ -395,7 +395,7 @@ When working on new features:
 ### Roadmap Priority
 
 **Phase 1 - Essential Operations** ✅ Complete
-- ~~Issue #1: Add/edit books UI~~ ✅ Done
+- ~~Issue #1: Add/edit/delete books UI~~ ✅ Done
 - ~~Issue #3: Price management tools~~ ✅ Done
 
 **Phase 2 - Business Intelligence**
