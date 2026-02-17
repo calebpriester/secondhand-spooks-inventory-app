@@ -31,7 +31,7 @@ export class GoogleBooksService {
       const cleanAuthor = author.replace(/\./g, '').trim();
       searchQuery = `intitle:${encodeURIComponent(cleanTitle)}+inauthor:${encodeURIComponent(cleanAuthor)}`;
     }
-    const url = `${GOOGLE_BOOKS_API_BASE}?q=${searchQuery}&maxResults=10&langRestrict=en&key=${this.apiKey}`;
+    const url = `${GOOGLE_BOOKS_API_BASE}?q=${searchQuery}&maxResults=20&langRestrict=en&key=${this.apiKey}`;
 
     const response = await fetch(url);
     if (!response.ok) {
@@ -61,6 +61,9 @@ export class GoogleBooksService {
     for (const item of items) {
       const vi = item.volumeInfo;
       if (!vi) continue;
+
+      // Skip non-English results (langRestrict=en isn't always enforced by the API)
+      if (vi.language && vi.language !== 'en') continue;
 
       let score = 0;
       const resultTitle = normalizeStr(vi.title || '');
