@@ -43,6 +43,11 @@ const BookForm: React.FC<BookFormProps> = ({ book, onSubmit, onCancel }) => {
     queryFn: bookApi.getSeries,
   });
 
+  const { data: sourcesList = [] } = useQuery({
+    queryKey: ['sources'],
+    queryFn: bookApi.getSources,
+  });
+
   // Get unique first/middle names
   const firstMiddleNames = [...new Set(authors.map(a => a.first_middle).filter(Boolean))];
 
@@ -296,12 +301,13 @@ const BookForm: React.FC<BookFormProps> = ({ book, onSubmit, onCancel }) => {
           <div className="form-row">
             <div className="form-group">
               <label htmlFor="source">Source</label>
-              <input
-                type="text"
+              <Autocomplete
                 id="source"
                 name="source"
                 value={formData.source || ''}
                 onChange={handleChange}
+                suggestions={sourcesList}
+                placeholder="e.g., eBay"
               />
             </div>
             <div className="form-group">
