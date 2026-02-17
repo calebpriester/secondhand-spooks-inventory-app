@@ -385,6 +385,16 @@ Before pushing changes:
 - [ ] Changes documented in README if user-facing
 - [ ] CLAUDE.md updated if architecture, colors, or workflows changed
 - [ ] Existing tests still pass and are updated if relevant
+- [ ] **New unit tests written for any new backend logic** (services, validation, utilities)
+
+### Unit Testing Requirements
+- **Every new backend service, validation function, or business logic must have unit tests.**
+- Extract testable pure functions from services (validation, filtering, transformation) and test them independently.
+- Tests live in `backend/src/__tests__/` mirroring the source structure (e.g., `services/geminiService.test.ts`).
+- Run tests locally: `cd backend && npm install && npx jest`
+- Jest config: `backend/jest.config.ts` (ts-jest, tests match `**/__tests__/**/*.test.ts`)
+- Mock the database with `jest.mock('../../config/database')` — do not require a running DB for unit tests.
+- When modifying existing code (e.g., adding new stats queries or filters), update the corresponding test file and fixtures.
 
 ## Need Help?
 

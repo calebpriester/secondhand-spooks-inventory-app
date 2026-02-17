@@ -45,12 +45,12 @@ export const sampleBook2: Book = {
 export const rawStatsRows = {
   totals: [{ total_books: '682', total_value: '4523.50', total_cost: '1890.25', estimated_profit: '2633.25' }],
   categories: [
-    { category: 'Mainstream', count: '280', total_value: '2100.00' },
-    { category: 'YA/Nostalgia', count: '200', total_value: '1200.00' },
+    { category: 'Mainstream', count: '280', total_value: '2100.00', percentage: '58.3' },
+    { category: 'YA/Nostalgia', count: '200', total_value: '1200.00', percentage: '41.7' },
   ],
   conditions: [
-    { condition: 'Good', count: '300' },
-    { condition: 'Very Good', count: '200' },
+    { condition: 'Good', count: '300', percentage: '60.0' },
+    { condition: 'Very Good', count: '200', percentage: '40.0' },
   ],
   authors: [
     { author: 'Stephen King', count: '45', total_value: '350.00' },

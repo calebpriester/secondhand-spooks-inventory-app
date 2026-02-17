@@ -3,7 +3,41 @@ import { GeminiTagResult, GeminiBatchProgress } from '../models/Book';
 
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
 const RATE_LIMIT_DELAY_MS = 500;
-const PACING_OPTIONS = ['Slow Burn', 'Moderate', 'Fast-Paced'];
+export const PACING_OPTIONS = ['Slow Burn', 'Moderate', 'Fast-Paced'];
+
+/** Filter sub-genres to only those in the allowed list */
+export function filterValidSubgenres(subgenres: string[], allowed: string[]): string[] {
+  return subgenres.filter(s => allowed.includes(s));
+}
+
+/** Enforce "Other" rule: if "Other" appears with other tags, drop "Other" */
+export function enforceOtherRule(subgenres: string[]): string[] {
+  if (subgenres.length > 1 && subgenres.includes('Other')) {
+    return subgenres.filter(s => s !== 'Other');
+  }
+  return subgenres;
+}
+
+/** Validate pacing value, default to "Moderate" if invalid */
+export function validatePacing(pacing: string): string {
+  return PACING_OPTIONS.includes(pacing) ? pacing : 'Moderate';
+}
+
+/** Parse and validate raw Gemini response text into structured result */
+export function parseGeminiResponse(
+  responseText: string,
+  allowedSubgenres: string[]
+): { subgenres: string[]; pacing: string } {
+  const parsed = JSON.parse(responseText);
+  const rawSubgenres = parsed.subgenres || [];
+  const rawPacing = parsed.pacing || 'Moderate';
+
+  const filtered = filterValidSubgenres(rawSubgenres, allowedSubgenres);
+  const enforced = enforceOtherRule(filtered);
+  const pacing = validatePacing(rawPacing);
+
+  return { subgenres: enforced, pacing };
+}
 
 export class GeminiService {
   private apiKey: string | null;
@@ -118,14 +152,8 @@ Return a JSON object with:
         allowedSubgenres
       );
 
-      // Validate: only keep sub-genres that are in the allowed list
-      let validSubgenres = result.subgenres.filter((s: string) => allowedSubgenres.includes(s));
-      const validPacing = PACING_OPTIONS.includes(result.pacing) ? result.pacing : 'Moderate';
-
-      // Enforce "Other" rule: if "Other" appears with other tags, drop "Other"
-      if (validSubgenres.length > 1 && validSubgenres.includes('Other')) {
-        validSubgenres = validSubgenres.filter((s: string) => s !== 'Other');
-      }
+      const validSubgenres = enforceOtherRule(filterValidSubgenres(result.subgenres, allowedSubgenres));
+      const validPacing = validatePacing(result.pacing);
 
       if (validSubgenres.length === 0) {
         return { book_id: bookId, book_title: book.book_title, status: 'error', error: 'Gemini returned no valid sub-genres' };
