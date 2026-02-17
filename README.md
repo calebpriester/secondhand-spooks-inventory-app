@@ -29,6 +29,7 @@ This full-stack inventory management system helps track and analyze our horror b
 - **Google Books Integration**: Auto-enrich books with cover images, ratings, descriptions, genres, ISBNs, and more via Google Books API. Batch enrichment tool on Dashboard. Custom search by ISBN/title/author for tricky matches. Duplicates share enrichment data (no wasted API calls). Normalized schema supports adding future enrichment sources (Hardcover, Open Library).
 - **Sales Tracking**: Mark books as sold (single or bulk), track sale price, date, event, and payment method (Cash/Card). Transaction grouping ties books from the same purchase together. Dedicated Sales page with transaction-centric view, cover thumbnails, inline editing, and revert support. Dashboard sales stats with event breakdowns.
 - **Bulk Price Management**: Select multiple books and set prices in bulk (per-book or flat price for all). Filter to show books missing prices. Dashboard widget shows how many books need pricing. Auto-calculates profit estimates.
+- **Pulled to Read & Kept Books**: Pull books from inventory to read personally, then keep them permanently or return them. Pulled books show a READING badge; kept books are removed from active inventory and value calculations. Filter by Pulled to Read or Kept in the stock status dropdown. Dashboard tracks reading stats (Ghostly Blue accent).
 
 ### Planned Features
 
