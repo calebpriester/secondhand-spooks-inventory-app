@@ -27,11 +27,11 @@ This full-stack inventory management system helps track and analyze our horror b
 - **Dark Horror Theme**: Custom-designed UI matching the Secondhand Spooks aesthetic
 - **Mobile Responsive**: Full mobile support with card-based inventory view, stacked filters, and touch-friendly controls
 - **Google Books Integration**: Auto-enrich books with cover images, ratings, descriptions, genres, ISBNs, and more via Google Books API. Batch enrichment tool on Dashboard. Custom search by ISBN/title/author for tricky matches. Duplicates share enrichment data (no wasted API calls). Normalized schema supports adding future enrichment sources (Hardcover, Open Library).
+- **Sales Tracking**: Mark books as sold (single or bulk), track sale price, date, event, and payment method (Cash/Card). Transaction grouping ties books from the same purchase together. Dedicated Sales page with transaction-centric view, cover thumbnails, inline editing, and revert support. Dashboard sales stats with event breakdowns.
 
 ### Planned Features
 
 See [GitHub Issues](https://github.com/calebpriester/secondhand-spooks-inventory-app/issues) for upcoming features:
-- #2: Sales tracking and revenue reporting
 - #3: Bulk price management tools
 - #4: Enhanced analytics and insights
 
@@ -396,7 +396,7 @@ When working on new features:
 - Issue #3: Price management tools
 
 **Phase 2 - Business Intelligence**
-- Issue #2: Sales tracking
+- ~~Issue #2: Sales tracking~~ ✅ Done
 - Issue #4: Enhanced analytics
 
 **Phase 3 - User Experience**
