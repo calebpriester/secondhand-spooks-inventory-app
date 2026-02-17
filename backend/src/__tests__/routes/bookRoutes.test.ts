@@ -83,6 +83,42 @@ describe('Book Routes', () => {
       );
     });
 
+    it('parses kept boolean query param', async () => {
+      mockService.getAllBooks.mockResolvedValueOnce([]);
+
+      await request(app)
+        .get('/api/books?kept=true')
+        .expect(200);
+
+      expect(mockService.getAllBooks).toHaveBeenCalledWith(
+        expect.objectContaining({ kept: true })
+      );
+    });
+
+    it('parses kept=false query param', async () => {
+      mockService.getAllBooks.mockResolvedValueOnce([]);
+
+      await request(app)
+        .get('/api/books?kept=false')
+        .expect(200);
+
+      expect(mockService.getAllBooks).toHaveBeenCalledWith(
+        expect.objectContaining({ kept: false })
+      );
+    });
+
+    it('parses pulled_to_read boolean query param', async () => {
+      mockService.getAllBooks.mockResolvedValueOnce([]);
+
+      await request(app)
+        .get('/api/books?pulled_to_read=true')
+        .expect(200);
+
+      expect(mockService.getAllBooks).toHaveBeenCalledWith(
+        expect.objectContaining({ pulled_to_read: true })
+      );
+    });
+
     it('returns 500 on service error', async () => {
       mockService.getAllBooks.mockRejectedValueOnce(new Error('DB error'));
 
@@ -142,6 +178,11 @@ describe('Book Routes', () => {
           by_event: [],
         },
         books_missing_price: 150,
+        reading: {
+          pulled_to_read_count: 3,
+          kept_count: 2,
+          total_kept_cost: 7.49,
+        },
       });
 
       const response = await request(app)
@@ -152,6 +193,9 @@ describe('Book Routes', () => {
       expect(response.body.sales).toBeDefined();
       expect(response.body.sales.books_sold).toBe(5);
       expect(response.body.sales.total_revenue).toBe(42.50);
+      expect(response.body.reading).toBeDefined();
+      expect(response.body.reading.kept_count).toBe(2);
+      expect(response.body.reading.pulled_to_read_count).toBe(3);
     });
   });
 

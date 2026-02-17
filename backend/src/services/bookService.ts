@@ -36,6 +36,10 @@ export class BookService {
         sql += ` AND pulled_to_read = $${paramCount++}`;
         params.push(filters.pulled_to_read);
       }
+      if (filters.kept !== undefined) {
+        sql += ` AND kept = $${paramCount++}`;
+        params.push(filters.kept);
+      }
       if (filters.search) {
         sql += ` AND (book_title ILIKE $${paramCount} OR author_fullname ILIKE $${paramCount} OR book_series ILIKE $${paramCount})`;
         params.push(`%${filters.search}%`);
@@ -124,7 +128,7 @@ export class BookService {
       'book_series', 'vol_number', 'cover_type', 'category', 'condition',
       'date_purchased', 'source', 'seller', 'order_number',
       'purchase_price', 'our_price', 'profit_est',
-      'author_fullname', 'pulled_to_read', 'subgenres', 'pacing', 'google_enrichment_id',
+      'author_fullname', 'pulled_to_read', 'kept', 'date_kept', 'subgenres', 'pacing', 'google_enrichment_id',
       'sold', 'date_sold', 'sold_price', 'sale_event', 'sale_transaction_id', 'payment_method',
     ]);
 
@@ -533,7 +537,16 @@ export class BookService {
     const missingPriceQuery = await query(`
       SELECT COUNT(*) as books_missing_price
       FROM books_with_enrichment
-      WHERE our_price IS NULL AND sold = false AND ${cleanedWhere}
+      WHERE our_price IS NULL AND sold = false AND kept = false AND ${cleanedWhere}
+    `, params);
+
+    const readingQuery = await query(`
+      SELECT
+        COUNT(*) FILTER (WHERE pulled_to_read = true AND sold = false AND kept = false) as pulled_to_read_count,
+        COUNT(*) FILTER (WHERE kept = true) as kept_count,
+        COALESCE(SUM(purchase_price) FILTER (WHERE kept = true), 0) as total_kept_cost
+      FROM books_with_enrichment
+      WHERE ${cleanedWhere}
     `, params);
 
     return {
@@ -591,6 +604,11 @@ export class BookService {
         })),
       },
       books_missing_price: parseInt(missingPriceQuery.rows[0].books_missing_price),
+      reading: {
+        pulled_to_read_count: parseInt(readingQuery.rows[0].pulled_to_read_count),
+        kept_count: parseInt(readingQuery.rows[0].kept_count),
+        total_kept_cost: parseFloat(readingQuery.rows[0].total_kept_cost),
+      },
     };
   }
 }

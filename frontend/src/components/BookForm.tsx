@@ -31,6 +31,8 @@ const BookForm: React.FC<BookFormProps> = ({ book, onSubmit, onCancel }) => {
     profit_est: null,
     author_fullname: '',
     pulled_to_read: false,
+    kept: false,
+    date_kept: null,
   });
 
   const { data: authors = [] } = useQuery({
@@ -265,17 +267,6 @@ const BookForm: React.FC<BookFormProps> = ({ book, onSubmit, onCancel }) => {
                   onChange={handleChange}
                 />
                 Cleaned
-              </label>
-            </div>
-            <div className="form-group checkbox-group">
-              <label>
-                <input
-                  type="checkbox"
-                  name="pulled_to_read"
-                  checked={formData.pulled_to_read || false}
-                  onChange={handleChange}
-                />
-                Pulled to Read
               </label>
             </div>
           </div>

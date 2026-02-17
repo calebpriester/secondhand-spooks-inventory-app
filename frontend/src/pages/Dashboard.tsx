@@ -94,6 +94,29 @@ function Dashboard() {
         </div>
       </div>
 
+      {(stats.reading.pulled_to_read_count > 0 || stats.reading.kept_count > 0) && (
+        <div className="stats-grid reading-stats-grid">
+          {stats.reading.pulled_to_read_count > 0 && (
+            <div className="stat-card stat-card-reading">
+              <h3>Pulled to Read</h3>
+              <p className="stat-value">{stats.reading.pulled_to_read_count}</p>
+            </div>
+          )}
+          {stats.reading.kept_count > 0 && (
+            <>
+              <div className="stat-card stat-card-reading">
+                <h3>Books Kept</h3>
+                <p className="stat-value">{stats.reading.kept_count}</p>
+              </div>
+              <div className="stat-card stat-card-reading">
+                <h3>Kept Cost</h3>
+                <p className="stat-value">${stats.reading.total_kept_cost.toFixed(2)}</p>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
       {stats.books_missing_price > 0 && (
         <div className="pricing-alert">
           <span className="pricing-alert-count">{stats.books_missing_price}</span>

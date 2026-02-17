@@ -17,6 +17,7 @@ export const sampleBook: Book = {
   profit_est: 4.01,
   author_fullname: 'Shirley Jackson',
   pulled_to_read: false,
+  kept: false,
 };
 
 export const sampleBook2: Book = {
@@ -37,7 +38,8 @@ export const sampleBook2: Book = {
   our_price: 5.00,
   profit_est: 3.50,
   author_fullname: 'R.L. Stine',
-  pulled_to_read: false,
+  pulled_to_read: true,
+  kept: false,
 };
 
 // PostgreSQL returns COUNT/SUM/DECIMAL as strings
@@ -61,4 +63,5 @@ export const rawStatsRows = {
     { event: 'No Event', count: '2', transaction_count: '1', revenue: '17.50', profit: '11.00' },
   ],
   missingPrice: [{ books_missing_price: '150' }],
+  reading: [{ pulled_to_read_count: '3', kept_count: '2', total_kept_cost: '7.49' }],
 };

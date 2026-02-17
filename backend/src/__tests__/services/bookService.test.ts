@@ -133,6 +133,36 @@ describe('BookService', () => {
       expect(sql).toContain('AND sale_transaction_id = $1');
       expect(params).toEqual(['TX-001']);
     });
+
+    it('filters by kept status', async () => {
+      mockQuery.mockResolvedValueOnce(mockRows([]));
+
+      await service.getAllBooks({ kept: true });
+
+      const [sql, params] = mockQuery.mock.calls[0];
+      expect(sql).toContain('AND kept = $1');
+      expect(params).toEqual([true]);
+    });
+
+    it('filters by kept=false without skipping it', async () => {
+      mockQuery.mockResolvedValueOnce(mockRows([]));
+
+      await service.getAllBooks({ kept: false });
+
+      const [sql, params] = mockQuery.mock.calls[0];
+      expect(sql).toContain('AND kept = $1');
+      expect(params).toEqual([false]);
+    });
+
+    it('filters by pulled_to_read', async () => {
+      mockQuery.mockResolvedValueOnce(mockRows([]));
+
+      await service.getAllBooks({ pulled_to_read: true });
+
+      const [sql, params] = mockQuery.mock.calls[0];
+      expect(sql).toContain('AND pulled_to_read = $1');
+      expect(params).toEqual([true]);
+    });
   });
 
   describe('getBookById', () => {
@@ -219,6 +249,28 @@ describe('BookService', () => {
       expect(sql).toContain('payment_method = $6');
       expect(params).toEqual([true, 8.00, '2026-02-15', 'Flea Market', 'TX-001', 'Cash', 1]);
     });
+
+    it('allows kept fields in SET clause', async () => {
+      mockQuery.mockResolvedValueOnce(mockRows([{ ...sampleBook, kept: true }]));
+
+      await service.updateBook(1, { kept: true, date_kept: '2026-02-17' } as any);
+
+      const [sql, params] = mockQuery.mock.calls[0];
+      expect(sql).toContain('kept = $1');
+      expect(sql).toContain('date_kept = $2');
+      expect(params).toEqual([true, '2026-02-17', 1]);
+    });
+
+    it('allows clearing kept status', async () => {
+      mockQuery.mockResolvedValueOnce(mockRows([{ ...sampleBook, kept: false }]));
+
+      await service.updateBook(1, { kept: false, date_kept: null } as any);
+
+      const [sql, params] = mockQuery.mock.calls[0];
+      expect(sql).toContain('kept = $1');
+      expect(sql).toContain('date_kept = $2');
+      expect(params).toEqual([false, null, 1]);
+    });
   });
 
   describe('deleteBook', () => {
@@ -289,7 +341,8 @@ describe('BookService', () => {
         .mockResolvedValueOnce(mockRows([{ rating_bucket: '4.0-4.4', count: '15', avg_rating: '4.20' }])) // ratingQuery
         .mockResolvedValueOnce(mockRows(rawStatsRows.sales))        // salesQuery
         .mockResolvedValueOnce(mockRows(rawStatsRows.salesByEvent)) // salesByEventQuery
-        .mockResolvedValueOnce(mockRows(rawStatsRows.missingPrice)); // missingPriceQuery
+        .mockResolvedValueOnce(mockRows(rawStatsRows.missingPrice)) // missingPriceQuery
+        .mockResolvedValueOnce(mockRows(rawStatsRows.reading));     // readingQuery
     };
 
     it('converts string values from PostgreSQL to numbers', async () => {
@@ -330,6 +383,19 @@ describe('BookService', () => {
       expect(result.sales.by_event).toHaveLength(2);
       expect(result.sales.by_event[0]).toEqual({ event: 'Flea Market', count: 3, transaction_count: 2, revenue: 25.00, profit: 17.00 });
       expect(result.sales.by_event[1]).toEqual({ event: 'No Event', count: 2, transaction_count: 1, revenue: 17.50, profit: 11.00 });
+    });
+
+    it('parses reading/kept stats correctly', async () => {
+      mockAllStatQueries();
+
+      const result = await service.getStats();
+
+      expect(result.reading).toBeDefined();
+      expect(result.reading.pulled_to_read_count).toBe(3);
+      expect(result.reading.kept_count).toBe(2);
+      expect(result.reading.total_kept_cost).toBe(7.49);
+      expect(typeof result.reading.pulled_to_read_count).toBe('number');
+      expect(typeof result.reading.total_kept_cost).toBe('number');
     });
   });
 

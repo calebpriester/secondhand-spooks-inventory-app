@@ -18,6 +18,8 @@ export interface Book {
   profit_est?: number;
   author_fullname: string;
   pulled_to_read: boolean;
+  kept?: boolean;
+  date_kept?: Date | string | null;
   subgenres?: string[] | null;
   pacing?: string | null;
   sold?: boolean;
@@ -82,6 +84,7 @@ export interface BookFilters {
   source?: string;
   cleaned?: boolean;
   pulled_to_read?: boolean;
+  kept?: boolean;
   search?: string;
   subgenre?: string;
   pacing?: string;
@@ -106,6 +109,7 @@ export interface BookStats {
   rating_distribution: RatingBucket[];
   sales: SalesStats;
   books_missing_price: number;
+  reading: ReadingStats;
 }
 
 export interface CategoryBreakdown {
@@ -235,6 +239,12 @@ export interface SalesStats {
   actual_profit: number;
   transaction_count: number;
   by_event: SaleEventBreakdown[];
+}
+
+export interface ReadingStats {
+  pulled_to_read_count: number;
+  kept_count: number;
+  total_kept_cost: number;
 }
 
 export interface SaleEventBreakdown {
