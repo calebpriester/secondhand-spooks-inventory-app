@@ -157,45 +157,110 @@ export class BookService {
     }));
   }
 
-  async getStats(): Promise<BookStats> {
+  async getStats(cleaned?: boolean): Promise<BookStats> {
+    const cleanedParam = cleaned ?? null;
+    const params = [cleanedParam];
+    const cleanedWhere = '($1::boolean IS NULL OR cleaned = $1)';
+
     const totalQuery = await query(`
       SELECT
         COUNT(*) as total_books,
         COALESCE(SUM(our_price), 0) as total_value,
         COALESCE(SUM(purchase_price), 0) as total_cost,
         COALESCE(SUM(our_price - purchase_price), 0) as estimated_profit
-      FROM books
-    `);
+      FROM books_with_enrichment
+      WHERE ${cleanedWhere}
+    `, params);
 
     const categoryQuery = await query(`
       SELECT
         category,
         COUNT(*) as count,
-        COALESCE(SUM(our_price), 0) as total_value
-      FROM books
+        COALESCE(SUM(our_price), 0) as total_value,
+        ROUND(COUNT(*)::numeric / NULLIF(SUM(COUNT(*)) OVER(), 0) * 100, 1) as percentage
+      FROM books_with_enrichment
+      WHERE ${cleanedWhere}
       GROUP BY category
       ORDER BY count DESC
-    `);
+    `, params);
 
     const conditionQuery = await query(`
       SELECT
         condition,
-        COUNT(*) as count
-      FROM books
+        COUNT(*) as count,
+        ROUND(COUNT(*)::numeric / NULLIF(SUM(COUNT(*)) OVER(), 0) * 100, 1) as percentage
+      FROM books_with_enrichment
+      WHERE ${cleanedWhere}
       GROUP BY condition
       ORDER BY count DESC
-    `);
+    `, params);
 
     const authorQuery = await query(`
       SELECT
         author_fullname as author,
         COUNT(*) as count,
         COALESCE(SUM(our_price), 0) as total_value
-      FROM books
+      FROM books_with_enrichment
+      WHERE ${cleanedWhere}
       GROUP BY author_fullname
       ORDER BY count DESC
       LIMIT 10
-    `);
+    `, params);
+
+    const genreQuery = await query(`
+      SELECT
+        genre,
+        COUNT(*) as count,
+        ROUND(COUNT(*)::numeric / NULLIF(SUM(COUNT(*)) OVER(), 0) * 100, 1) as percentage
+      FROM (
+        SELECT UNNEST(genres) as genre
+        FROM books_with_enrichment
+        WHERE genres IS NOT NULL AND ${cleanedWhere}
+      ) g
+      GROUP BY genre
+      ORDER BY count DESC
+      LIMIT 20
+    `, params);
+
+    const decadeQuery = await query(`
+      SELECT
+        CONCAT(FLOOR(CAST(LEFT(published_date, 4) AS INTEGER) / 10) * 10, 's') as decade,
+        COUNT(*) as count,
+        ROUND(COUNT(*)::numeric / NULLIF(SUM(COUNT(*)) OVER(), 0) * 100, 1) as percentage
+      FROM books_with_enrichment
+      WHERE published_date IS NOT NULL
+        AND LENGTH(published_date) >= 4
+        AND LEFT(published_date, 4) ~ '^\\d{4}$'
+        AND ${cleanedWhere}
+      GROUP BY FLOOR(CAST(LEFT(published_date, 4) AS INTEGER) / 10) * 10
+      ORDER BY FLOOR(CAST(LEFT(published_date, 4) AS INTEGER) / 10) * 10 ASC
+    `, params);
+
+    const ratingQuery = await query(`
+      SELECT
+        CASE
+          WHEN google_rating >= 4.5 THEN '4.5-5.0'
+          WHEN google_rating >= 4.0 THEN '4.0-4.4'
+          WHEN google_rating >= 3.5 THEN '3.5-3.9'
+          WHEN google_rating >= 3.0 THEN '3.0-3.4'
+          WHEN google_rating >= 2.0 THEN '2.0-2.9'
+          ELSE '0-1.9'
+        END as rating_bucket,
+        COUNT(*) as count,
+        ROUND(AVG(google_rating)::numeric, 2) as avg_rating,
+        CASE
+          WHEN google_rating >= 4.5 THEN 6
+          WHEN google_rating >= 4.0 THEN 5
+          WHEN google_rating >= 3.5 THEN 4
+          WHEN google_rating >= 3.0 THEN 3
+          WHEN google_rating >= 2.0 THEN 2
+          ELSE 1
+        END as sort_order
+      FROM books_with_enrichment
+      WHERE google_rating IS NOT NULL AND ${cleanedWhere}
+      GROUP BY rating_bucket, sort_order
+      ORDER BY sort_order ASC
+    `, params);
 
     return {
       total_books: parseInt(totalQuery.rows[0].total_books),
@@ -206,15 +271,32 @@ export class BookService {
         category: row.category,
         count: parseInt(row.count),
         total_value: parseFloat(row.total_value),
+        percentage: parseFloat(row.percentage),
       })),
       by_condition: conditionQuery.rows.map(row => ({
         condition: row.condition,
         count: parseInt(row.count),
+        percentage: parseFloat(row.percentage),
       })),
       top_authors: authorQuery.rows.map(row => ({
         author: row.author,
         count: parseInt(row.count),
         total_value: parseFloat(row.total_value),
+      })),
+      by_genre: genreQuery.rows.map(row => ({
+        genre: row.genre,
+        count: parseInt(row.count),
+        percentage: parseFloat(row.percentage),
+      })),
+      by_decade: decadeQuery.rows.map(row => ({
+        decade: row.decade,
+        count: parseInt(row.count),
+        percentage: parseFloat(row.percentage),
+      })),
+      rating_distribution: ratingQuery.rows.map(row => ({
+        rating_bucket: row.rating_bucket,
+        count: parseInt(row.count),
+        avg_rating: parseFloat(row.avg_rating),
       })),
     };
   }

@@ -1,12 +1,38 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import {
+  PieChart, Pie, Cell,
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
+} from 'recharts';
 import { bookApi } from '../services/api';
 import BatchEnrichment from '../components/BatchEnrichment';
 import './Dashboard.css';
 
+const PIE_COLORS = [
+  '#00FFA3', '#00CC82', '#FF6B6B', '#FFB347',
+  '#A78BFA', '#67E8F9', '#F472B6', '#FCD34D',
+  '#86EFAC', '#C084FC',
+];
+
+const BAR_COLOR = '#00FFA3';
+
+const tooltipStyle = {
+  contentStyle: {
+    backgroundColor: '#1E1B1C',
+    border: '1px solid #3d3839',
+    borderRadius: '4px',
+    color: '#e8e8e0',
+  },
+  itemStyle: { color: '#e8e8e0' },
+  labelStyle: { color: '#e8e8e0' },
+};
+
 function Dashboard() {
+  const [cleanedFilter, setCleanedFilter] = useState<boolean | undefined>(undefined);
+
   const { data: stats, isLoading } = useQuery({
-    queryKey: ['stats'],
-    queryFn: bookApi.getStats,
+    queryKey: ['stats', cleanedFilter],
+    queryFn: () => bookApi.getStats(cleanedFilter),
   });
 
   if (isLoading) {
@@ -17,9 +43,33 @@ function Dashboard() {
     return <div className="error">Failed to load statistics</div>;
   }
 
+  const filterLabel = cleanedFilter === true ? 'Cleaned' : cleanedFilter === false ? 'Not Cleaned' : 'All';
+
   return (
     <div className="dashboard">
-      <h2>Inventory Dashboard</h2>
+      <div className="dashboard-header">
+        <h2>Inventory Dashboard</h2>
+        <div className="filter-toggle-group">
+          <button
+            className={`filter-toggle-btn ${cleanedFilter === undefined ? 'active' : ''}`}
+            onClick={() => setCleanedFilter(undefined)}
+          >
+            All
+          </button>
+          <button
+            className={`filter-toggle-btn ${cleanedFilter === true ? 'active' : ''}`}
+            onClick={() => setCleanedFilter(true)}
+          >
+            Cleaned
+          </button>
+          <button
+            className={`filter-toggle-btn ${cleanedFilter === false ? 'active' : ''}`}
+            onClick={() => setCleanedFilter(false)}
+          >
+            Not Cleaned
+          </button>
+        </div>
+      </div>
 
       <div className="stats-grid">
         <div className="stat-card">
@@ -43,6 +93,121 @@ function Dashboard() {
         </div>
       </div>
 
+      <div className="charts-section">
+        {/* Category Pie Chart */}
+        {stats.by_category.length > 0 && (
+          <div className="chart-card">
+            <h3>Books by Category</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={stats.by_category.filter(c => c.category)}
+                  dataKey="count"
+                  nameKey="category"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={100}
+                  label={(props: any) => `${props.category} (${props.percentage}%)`}
+                >
+                  {stats.by_category.filter(c => c.category).map((_entry, index) => (
+                    <Cell key={index} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip {...tooltipStyle} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+
+        {/* Condition Pie Chart */}
+        {stats.by_condition.length > 0 && (
+          <div className="chart-card">
+            <h3>Books by Condition</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={stats.by_condition.filter(c => c.condition)}
+                  dataKey="count"
+                  nameKey="condition"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={100}
+                  label={(props: any) => `${props.condition} (${props.percentage}%)`}
+                >
+                  {stats.by_condition.filter(c => c.condition).map((_entry, index) => (
+                    <Cell key={index} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip {...tooltipStyle} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+
+        {/* Decade Bar Chart */}
+        {stats.by_decade.length > 0 && (
+          <div className="chart-card">
+            <h3>Books by Decade Published</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={stats.by_decade}>
+                <XAxis dataKey="decade" stroke="#a09c9d" fontSize={12} />
+                <YAxis stroke="#a09c9d" fontSize={12} />
+                <Tooltip
+                  {...tooltipStyle}
+                  formatter={(value: any, _name: any, props: any) =>
+                    [`${value} books (${props.payload.percentage}%)`, 'Count']
+                  }
+                />
+                <Bar dataKey="count" fill={BAR_COLOR} radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+            <p className="chart-note">Based on {stats.by_decade.reduce((sum, d) => sum + d.count, 0)} enriched books</p>
+          </div>
+        )}
+
+        {/* Rating Distribution Bar Chart */}
+        {stats.rating_distribution.length > 0 && (
+          <div className="chart-card">
+            <h3>Google Rating Distribution</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={stats.rating_distribution}>
+                <XAxis dataKey="rating_bucket" stroke="#a09c9d" fontSize={12} />
+                <YAxis stroke="#a09c9d" fontSize={12} />
+                <Tooltip
+                  {...tooltipStyle}
+                  formatter={(value: any, _name: any, props: any) =>
+                    [`${value} books (avg: ${props.payload.avg_rating})`, 'Count']
+                  }
+                />
+                <Bar dataKey="count" fill={BAR_COLOR} radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+            <p className="chart-note">Based on {stats.rating_distribution.reduce((sum, r) => sum + r.count, 0)} rated books</p>
+          </div>
+        )}
+
+        {/* Genre Horizontal Bar Chart */}
+        {stats.by_genre.length > 0 && (
+          <div className="chart-card full-width">
+            <h3>Top Genres</h3>
+            <ResponsiveContainer width="100%" height={Math.max(300, stats.by_genre.length * 32)}>
+              <BarChart data={stats.by_genre} layout="vertical" margin={{ left: 20 }}>
+                <XAxis type="number" stroke="#a09c9d" fontSize={12} />
+                <YAxis dataKey="genre" type="category" width={150} stroke="#a09c9d" fontSize={12} />
+                <Tooltip
+                  {...tooltipStyle}
+                  formatter={(value: any, _name: any, props: any) =>
+                    [`${value} books (${props.payload.percentage}%)`, 'Count']
+                  }
+                />
+                <Bar dataKey="count" fill={BAR_COLOR} radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+            <p className="chart-note">Top 20 genres across {stats.by_genre.reduce((sum, g) => sum + g.count, 0)} genre tags ({filterLabel})</p>
+          </div>
+        )}
+      </div>
+
       <div className="breakdown-section">
         <div className="breakdown-card">
           <h3>Books by Category</h3>
@@ -51,14 +216,16 @@ function Dashboard() {
               <tr>
                 <th>Category</th>
                 <th>Count</th>
+                <th>%</th>
                 <th>Value</th>
               </tr>
             </thead>
             <tbody>
               {stats.by_category.map((cat) => (
                 <tr key={cat.category}>
-                  <td>{cat.category}</td>
+                  <td>{cat.category || 'Uncategorized'}</td>
                   <td>{cat.count}</td>
+                  <td className="pct-cell">{cat.percentage}%</td>
                   <td>${cat.total_value.toFixed(2)}</td>
                 </tr>
               ))}
@@ -73,13 +240,15 @@ function Dashboard() {
               <tr>
                 <th>Condition</th>
                 <th>Count</th>
+                <th>%</th>
               </tr>
             </thead>
             <tbody>
               {stats.by_condition.map((cond) => (
                 <tr key={cond.condition}>
-                  <td>{cond.condition}</td>
+                  <td>{cond.condition || 'Unknown'}</td>
                   <td>{cond.count}</td>
+                  <td className="pct-cell">{cond.percentage}%</td>
                 </tr>
               ))}
             </tbody>
