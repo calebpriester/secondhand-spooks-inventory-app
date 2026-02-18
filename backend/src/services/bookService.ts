@@ -1,4 +1,4 @@
-import { query } from '../config/database';
+import { query, QueryExecutor } from '../config/database';
 import { Book, BookFilters, BookStats, BulkSaleRequest, BulkPriceRequest, UpdateTransactionRequest, Transaction } from '../models/Book';
 
 export class BookService {
@@ -150,6 +150,9 @@ export class BookService {
 
     Object.entries(book).forEach(([key, value]) => {
       if (value !== undefined && key !== 'id' && allowedColumns.has(key)) {
+        if (!/^[a-z_][a-z0-9_]*$/.test(key)) {
+          throw new Error(`Invalid column name: ${key}`);
+        }
         fields.push(`${key} = $${paramCount++}`);
         values.push(value);
       }
@@ -221,70 +224,55 @@ export class BookService {
   }
 
   async markBulkSold(request: BulkSaleRequest): Promise<Book[]> {
-    const results: Book[] = [];
-    for (const item of request.items) {
-      const result = await query(
-        `UPDATE books SET sold = true, sold_price = $1, date_sold = $2, sale_event = $3,
-         sale_transaction_id = $4, payment_method = $5
-         WHERE id = $6 RETURNING *`,
-        [
-          item.sold_price,
-          request.date_sold,
-          request.sale_event || null,
-          request.sale_transaction_id,
-          request.payment_method,
-          item.book_id,
-        ]
-      );
-      if (result.rows[0]) {
-        results.push(result.rows[0]);
-      }
-    }
-    return results;
+    const ids = request.items.map(i => i.book_id);
+    const prices = request.items.map(i => i.sold_price);
+    const result = await query(
+      `UPDATE books SET sold = true,
+         sold_price = v.price, date_sold = $3, sale_event = $4,
+         sale_transaction_id = $5, payment_method = $6
+       FROM unnest($1::int[], $2::numeric[]) AS v(id, price)
+       WHERE books.id = v.id
+       RETURNING *`,
+      [ids, prices, request.date_sold, request.sale_event || null,
+       request.sale_transaction_id, request.payment_method]
+    );
+    return result.rows;
   }
 
   async bulkSetPrice(request: BulkPriceRequest): Promise<Book[]> {
-    const results: Book[] = [];
-
     if (request.items && request.items.length > 0) {
-      for (const item of request.items) {
-        const result = await query(
-          `UPDATE books SET our_price = $1,
-           profit_est = CASE WHEN purchase_price IS NOT NULL THEN $1 - purchase_price ELSE NULL END
-           WHERE id = $2 RETURNING *`,
-          [item.our_price, item.book_id]
-        );
-        if (result.rows[0]) {
-          results.push(result.rows[0]);
-        }
-      }
+      const ids = request.items.map(i => i.book_id);
+      const prices = request.items.map(i => i.our_price);
+      const result = await query(
+        `UPDATE books SET our_price = v.price,
+         profit_est = CASE WHEN purchase_price IS NOT NULL AND v.price IS NOT NULL THEN v.price - purchase_price ELSE NULL END
+         FROM unnest($1::int[], $2::numeric[]) AS v(id, price)
+         WHERE books.id = v.id
+         RETURNING *`,
+        [ids, prices]
+      );
+      return result.rows;
     } else if (request.book_ids && request.book_ids.length > 0 && request.our_price !== undefined) {
-      for (const bookId of request.book_ids) {
-        const result = await query(
-          `UPDATE books SET our_price = $1,
-           profit_est = CASE WHEN purchase_price IS NOT NULL THEN $1 - purchase_price ELSE NULL END
-           WHERE id = $2 RETURNING *`,
-          [request.our_price, bookId]
-        );
-        if (result.rows[0]) {
-          results.push(result.rows[0]);
-        }
-      }
+      const result = await query(
+        `UPDATE books SET our_price = $1,
+         profit_est = CASE WHEN purchase_price IS NOT NULL THEN $1 - purchase_price ELSE NULL END
+         WHERE id = ANY($2::int[])
+         RETURNING *`,
+        [request.our_price, request.book_ids]
+      );
+      return result.rows;
     }
 
-    return results;
+    return [];
   }
 
   async bulkClearPrice(bookIds: number[]): Promise<number> {
-    let count = 0;
-    for (const bookId of bookIds) {
-      const result = await query(
-        'UPDATE books SET our_price = NULL, profit_est = NULL WHERE id = $1 RETURNING id',
-        [bookId]
-      );
-      if (result.rows[0]) count++;
-    }
-    return count;
+    if (bookIds.length === 0) return 0;
+    const result = await query(
+      'UPDATE books SET our_price = NULL, profit_est = NULL WHERE id = ANY($1::int[]) RETURNING id',
+      [bookIds]
+    );
+    return result.rowCount || 0;
   }
 
   async revertTransaction(saleTransactionId: string): Promise<number> {
@@ -297,7 +285,9 @@ export class BookService {
     return result.rowCount || 0;
   }
 
-  async updateTransaction(request: UpdateTransactionRequest): Promise<number> {
+  async updateTransaction(request: UpdateTransactionRequest, executor?: QueryExecutor): Promise<number> {
+    const exec = executor ?? { query };
+
     // Update shared fields on all books in the transaction
     const sharedFields: string[] = [];
     const sharedParams: any[] = [];
@@ -318,7 +308,7 @@ export class BookService {
 
     if (sharedFields.length > 0) {
       sharedParams.push(request.sale_transaction_id);
-      await query(
+      await exec.query(
         `UPDATE books SET ${sharedFields.join(', ')} WHERE sale_transaction_id = $${paramCount}`,
         sharedParams
       );
@@ -326,15 +316,17 @@ export class BookService {
 
     // Update per-book sold_price
     if (request.items && request.items.length > 0) {
-      for (const item of request.items) {
-        await query(
-          'UPDATE books SET sold_price = $1 WHERE id = $2 AND sale_transaction_id = $3',
-          [item.sold_price, item.book_id, request.sale_transaction_id]
-        );
-      }
+      const ids = request.items.map(i => i.book_id);
+      const prices = request.items.map(i => i.sold_price);
+      await exec.query(
+        `UPDATE books SET sold_price = v.price
+         FROM unnest($1::int[], $2::numeric[]) AS v(id, price)
+         WHERE books.id = v.id AND books.sale_transaction_id = $3`,
+        [ids, prices, request.sale_transaction_id]
+      );
     }
 
-    const countResult = await query(
+    const countResult = await exec.query(
       'SELECT COUNT(*) as count FROM books WHERE sale_transaction_id = $1',
       [request.sale_transaction_id]
     );
@@ -409,171 +401,166 @@ export class BookService {
     const params = [cleanedParam];
     const cleanedWhere = '($1::boolean IS NULL OR cleaned = $1)';
 
-    const totalQuery = await query(`
-      SELECT
-        COUNT(*) as total_books,
-        COALESCE(SUM(our_price), 0) as total_value,
-        COALESCE(SUM(purchase_price), 0) as total_cost,
-        COALESCE(SUM(our_price - purchase_price), 0) as estimated_profit
-      FROM books_with_enrichment
-      WHERE ${cleanedWhere}
-    `, params);
-
-    const categoryQuery = await query(`
-      SELECT
-        category,
-        COUNT(*) as count,
-        COALESCE(SUM(our_price), 0) as total_value,
-        ROUND(COUNT(*)::numeric / NULLIF(SUM(COUNT(*)) OVER(), 0) * 100, 1) as percentage
-      FROM books_with_enrichment
-      WHERE ${cleanedWhere}
-      GROUP BY category
-      ORDER BY count DESC
-    `, params);
-
-    const conditionQuery = await query(`
-      SELECT
-        condition,
-        COUNT(*) as count,
-        ROUND(COUNT(*)::numeric / NULLIF(SUM(COUNT(*)) OVER(), 0) * 100, 1) as percentage
-      FROM books_with_enrichment
-      WHERE ${cleanedWhere}
-      GROUP BY condition
-      ORDER BY count DESC
-    `, params);
-
-    const authorQuery = await query(`
-      SELECT
-        author_fullname as author,
-        COUNT(*) as count,
-        COALESCE(SUM(our_price), 0) as total_value
-      FROM books_with_enrichment
-      WHERE ${cleanedWhere}
-      GROUP BY author_fullname
-      ORDER BY count DESC
-      LIMIT 10
-    `, params);
-
-    const genreQuery = await query(`
-      SELECT
-        genre,
-        COUNT(*) as count,
-        ROUND(COUNT(*)::numeric / NULLIF(SUM(COUNT(*)) OVER(), 0) * 100, 1) as percentage
-      FROM (
-        SELECT UNNEST(genres) as genre
+    const [
+      totalQuery, categoryQuery, conditionQuery, authorQuery,
+      genreQuery, decadeQuery, subgenreQuery, ratingQuery,
+      salesQuery, salesByEventQuery, missingPriceQuery,
+      readingQuery, blindDateQuery,
+    ] = await Promise.all([
+      query(`
+        SELECT
+          COUNT(*) as total_books,
+          COALESCE(SUM(our_price), 0) as total_value,
+          COALESCE(SUM(purchase_price), 0) as total_cost,
+          COALESCE(SUM(our_price - purchase_price), 0) as estimated_profit
         FROM books_with_enrichment
-        WHERE genres IS NOT NULL AND ${cleanedWhere}
-      ) g
-      GROUP BY genre
-      ORDER BY count DESC
-      LIMIT 20
-    `, params);
-
-    const decadeQuery = await query(`
-      SELECT
-        CONCAT(FLOOR(CAST(LEFT(published_date, 4) AS INTEGER) / 10) * 10, 's') as decade,
-        COUNT(*) as count,
-        ROUND(COUNT(*)::numeric / NULLIF(SUM(COUNT(*)) OVER(), 0) * 100, 1) as percentage
-      FROM books_with_enrichment
-      WHERE published_date IS NOT NULL
-        AND LENGTH(published_date) >= 4
-        AND LEFT(published_date, 4) ~ '^\\d{4}$'
-        AND ${cleanedWhere}
-      GROUP BY FLOOR(CAST(LEFT(published_date, 4) AS INTEGER) / 10) * 10
-      ORDER BY FLOOR(CAST(LEFT(published_date, 4) AS INTEGER) / 10) * 10 ASC
-    `, params);
-
-    const subgenreQuery = await query(`
-      SELECT
-        subgenre,
-        COUNT(*) as count,
-        ROUND(COUNT(*)::numeric / NULLIF(SUM(COUNT(*)) OVER(), 0) * 100, 1) as percentage
-      FROM (
-        SELECT UNNEST(subgenres) as subgenre
+        WHERE ${cleanedWhere}
+      `, params),
+      query(`
+        SELECT
+          category,
+          COUNT(*) as count,
+          COALESCE(SUM(our_price), 0) as total_value,
+          ROUND(COUNT(*)::numeric / NULLIF(SUM(COUNT(*)) OVER(), 0) * 100, 1) as percentage
         FROM books_with_enrichment
-        WHERE subgenres IS NOT NULL AND ${cleanedWhere}
-      ) s
-      GROUP BY subgenre
-      ORDER BY count DESC
-    `, params);
-
-    const ratingQuery = await query(`
-      SELECT
-        CASE
-          WHEN google_rating >= 4.5 THEN '4.5-5.0'
-          WHEN google_rating >= 4.0 THEN '4.0-4.4'
-          WHEN google_rating >= 3.5 THEN '3.5-3.9'
-          WHEN google_rating >= 3.0 THEN '3.0-3.4'
-          WHEN google_rating >= 2.0 THEN '2.0-2.9'
-          ELSE '0-1.9'
-        END as rating_bucket,
-        COUNT(*) as count,
-        ROUND(AVG(google_rating)::numeric, 2) as avg_rating,
-        CASE
-          WHEN google_rating >= 4.5 THEN 6
-          WHEN google_rating >= 4.0 THEN 5
-          WHEN google_rating >= 3.5 THEN 4
-          WHEN google_rating >= 3.0 THEN 3
-          WHEN google_rating >= 2.0 THEN 2
-          ELSE 1
-        END as sort_order
-      FROM books_with_enrichment
-      WHERE google_rating IS NOT NULL AND ${cleanedWhere}
-      GROUP BY rating_bucket, sort_order
-      ORDER BY sort_order ASC
-    `, params);
-
-    const salesQuery = await query(`
-      SELECT
-        COUNT(*) as books_sold,
-        COALESCE(SUM(sold_price), 0) as total_revenue,
-        COALESCE(SUM(sold_price - purchase_price), 0) as actual_profit,
-        COUNT(DISTINCT sale_transaction_id) as transaction_count
-      FROM books_with_enrichment
-      WHERE sold = true AND ${cleanedWhere}
-    `, params);
-
-    const salesByEventQuery = await query(`
-      SELECT
-        COALESCE(sale_event, 'No Event') as event,
-        COUNT(*) as count,
-        COUNT(DISTINCT sale_transaction_id) as transaction_count,
-        COALESCE(SUM(sold_price), 0) as revenue,
-        COALESCE(SUM(sold_price - purchase_price), 0) as profit
-      FROM books_with_enrichment
-      WHERE sold = true AND ${cleanedWhere}
-      GROUP BY sale_event
-      ORDER BY count DESC
-    `, params);
-
-    const missingPriceQuery = await query(`
-      SELECT COUNT(*) as books_missing_price
-      FROM books_with_enrichment
-      WHERE our_price IS NULL AND sold = false AND kept = false AND ${cleanedWhere}
-    `, params);
-
-    const readingQuery = await query(`
-      SELECT
-        COUNT(*) FILTER (WHERE pulled_to_read = true AND sold = false AND kept = false) as pulled_to_read_count,
-        COUNT(*) FILTER (WHERE kept = true) as kept_count,
-        COALESCE(SUM(purchase_price) FILTER (WHERE kept = true), 0) as total_kept_cost
-      FROM books_with_enrichment
-      WHERE ${cleanedWhere}
-    `, params);
-
-    const blindDateQuery = await query(`
-      SELECT
-        COUNT(*) FILTER (WHERE blind_date = true AND sold = false) as active_count,
-        COALESCE(SUM(our_price) FILTER (WHERE blind_date = true AND sold = false), 0) as total_value,
-        COUNT(*) FILTER (WHERE blind_date = true AND sold = false AND blind_date_blurb IS NOT NULL AND blind_date_blurb != '') as with_blurb_count,
-        COUNT(*) FILTER (WHERE blind_date = true AND sold = false AND (blind_date_blurb IS NULL OR blind_date_blurb = '')) as without_blurb_count,
-        COUNT(*) FILTER (WHERE sold = false AND kept = false AND blind_date = false
-          AND condition IN ('Like New', 'Very Good') AND category != 'YA/Nostalgia'
-          AND google_enrichment_id IS NOT NULL
-          AND subgenres IS NOT NULL AND array_length(subgenres, 1) > 0) as candidate_count
-      FROM books_with_enrichment
-      WHERE ${cleanedWhere}
-    `, params);
+        WHERE ${cleanedWhere}
+        GROUP BY category
+        ORDER BY count DESC
+      `, params),
+      query(`
+        SELECT
+          condition,
+          COUNT(*) as count,
+          ROUND(COUNT(*)::numeric / NULLIF(SUM(COUNT(*)) OVER(), 0) * 100, 1) as percentage
+        FROM books_with_enrichment
+        WHERE ${cleanedWhere}
+        GROUP BY condition
+        ORDER BY count DESC
+      `, params),
+      query(`
+        SELECT
+          author_fullname as author,
+          COUNT(*) as count,
+          COALESCE(SUM(our_price), 0) as total_value
+        FROM books_with_enrichment
+        WHERE ${cleanedWhere}
+        GROUP BY author_fullname
+        ORDER BY count DESC
+        LIMIT 10
+      `, params),
+      query(`
+        SELECT
+          genre,
+          COUNT(*) as count,
+          ROUND(COUNT(*)::numeric / NULLIF(SUM(COUNT(*)) OVER(), 0) * 100, 1) as percentage
+        FROM (
+          SELECT UNNEST(genres) as genre
+          FROM books_with_enrichment
+          WHERE genres IS NOT NULL AND ${cleanedWhere}
+        ) g
+        GROUP BY genre
+        ORDER BY count DESC
+        LIMIT 20
+      `, params),
+      query(`
+        SELECT
+          CONCAT(FLOOR(CAST(LEFT(published_date, 4) AS INTEGER) / 10) * 10, 's') as decade,
+          COUNT(*) as count,
+          ROUND(COUNT(*)::numeric / NULLIF(SUM(COUNT(*)) OVER(), 0) * 100, 1) as percentage
+        FROM books_with_enrichment
+        WHERE published_date IS NOT NULL
+          AND LENGTH(published_date) >= 4
+          AND LEFT(published_date, 4) ~ '^\\d{4}$'
+          AND ${cleanedWhere}
+        GROUP BY FLOOR(CAST(LEFT(published_date, 4) AS INTEGER) / 10) * 10
+        ORDER BY FLOOR(CAST(LEFT(published_date, 4) AS INTEGER) / 10) * 10 ASC
+      `, params),
+      query(`
+        SELECT
+          subgenre,
+          COUNT(*) as count,
+          ROUND(COUNT(*)::numeric / NULLIF(SUM(COUNT(*)) OVER(), 0) * 100, 1) as percentage
+        FROM (
+          SELECT UNNEST(subgenres) as subgenre
+          FROM books_with_enrichment
+          WHERE subgenres IS NOT NULL AND ${cleanedWhere}
+        ) s
+        GROUP BY subgenre
+        ORDER BY count DESC
+      `, params),
+      query(`
+        SELECT
+          CASE
+            WHEN google_rating >= 4.5 THEN '4.5-5.0'
+            WHEN google_rating >= 4.0 THEN '4.0-4.4'
+            WHEN google_rating >= 3.5 THEN '3.5-3.9'
+            WHEN google_rating >= 3.0 THEN '3.0-3.4'
+            WHEN google_rating >= 2.0 THEN '2.0-2.9'
+            ELSE '0-1.9'
+          END as rating_bucket,
+          COUNT(*) as count,
+          ROUND(AVG(google_rating)::numeric, 2) as avg_rating,
+          CASE
+            WHEN google_rating >= 4.5 THEN 6
+            WHEN google_rating >= 4.0 THEN 5
+            WHEN google_rating >= 3.5 THEN 4
+            WHEN google_rating >= 3.0 THEN 3
+            WHEN google_rating >= 2.0 THEN 2
+            ELSE 1
+          END as sort_order
+        FROM books_with_enrichment
+        WHERE google_rating IS NOT NULL AND ${cleanedWhere}
+        GROUP BY rating_bucket, sort_order
+        ORDER BY sort_order ASC
+      `, params),
+      query(`
+        SELECT
+          COUNT(*) as books_sold,
+          COALESCE(SUM(sold_price), 0) as total_revenue,
+          COALESCE(SUM(sold_price - purchase_price), 0) as actual_profit,
+          COUNT(DISTINCT sale_transaction_id) as transaction_count
+        FROM books_with_enrichment
+        WHERE sold = true AND ${cleanedWhere}
+      `, params),
+      query(`
+        SELECT
+          COALESCE(sale_event, 'No Event') as event,
+          COUNT(*) as count,
+          COUNT(DISTINCT sale_transaction_id) as transaction_count,
+          COALESCE(SUM(sold_price), 0) as revenue,
+          COALESCE(SUM(sold_price - purchase_price), 0) as profit
+        FROM books_with_enrichment
+        WHERE sold = true AND ${cleanedWhere}
+        GROUP BY sale_event
+        ORDER BY count DESC
+      `, params),
+      query(`
+        SELECT COUNT(*) as books_missing_price
+        FROM books_with_enrichment
+        WHERE our_price IS NULL AND sold = false AND kept = false AND ${cleanedWhere}
+      `, params),
+      query(`
+        SELECT
+          COUNT(*) FILTER (WHERE pulled_to_read = true AND sold = false AND kept = false) as pulled_to_read_count,
+          COUNT(*) FILTER (WHERE kept = true) as kept_count,
+          COALESCE(SUM(purchase_price) FILTER (WHERE kept = true), 0) as total_kept_cost
+        FROM books_with_enrichment
+        WHERE ${cleanedWhere}
+      `, params),
+      query(`
+        SELECT
+          COUNT(*) FILTER (WHERE blind_date = true AND sold = false) as active_count,
+          COALESCE(SUM(our_price) FILTER (WHERE blind_date = true AND sold = false), 0) as total_value,
+          COUNT(*) FILTER (WHERE blind_date = true AND sold = false AND blind_date_blurb IS NOT NULL AND blind_date_blurb != '') as with_blurb_count,
+          COUNT(*) FILTER (WHERE blind_date = true AND sold = false AND (blind_date_blurb IS NULL OR blind_date_blurb = '')) as without_blurb_count,
+          COUNT(*) FILTER (WHERE sold = false AND kept = false AND blind_date = false
+            AND condition IN ('Like New', 'Very Good') AND category != 'YA/Nostalgia'
+            AND google_enrichment_id IS NOT NULL
+            AND subgenres IS NOT NULL AND array_length(subgenres, 1) > 0) as candidate_count
+        FROM books_with_enrichment
+        WHERE ${cleanedWhere}
+      `, params),
+    ]);
 
     return {
       total_books: parseInt(totalQuery.rows[0].total_books),
@@ -646,25 +633,20 @@ export class BookService {
   }
 
   async bulkMarkBlindDate(bookIds: number[], blindDate: boolean): Promise<Book[]> {
-    const results: Book[] = [];
-    for (const bookId of bookIds) {
-      let result;
-      if (blindDate) {
-        result = await query(
-          `UPDATE books SET blind_date = true WHERE id = $1 RETURNING *`,
-          [bookId]
-        );
-      } else {
-        result = await query(
-          `UPDATE books SET blind_date = false, blind_date_number = NULL,
-           blind_date_blurb = NULL WHERE id = $1 RETURNING *`,
-          [bookId]
-        );
-      }
-      if (result.rows[0]) {
-        results.push(result.rows[0]);
-      }
+    if (bookIds.length === 0) return [];
+    let result;
+    if (blindDate) {
+      result = await query(
+        `UPDATE books SET blind_date = true WHERE id = ANY($1::int[]) RETURNING *`,
+        [bookIds]
+      );
+    } else {
+      result = await query(
+        `UPDATE books SET blind_date = false, blind_date_number = NULL,
+         blind_date_blurb = NULL WHERE id = ANY($1::int[]) RETURNING *`,
+        [bookIds]
+      );
     }
-    return results;
+    return result.rows;
   }
 }

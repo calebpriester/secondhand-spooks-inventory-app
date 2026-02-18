@@ -590,4 +590,56 @@ describe('Book Routes', () => {
       );
     });
   });
+
+  describe('Input validation', () => {
+    it('returns 400 for non-numeric book ID on GET /:id', async () => {
+      const response = await request(app)
+        .get('/api/books/abc')
+        .expect(400);
+
+      expect(response.body.error).toBe('Invalid book ID');
+      expect(mockService.getBookById).not.toHaveBeenCalled();
+    });
+
+    it('returns 400 for negative book ID on PUT /:id', async () => {
+      const response = await request(app)
+        .put('/api/books/-1')
+        .send({ book_title: 'Test' })
+        .expect(400);
+
+      expect(response.body.error).toBe('Invalid book ID');
+    });
+
+    it('returns 400 for zero book ID on DELETE /:id', async () => {
+      await request(app)
+        .delete('/api/books/0')
+        .expect(400);
+    });
+
+    it('returns 400 for invalid payment_method on bulk-sale', async () => {
+      const response = await request(app)
+        .post('/api/books/bulk-sale')
+        .send({
+          items: [{ book_id: 1, sold_price: 5 }],
+          date_sold: '2026-02-17',
+          sale_transaction_id: 'tx-test',
+          payment_method: 'Venmo',
+        })
+        .expect(400);
+
+      expect(response.body.error).toBe('payment_method must be Cash or Card');
+    });
+
+    it('returns 400 for invalid payment_method on update-transaction', async () => {
+      const response = await request(app)
+        .post('/api/books/update-transaction')
+        .send({
+          sale_transaction_id: 'tx-test',
+          payment_method: 'Bitcoin',
+        })
+        .expect(400);
+
+      expect(response.body.error).toBe('payment_method must be Cash or Card');
+    });
+  });
 });

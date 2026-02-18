@@ -57,7 +57,7 @@ CREATE TABLE IF NOT EXISTS books (
   sale_event VARCHAR(200),
   sale_transaction_id VARCHAR(50),
   payment_method VARCHAR(10),
-  google_enrichment_id INTEGER REFERENCES google_books_enrichments(id),
+  google_enrichment_id INTEGER REFERENCES google_books_enrichments(id) ON DELETE SET NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

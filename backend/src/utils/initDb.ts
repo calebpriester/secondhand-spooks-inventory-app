@@ -252,6 +252,22 @@ async function runMigrations(): Promise<void> {
   // Always ensure FK index exists
   await query('CREATE INDEX IF NOT EXISTS idx_books_google_enrichment_id ON books(google_enrichment_id)');
 
+  // Ensure ON DELETE SET NULL on google_enrichment_id FK (existing DBs may have RESTRICT/NO ACTION)
+  await query(`
+    DO $$ BEGIN
+      IF EXISTS (
+        SELECT 1 FROM information_schema.referential_constraints
+        WHERE constraint_name = 'books_google_enrichment_id_fkey'
+        AND delete_rule != 'SET NULL'
+      ) THEN
+        ALTER TABLE books DROP CONSTRAINT books_google_enrichment_id_fkey;
+        ALTER TABLE books ADD CONSTRAINT books_google_enrichment_id_fkey
+          FOREIGN KEY (google_enrichment_id) REFERENCES google_books_enrichments(id)
+          ON DELETE SET NULL;
+      END IF;
+    END $$;
+  `);
+
   // --- Gemini sub-genre tagging migration ---
 
   // Ensure subgenre_options table exists
@@ -325,16 +341,16 @@ async function runMigrations(): Promise<void> {
     SELECT
       b.*,
       gb.google_books_id,
-      COALESCE(gb.cover_image_url) AS cover_image_url,
-      COALESCE(gb.description) AS description,
-      COALESCE(gb.genres) AS genres,
-      COALESCE(gb.google_rating) AS google_rating,
-      COALESCE(gb.google_ratings_count) AS google_ratings_count,
-      COALESCE(gb.page_count) AS page_count,
-      COALESCE(gb.publisher) AS publisher,
-      COALESCE(gb.published_date) AS published_date,
-      COALESCE(gb.isbn_10) AS isbn_10,
-      COALESCE(gb.isbn_13) AS isbn_13,
+      gb.cover_image_url,
+      gb.description,
+      gb.genres,
+      gb.google_rating,
+      gb.google_ratings_count,
+      gb.page_count,
+      gb.publisher,
+      gb.published_date,
+      gb.isbn_10,
+      gb.isbn_13,
       gb.created_at AS enriched_at
     FROM books b
     LEFT JOIN google_books_enrichments gb ON b.google_enrichment_id = gb.id

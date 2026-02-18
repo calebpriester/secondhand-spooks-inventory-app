@@ -1,4 +1,4 @@
-import { query } from '../config/database';
+import { query, QueryExecutor, withTransaction } from '../config/database';
 import { GeminiTagResult, GeminiBatchProgress } from '../models/Book';
 
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
@@ -159,13 +159,15 @@ Return a JSON object with:
         return { book_id: bookId, book_title: book.book_title, status: 'error', error: 'Gemini returned no valid sub-genres' };
       }
 
-      // Save to books table and propagate to duplicates (same title+author)
-      await query('UPDATE books SET subgenres = $1, pacing = $2 WHERE id = $3', [validSubgenres, validPacing, bookId]);
-      await query(
-        `UPDATE books SET subgenres = $1, pacing = $2
-         WHERE book_title = $3 AND author_fullname = $4 AND id != $5`,
-        [validSubgenres, validPacing, book.book_title, book.author_fullname, bookId]
-      );
+      // Save to books table and propagate to duplicates (same title+author) — atomic
+      await withTransaction(async (client) => {
+        await client.query('UPDATE books SET subgenres = $1, pacing = $2 WHERE id = $3', [validSubgenres, validPacing, bookId]);
+        await client.query(
+          `UPDATE books SET subgenres = $1, pacing = $2
+           WHERE book_title = $3 AND author_fullname = $4 AND id != $5`,
+          [validSubgenres, validPacing, book.book_title, book.author_fullname, bookId]
+        );
+      });
 
       return { book_id: bookId, book_title: book.book_title, status: 'success', subgenres: validSubgenres, pacing: validPacing };
     } catch (error: any) {

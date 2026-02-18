@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import { withTransaction } from '../config/database';
 import { BookService } from '../services/bookService';
 import { GoogleBooksService } from '../services/googleBooksService';
 import { GeminiService } from '../services/geminiService';
@@ -9,6 +10,19 @@ const bookService = new BookService();
 const googleBooksService = new GoogleBooksService();
 const geminiService = new GeminiService();
 const blindDateService = new BlindDateService();
+
+const MAX_BATCH_LIMIT = 500;
+const VALID_PAYMENT_METHODS = ['Cash', 'Card'];
+
+function parseIdParam(raw: string): number | null {
+  const id = parseInt(raw, 10);
+  return Number.isNaN(id) || id <= 0 ? null : id;
+}
+
+function clampLimit(raw: any, defaultLimit: number): number {
+  const parsed = parseInt(raw) || defaultLimit;
+  return Math.min(Math.max(parsed, 1), MAX_BATCH_LIMIT);
+}
 
 // Get all books with optional filters
 router.get('/', async (req: Request, res: Response) => {
@@ -109,7 +123,7 @@ router.post('/enrichment/batch', async (req: Request, res: Response) => {
     if (!googleBooksService.isConfigured()) {
       return res.status(503).json({ error: 'Google Books API key not configured' });
     }
-    const limit = req.body.limit || 3;
+    const limit = clampLimit(req.body.limit, 3);
     await googleBooksService.startBatchEnrichment(limit);
     res.json({ message: 'Batch enrichment started', limit });
   } catch (error: any) {
@@ -160,7 +174,7 @@ router.post('/enrichment/gemini/batch', async (req: Request, res: Response) => {
     if (!geminiService.isConfigured()) {
       return res.status(503).json({ error: 'Gemini API key not configured' });
     }
-    const limit = req.body.limit || 5;
+    const limit = clampLimit(req.body.limit, 5);
     await geminiService.startBatchTagging(limit);
     res.json({ message: 'Batch tagging started', limit });
   } catch (error: any) {
@@ -229,6 +243,9 @@ router.post('/bulk-sale', async (req: Request, res: Response) => {
     }
     if (!date_sold || !sale_transaction_id || !payment_method) {
       return res.status(400).json({ error: 'date_sold, sale_transaction_id, and payment_method are required' });
+    }
+    if (!VALID_PAYMENT_METHODS.includes(payment_method)) {
+      return res.status(400).json({ error: 'payment_method must be Cash or Card' });
     }
     const results = await bookService.markBulkSold({
       items,
@@ -300,13 +317,18 @@ router.post('/update-transaction', async (req: Request, res: Response) => {
     if (!sale_transaction_id) {
       return res.status(400).json({ error: 'sale_transaction_id is required' });
     }
-    const count = await bookService.updateTransaction({
-      sale_transaction_id,
-      date_sold,
-      sale_event,
-      payment_method,
-      items,
-    });
+    if (payment_method && !VALID_PAYMENT_METHODS.includes(payment_method)) {
+      return res.status(400).json({ error: 'payment_method must be Cash or Card' });
+    }
+    const count = await withTransaction((client) =>
+      bookService.updateTransaction({
+        sale_transaction_id,
+        date_sold,
+        sale_event,
+        payment_method,
+        items,
+      }, client)
+    );
     if (count === 0) {
       return res.status(404).json({ error: 'Transaction not found' });
     }
@@ -340,7 +362,7 @@ router.post('/revert-transaction', async (req: Request, res: Response) => {
 // Get blind date candidate books
 router.get('/blind-date/candidates', async (req: Request, res: Response) => {
   try {
-    const limit = parseInt(req.query.limit as string) || 20;
+    const limit = clampLimit(req.query.limit, 20);
     const candidates = await blindDateService.getCandidates(limit);
     res.json(candidates);
   } catch (error) {
@@ -403,7 +425,7 @@ router.post('/blind-date/batch-blurbs', async (req: Request, res: Response) => {
     if (!blindDateService.isConfigured()) {
       return res.status(503).json({ error: 'Gemini API key not configured' });
     }
-    const limit = req.body.limit || 10;
+    const limit = clampLimit(req.body.limit, 10);
     await blindDateService.startBatchBlurbGeneration(limit);
     res.json({ message: 'Batch blurb generation started', limit });
   } catch (error: any) {
@@ -437,7 +459,8 @@ router.post('/blind-date/batch-blurbs/cancel', async (_req: Request, res: Respon
 // Get single book
 router.get('/:id', async (req: Request, res: Response) => {
   try {
-    const id = parseInt(req.params.id);
+    const id = parseIdParam(req.params.id);
+    if (id === null) return res.status(400).json({ error: 'Invalid book ID' });
     const book = await bookService.getBookById(id);
 
     if (!book) {
@@ -482,7 +505,8 @@ router.post('/', async (req: Request, res: Response) => {
 // Update book
 router.put('/:id', async (req: Request, res: Response) => {
   try {
-    const id = parseInt(req.params.id);
+    const id = parseIdParam(req.params.id);
+    if (id === null) return res.status(400).json({ error: 'Invalid book ID' });
     const book = await bookService.updateBook(id, req.body);
 
     if (!book) {
@@ -499,7 +523,8 @@ router.put('/:id', async (req: Request, res: Response) => {
 // Delete book
 router.delete('/:id', async (req: Request, res: Response) => {
   try {
-    const id = parseInt(req.params.id);
+    const id = parseIdParam(req.params.id);
+    if (id === null) return res.status(400).json({ error: 'Invalid book ID' });
     const deleted = await bookService.deleteBook(id);
 
     if (!deleted) {
@@ -519,7 +544,8 @@ router.post('/:id/enrich', async (req: Request, res: Response) => {
     if (!googleBooksService.isConfigured()) {
       return res.status(503).json({ error: 'Google Books API key not configured' });
     }
-    const id = parseInt(req.params.id);
+    const id = parseIdParam(req.params.id);
+    if (id === null) return res.status(400).json({ error: 'Invalid book ID' });
     const { title, author, isbn } = req.body || {};
     const result = await googleBooksService.enrichBook(id, title, author, isbn);
     res.json(result);
@@ -535,7 +561,8 @@ router.post('/:id/tag-subgenres', async (req: Request, res: Response) => {
     if (!geminiService.isConfigured()) {
       return res.status(503).json({ error: 'Gemini API key not configured' });
     }
-    const id = parseInt(req.params.id);
+    const id = parseIdParam(req.params.id);
+    if (id === null) return res.status(400).json({ error: 'Invalid book ID' });
     const result = await geminiService.tagBook(id);
     res.json(result);
   } catch (error) {

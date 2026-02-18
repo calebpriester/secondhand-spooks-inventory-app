@@ -33,7 +33,7 @@ This is a full-stack inventory management system for **Secondhand Spooks**, a ho
 
 ### Backend (`/backend`)
 - **Entry point**: `src/index.ts` - Express server
-- **Database config**: `src/config/database.ts` - PostgreSQL connection
+- **Database config**: `src/config/database.ts` - PostgreSQL connection pool, `query()`, `QueryExecutor` type, `withTransaction()` helper
 - **Schema**: `src/config/schema.sql` - Database schema (682 books currently)
 - **Models**: `src/models/Book.ts` - TypeScript interfaces
 - **Services**: `src/services/bookService.ts` - Business logic (CRUD, stats, sales tracking, bulk sales, transactions, blind date management), `src/services/googleBooksService.ts` - Google Books API integration (enrichment, batch processing), `src/services/geminiService.ts` - Gemini 2.5 Flash integration (sub-genre tagging, pacing, batch processing), `src/services/blindDateService.ts` - Blind Date with a Book (Gemini blurb generation, candidate scoring, batch processing)
@@ -242,6 +242,10 @@ docker compose ps
 - NULL values are allowed for most fields
 - date_purchased can be null (some books don't have dates)
 - DECIMAL types return as strings from PostgreSQL (convert with Number())
+- **Connection pool** configured with `max: 10`, `idleTimeoutMillis: 30s`, `connectionTimeoutMillis: 5s`, `statement_timeout: 30s`
+- **Transactions**: Use `withTransaction()` from `database.ts` for multi-statement mutations. Services accept an optional `QueryExecutor` parameter; route handlers wrap calls in `withTransaction((client) => service.method(args, client))`
+- **Bulk operations**: Use `unnest($1::int[], $2::numeric[])` or `WHERE id = ANY($1::int[])` patterns — never loop with individual UPDATEs
+- **Route validation**: All `:id` params use `parseIdParam()` (returns 400 for NaN/negative/zero). Batch limits capped to 500 via `clampLimit()`. Payment method enum validated at route level.
 
 ### UI/UX
 - Dark horror theme (Ghostly Foam Green #00FFA3, Paper White #FFFFDC, Inky Black #1E1B1C, Pumpkin Orange #E85D04, Pricing Purple #7C3AED, Ghostly Blue #6366F1 for reading/kept, Deep Rose #E11D48 for blind date)
@@ -263,12 +267,13 @@ docker compose ps
 - All new components MUST include a `@media (max-width: 768px)` block with mobile overrides
 
 ### Enrichment Architecture
-- Normalized: `google_books_enrichments` table + `books.google_enrichment_id` FK
+- Normalized: `google_books_enrichments` table + `books.google_enrichment_id` FK (`ON DELETE SET NULL`)
 - `books_with_enrichment` SQL view returns flat columns (frontend sees same shape as before)
 - `bookService.ts` reads from the view; writes go to `books` table directly
+- `saveEnrichment` wrapped in `withTransaction` (upsert + FK link + duplicate propagation = atomic)
 - Duplicate titles share enrichment rows (0 API calls for duplicates)
 - Custom search supports ISBN, title, and author overrides
-- Future sources: add new table + FK + update view COALESCE (zero changes to existing code)
+- Future sources: add new table + FK + update view with additional LEFT JOINs (zero changes to existing code)
 
 ### Gemini Sub-Genre Tagging
 - Uses Gemini 2.5 Flash API with same `GOOGLE_BOOKS_API_KEY`

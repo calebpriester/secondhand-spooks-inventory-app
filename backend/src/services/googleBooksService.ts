@@ -1,4 +1,4 @@
-import { query } from '../config/database';
+import { query, QueryExecutor, withTransaction } from '../config/database';
 import { GoogleBooksEnrichment, EnrichmentResult, BatchEnrichmentProgress } from '../models/Book';
 
 const GOOGLE_BOOKS_API_BASE = 'https://www.googleapis.com/books/v1/volumes';
@@ -170,7 +170,7 @@ export class GoogleBooksService {
         return { book_id: bookId, book_title: book.book_title, status: 'not_found' };
       }
 
-      await this.saveEnrichment(bookId, enrichment);
+      await withTransaction((client) => this.saveEnrichment(bookId, enrichment, client));
       return {
         book_id: bookId,
         book_title: book.book_title,
@@ -187,9 +187,9 @@ export class GoogleBooksService {
     }
   }
 
-  private async saveEnrichment(bookId: number, enrichment: GoogleBooksEnrichment): Promise<void> {
+  private async saveEnrichment(bookId: number, enrichment: GoogleBooksEnrichment, executor: QueryExecutor): Promise<void> {
     // Upsert into enrichments table
-    const result = await query(
+    const result = await executor.query(
       `INSERT INTO google_books_enrichments (
         google_books_id, cover_image_url, description, genres,
         google_rating, google_ratings_count, page_count, publisher,
@@ -225,13 +225,13 @@ export class GoogleBooksService {
     const enrichmentId = result.rows[0].id;
 
     // Link the book to this enrichment
-    await query('UPDATE books SET google_enrichment_id = $1 WHERE id = $2', [enrichmentId, bookId]);
+    await executor.query('UPDATE books SET google_enrichment_id = $1 WHERE id = $2', [enrichmentId, bookId]);
 
     // Propagate to duplicates (same title+author)
-    const bookData = await query('SELECT book_title, author_fullname FROM books WHERE id = $1', [bookId]);
+    const bookData = await executor.query('SELECT book_title, author_fullname FROM books WHERE id = $1', [bookId]);
     if (bookData.rows.length > 0) {
       const { book_title, author_fullname } = bookData.rows[0];
-      await query(
+      await executor.query(
         `UPDATE books SET google_enrichment_id = $1
          WHERE book_title = $2 AND author_fullname = $3 AND id != $4`,
         [enrichmentId, book_title, author_fullname, bookId]
