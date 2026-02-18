@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Book } from '../types/Book';
 import Autocomplete from './Autocomplete';
+import InlinePrice from './InlinePrice';
 import './BookDetail.css';
 
 interface BookDetailProps {
@@ -22,9 +23,11 @@ interface BookDetailProps {
   onReturnFromPull?: (bookId: number) => void;
   onMarkBlindDate?: (bookId: number) => void;
   onUnmarkBlindDate?: (bookId: number) => void;
+  onSetPrice?: (bookId: number, price: number | null) => void;
+  isSettingPrice?: boolean;
 }
 
-const BookDetail: React.FC<BookDetailProps> = ({ book, onClose, onEdit, onEnrich, isEnriching, onTagSubgenres, isTagging, onMarkSold, isMarkingSold, saleEvents = [], onMarkAvailable, onMarkKept, onUnkeep, onPullToRead, onReturnFromPull, onMarkBlindDate, onUnmarkBlindDate }) => {
+const BookDetail: React.FC<BookDetailProps> = ({ book, onClose, onEdit, onEnrich, isEnriching, onTagSubgenres, isTagging, onMarkSold, isMarkingSold, saleEvents = [], onMarkAvailable, onMarkKept, onUnkeep, onPullToRead, onReturnFromPull, onMarkBlindDate, onUnmarkBlindDate, onSetPrice, isSettingPrice }) => {
   const [showCustomSearch, setShowCustomSearch] = useState(false);
   const [showSaleForm, setShowSaleForm] = useState(false);
   const [showEnrichMenu, setShowEnrichMenu] = useState(false);
@@ -213,7 +216,16 @@ const BookDetail: React.FC<BookDetailProps> = ({ book, onClose, onEdit, onEnrich
             </div>
             <div className="pricing-item">
               <span className="meta-label">Our Price</span>
-              <span className="meta-value">{book.our_price ? `$${Number(book.our_price).toFixed(2)}` : 'N/A'}</span>
+              {onSetPrice ? (
+                <InlinePrice
+                  book={book}
+                  onSave={onSetPrice}
+                  isSaving={!!isSettingPrice}
+                  disabled={!!book.sold || !!book.kept}
+                />
+              ) : (
+                <span className="meta-value">{book.our_price ? `$${Number(book.our_price).toFixed(2)}` : 'N/A'}</span>
+              )}
             </div>
             <div className="pricing-item">
               <span className="meta-label">Profit Est.</span>
