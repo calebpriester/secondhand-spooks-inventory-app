@@ -242,11 +242,16 @@ export class BlindDateService {
     }
 
     if (this.batchProgress) this.batchProgress.is_running = false;
+    // Clear progress after 10s so it doesn't persist indefinitely
+    const timer1 = setTimeout(() => { this.batchProgress = null; }, 10000);
+    timer1.unref();
   }
 
   cancelBatchGeneration(): void {
     this.batchAbortController?.abort();
     if (this.batchProgress) this.batchProgress.is_running = false;
+    const timer2 = setTimeout(() => { this.batchProgress = null; }, 10000);
+    timer2.unref();
   }
 
   getBatchProgress(): BlindDateBatchProgress | null {

@@ -226,4 +226,119 @@ describe('BlindDateService', () => {
       expect(() => service.cancelBatchGeneration()).not.toThrow();
     });
   });
+
+  describe('batch processing with mocked fetch', () => {
+    const originalFetch = global.fetch;
+
+    afterEach(() => {
+      global.fetch = originalFetch;
+    });
+
+    it('processes a batch and updates progress on success', async () => {
+      // Mock the initial query for books needing blurbs
+      mockQuery.mockResolvedValueOnce(mockRows([
+        { id: 1, book_title: 'Book One', author_fullname: 'Author A' },
+      ]));
+
+      // Mock the generateBlurb book lookup
+      mockQuery.mockResolvedValueOnce(mockRows([{
+        id: 1, book_title: 'Book One', author_fullname: 'Author A',
+        description: 'A spooky tale', subgenres: ['Gothic'], pacing: 'Slow Burn', page_count: '200',
+      }]));
+
+      // Mock the Gemini API response
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          candidates: [{ content: { parts: [{ text: '{"blurb": "A mysterious book awaits..."}' }] } }],
+        }),
+      }) as any;
+
+      // Mock the blurb update query
+      mockQuery.mockResolvedValueOnce(mockRows([]));
+
+      await service.startBatchBlurbGeneration(1);
+
+      // Wait for the background batch to complete
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      const progress = service.getBatchProgress();
+      expect(progress?.processed).toBe(1);
+      expect(progress?.succeeded).toBe(1);
+      expect(progress?.errors).toBe(0);
+      expect(progress?.is_running).toBe(false);
+    });
+
+    it('processes multiple books with rate limiting between them', async () => {
+      // Mock the initial query for books needing blurbs (2 books)
+      mockQuery.mockResolvedValueOnce(mockRows([
+        { id: 1, book_title: 'Book One', author_fullname: 'Author A' },
+        { id: 2, book_title: 'Book Two', author_fullname: 'Author B' },
+      ]));
+
+      // Mock generateBlurb book lookups for both books
+      mockQuery
+        .mockResolvedValueOnce(mockRows([{
+          id: 1, book_title: 'Book One', author_fullname: 'Author A',
+          description: null, subgenres: null, pacing: null, page_count: null,
+        }]))
+        .mockResolvedValueOnce(mockRows([])) // blurb update
+        .mockResolvedValueOnce(mockRows([{
+          id: 2, book_title: 'Book Two', author_fullname: 'Author B',
+          description: null, subgenres: null, pacing: null, page_count: null,
+        }]))
+        .mockResolvedValueOnce(mockRows([])); // blurb update
+
+      // Mock Gemini API success
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          candidates: [{ content: { parts: [{ text: '{"blurb": "Mystery awaits..."}' }] } }],
+        }),
+      }) as any;
+
+      await service.startBatchBlurbGeneration(2);
+
+      // Wait for the background batch to complete (includes 500ms rate limit between books)
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      const progress = service.getBatchProgress();
+      expect(progress?.processed).toBe(2);
+      expect(progress?.succeeded).toBe(2);
+      expect(progress?.is_running).toBe(false);
+    });
+
+    it('handles API errors in batch and records them', async () => {
+      // Mock the initial query for books needing blurbs
+      mockQuery.mockResolvedValueOnce(mockRows([
+        { id: 1, book_title: 'Book One', author_fullname: 'Author A' },
+      ]));
+
+      // Mock the generateBlurb book lookup
+      mockQuery.mockResolvedValueOnce(mockRows([{
+        id: 1, book_title: 'Book One', author_fullname: 'Author A',
+        description: null, subgenres: null, pacing: null, page_count: null,
+      }]));
+
+      // Mock Gemini API failure
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: false,
+        status: 500,
+        text: async () => 'Internal Server Error',
+      }) as any;
+
+      await service.startBatchBlurbGeneration(1);
+
+      // Wait for the background batch to complete
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      const progress = service.getBatchProgress();
+      expect(progress?.processed).toBe(1);
+      expect(progress?.succeeded).toBe(0);
+      expect(progress?.errors).toBe(1);
+      expect(progress?.is_running).toBe(false);
+    });
+  });
 });

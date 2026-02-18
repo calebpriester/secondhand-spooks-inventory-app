@@ -453,6 +453,18 @@
   text-decoration: underline;
 }
 
+.manage-blind-date-link {
+  display: inline-block;
+  margin-top: 0.75rem;
+  color: #E11D48;
+  font-size: 0.85rem;
+  text-decoration: none;
+}
+
+.manage-blind-date-link:hover {
+  text-decoration: underline;
+}
+
 /* === Sale Form Footer === */
 .sale-form-footer {
   flex-direction: column;

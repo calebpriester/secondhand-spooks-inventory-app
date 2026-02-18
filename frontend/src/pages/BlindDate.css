@@ -187,6 +187,35 @@
   flex-shrink: 0;
 }
 
+.blind-date-cover-clickable {
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.blind-date-cover-clickable:hover {
+  opacity: 0.75;
+}
+
+.blind-date-title-clickable {
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.blind-date-title-clickable:hover {
+  color: #00FFA3;
+}
+
+/* Highlight title when hovering card, and dim cover when hovering card */
+.blind-date-book-card:hover .blind-date-title-clickable,
+.blind-date-candidate-card:hover .blind-date-title-clickable {
+  color: #00FFA3;
+}
+
+.blind-date-book-card:hover .blind-date-cover-clickable,
+.blind-date-candidate-card:hover .blind-date-cover-clickable {
+  opacity: 0.75;
+}
+
 .blind-date-book-info {
   flex: 1;
   min-width: 0;
@@ -216,13 +245,32 @@
   margin-bottom: 0.5rem;
 }
 
-.blind-date-book-badges .badge-reading {
-  background-color: #6366F1;
-  color: white;
+.blind-date-book-badges .badge {
   font-size: 0.75rem;
   padding: 0.15rem 0.5rem;
   border-radius: 10px;
   font-weight: 600;
+  white-space: nowrap;
+}
+
+.blind-date-book-badges .badge-reading {
+  background-color: #6366F1;
+  color: white;
+}
+
+.blind-date-book-badges .badge-kept {
+  background-color: #4F46E5;
+  color: white;
+}
+
+.blind-date-book-badges .badge-sold {
+  background-color: #E85D04;
+  color: white;
+}
+
+.blind-date-book-badges .badge-blind-date {
+  background-color: #E11D48;
+  color: white;
 }
 
 .badge-condition {

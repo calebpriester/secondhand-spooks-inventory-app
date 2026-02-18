@@ -194,6 +194,13 @@ const BookDetail: React.FC<BookDetailProps> = ({ book, onClose, onEdit, onEnrich
                 whiteSpace: 'pre-line',
               }}>{book.blind_date_blurb}</div>
             )}
+            <Link
+              to="/blind-date"
+              className="manage-blind-date-link"
+              onClick={onClose}
+            >
+              Manage on Blind Date page
+            </Link>
           </div>
         )}
 
