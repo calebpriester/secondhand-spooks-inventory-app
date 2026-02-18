@@ -292,6 +292,7 @@ function BlindDate() {
                   <span className="blind-date-book-title">{book.book_title}</span>
                   <span className="blind-date-book-author">{book.author_fullname}</span>
                   <div className="blind-date-book-badges">
+                    {book.pulled_to_read && <span className="badge badge-reading">READING</span>}
                     {book.condition && <span className="badge-condition">{book.condition}</span>}
                     {book.subgenres?.map((sg) => (
                       <span key={sg} className="badge-subgenre">{sg}</span>

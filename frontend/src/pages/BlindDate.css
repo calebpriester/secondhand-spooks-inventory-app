@@ -216,6 +216,15 @@
   margin-bottom: 0.5rem;
 }
 
+.blind-date-book-badges .badge-reading {
+  background-color: #6366F1;
+  color: white;
+  font-size: 0.75rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
 .badge-condition {
   background-color: rgba(0, 255, 163, 0.15);
   color: #00FFA3;
