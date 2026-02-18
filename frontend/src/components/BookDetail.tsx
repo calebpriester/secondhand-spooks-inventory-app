@@ -107,7 +107,7 @@ const BookDetail: React.FC<BookDetailProps> = ({ book, onClose, onEdit, onEnrich
                 <span className="badge badge-sold">SOLD</span>
               )}
               {book.blind_date && !book.sold && (
-                <span className="badge badge-blind-date">BLIND DATE</span>
+                <span className="badge badge-blind-date">BLIND DATE{book.blind_date_number ? ` #${book.blind_date_number}` : ''}</span>
               )}
             </div>
 
@@ -173,6 +173,30 @@ const BookDetail: React.FC<BookDetailProps> = ({ book, onClose, onEdit, onEnrich
           </div>
         )}
 
+        {book.blind_date && (
+          <div className="book-detail-blind-date-info">
+            <h3>Blind Date Details</h3>
+            <div className="pricing-grid">
+              <div className="pricing-item">
+                <span className="meta-label">Number</span>
+                <span className="meta-value">{book.blind_date_number || 'Not assigned'}</span>
+              </div>
+            </div>
+            {book.blind_date_blurb && (
+              <div className="blurb-card" style={{
+                backgroundColor: 'rgba(225, 29, 72, 0.08)',
+                borderLeft: '3px solid #E11D48',
+                padding: '0.75rem 1rem',
+                borderRadius: '0 6px 6px 0',
+                fontSize: '0.9rem',
+                lineHeight: '1.5',
+                marginTop: '0.75rem',
+                whiteSpace: 'pre-line',
+              }}>{book.blind_date_blurb}</div>
+            )}
+          </div>
+        )}
+
         <div className="book-detail-pricing">
           <h3>Pricing & Purchase</h3>
           <div className="pricing-grid">
@@ -202,30 +226,6 @@ const BookDetail: React.FC<BookDetailProps> = ({ book, onClose, onEdit, onEnrich
             )}
           </div>
         </div>
-
-        {book.blind_date && (
-          <div className="book-detail-blind-date-info">
-            <h3>Blind Date Details</h3>
-            <div className="pricing-grid">
-              <div className="pricing-item">
-                <span className="meta-label">Number</span>
-                <span className="meta-value">{book.blind_date_number || 'Not assigned'}</span>
-              </div>
-            </div>
-            {book.blind_date_blurb && (
-              <div className="blurb-card" style={{
-                backgroundColor: 'rgba(225, 29, 72, 0.08)',
-                borderLeft: '3px solid #E11D48',
-                padding: '0.75rem 1rem',
-                borderRadius: '0 6px 6px 0',
-                fontSize: '0.9rem',
-                lineHeight: '1.5',
-                marginTop: '0.75rem',
-                whiteSpace: 'pre-line',
-              }}>{book.blind_date_blurb}</div>
-            )}
-          </div>
-        )}
 
         {book.sold && (
           <div className="book-detail-sale-info">

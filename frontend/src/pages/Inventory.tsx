@@ -822,7 +822,7 @@ function Inventory() {
                       {book.sold && <span className="badge badge-sold badge-sold-inline">SOLD</span>}
                       {book.kept && <span className="badge badge-kept badge-kept-inline">KEPT</span>}
                       {book.pulled_to_read && !book.sold && !book.kept && <span className="badge badge-reading badge-reading-inline">READING</span>}
-                      {book.blind_date && !book.sold && <span className="badge badge-blind-date badge-blind-date-inline">BLIND DATE</span>}
+                      {book.blind_date && !book.sold && <span className="badge badge-blind-date badge-blind-date-inline">BLIND DATE{book.blind_date_number ? ` #${book.blind_date_number}` : ''}</span>}
                     </span>
                     <button
                       onClick={() => handleEditBook(book)}
@@ -991,7 +991,7 @@ function Inventory() {
                       <span className="badge badge-reading badge-reading-inline">READING</span>
                     )}
                     {book.blind_date && !book.sold && (
-                      <span className="badge badge-blind-date badge-blind-date-inline">BLIND DATE</span>
+                      <span className="badge badge-blind-date badge-blind-date-inline">BLIND DATE{book.blind_date_number ? ` #${book.blind_date_number}` : ''}</span>
                     )}
                     {book.google_rating && (
                       <span className="google-rating" title={`${book.google_ratings_count} ratings`}>
