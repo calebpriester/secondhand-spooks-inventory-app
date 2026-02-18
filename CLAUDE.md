@@ -48,10 +48,11 @@ This is a full-stack inventory management system for **Secondhand Spooks**, a ho
   - `src/pages/Inventory.tsx` - Book browsing and filtering (card view on mobile, table on desktop, cover images, checkbox selection for bulk sales, mobile sticky action bar with search/filters/actions, mobile filter drawer bottom-sheet)
   - `src/pages/Sales.tsx` + `Sales.css` - Transaction-centric sales history (expandable transactions with cover thumbnails, filters by event/date/payment, inline edit mode, transaction revert)
   - `src/pages/BlindDate.tsx` + `BlindDate.css` - Blind Date with a Book management (active books with inline # editing, AI blurb generation/editing, candidate suggestions, batch blurb processing)
-- **Components**: `src/components/BookDetail.tsx` - Book detail popup (enrichment data, custom search, sub-genre tags, mark as sold with inline form, sale details, "View Transaction" link), `src/components/BulkSaleModal.tsx` + `BulkSaleModal.css` - Bulk sale form (per-book prices, shared event/date/payment), `src/components/BulkPriceModal.tsx` + `BulkPriceModal.css` - Bulk price setting (per-book or flat price mode, nullable pricing, suggestions with fill helper, below-cost warnings, purple #7C3AED accent), `src/components/BatchEnrichment.tsx` - Google Books batch enrichment panel (on Dashboard), `src/components/GeminiEnrichment.tsx` - Gemini sub-genre tagging panel (on Dashboard, includes sub-genre management CRUD)
-- **Hooks**: `src/hooks/useIsMobile.ts` - Responsive breakpoint hook using `matchMedia`
+- **Components**: `src/components/BookDetail.tsx` - Book detail popup (enrichment data, custom search, sub-genre tags, mark as sold with inline form, sale details, "View Transaction" link), `src/components/BulkSaleModal.tsx` + `BulkSaleModal.css` - Bulk sale form (per-book prices, shared event/date/payment), `src/components/BulkPriceModal.tsx` + `BulkPriceModal.css` - Bulk price setting (per-book or flat price mode, nullable pricing, suggestions with fill helper, below-cost warnings, purple #7C3AED accent), `src/components/BatchEnrichment.tsx` - Google Books batch enrichment panel (on Dashboard), `src/components/GeminiEnrichment.tsx` - Gemini sub-genre tagging panel (on Dashboard, includes sub-genre management CRUD), `src/components/ErrorBoundary.tsx` - Global error boundary (catches render crashes, shows recovery UI)
+- **Hooks**: `src/hooks/useIsMobile.ts` - Responsive breakpoint hook using `matchMedia`, `src/hooks/useBookActions.ts` - Shared book mutation handlers (mark sold, mark available, pull to read, keep, enrich, tag, blind date) used by Inventory and BlindDate pages
+- **Utilities**: `src/utils/dates.ts` - Date formatting helpers (`formatDate`, `todayDateString`, `toDateOnly`)
 - **API client**: `src/services/api.ts` - Backend communication
-- **Types**: `src/types/Book.ts` - TypeScript interfaces
+- **Types**: `src/types/Book.ts` - TypeScript interfaces (`Book` has required `id`; `BookCreate` omits it for creation)
 
 ### Database Schema
 
@@ -258,6 +259,10 @@ docker compose ps
 - Cover images are clickable to open BookDetail popup (enrichment data, custom search, edit/enrich actions)
 - Modals use `overflow: hidden` + `min-height: 0` flex pattern to stay within 90vh
 - Use React Query for data fetching
+- **QueryClient config** (in `App.tsx`): `staleTime: 30s`, `retry: 1`, `refetchOnWindowFocus: false`
+- **Global error handling**: `MutationCache.onError` shows a red toast notification on any failed mutation. Individual `onError` handlers are not needed unless you want custom behavior.
+- **ErrorBoundary** wraps the entire app — catches render crashes and shows a recovery screen
+- **Shared book actions**: Use `useBookActions()` hook for mutations shared across pages (mark sold, mark available, pull to read, keep, enrich, tag, blind date). Don't duplicate these handlers in page components.
 
 **Mobile requirements (apply to ALL new UI):**
 - `font-size: 16px` on ALL mobile inputs, selects, and buttons — prevents iOS Safari auto-zoom

@@ -1,5 +1,5 @@
 export interface Book {
-  id?: number;
+  id: number;
   book_title: string;
   cleaned: boolean;
   author_last_name: string;
@@ -46,6 +46,8 @@ export interface Book {
   created_at?: string;
   updated_at?: string;
 }
+
+export type BookCreate = Omit<Book, 'id'>;
 
 export interface EnrichmentStatus {
   configured: boolean;

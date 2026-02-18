@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Book, BulkSaleRequest } from '../types/Book';
 import Autocomplete from './Autocomplete';
+import { todayDateString } from '../utils/dates';
 import './BulkSaleModal.css';
 
 interface BulkSaleModalProps {
@@ -14,7 +15,7 @@ interface BulkSaleModalProps {
 
 const BulkSaleModal: React.FC<BulkSaleModalProps> = ({ books, onConfirm, onCancel, onRemoveBook, isSubmitting, saleEvents }) => {
   const [prices, setPrices] = useState<Record<number, string>>({});
-  const [saleDate, setSaleDate] = useState(new Date().toISOString().split('T')[0]);
+  const [saleDate, setSaleDate] = useState(todayDateString());
   const [saleEvent, setSaleEvent] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'Cash' | 'Card'>('Cash');
 

@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Book } from '../types/Book';
 import { bookApi } from '../services/api';
 import Autocomplete from './Autocomplete';
+import { toDateOnly } from '../utils/dates';
 import './BookForm.css';
 
 interface BookFormProps {
@@ -78,7 +79,7 @@ const BookForm: React.FC<BookFormProps> = ({ book, onSubmit, onCancel, onDelete 
     if (book) {
       setFormData({
         ...book,
-        date_purchased: book.date_purchased ? book.date_purchased.split('T')[0] : null,
+        date_purchased: toDateOnly(book.date_purchased) || null,
       });
     }
   }, [book]);
