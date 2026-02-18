@@ -73,14 +73,16 @@ export function buildBlurbPrompt(
   return parts.join('\n');
 }
 
-/** Parse the blurb from Gemini's JSON response */
+/** Parse the blurb from Gemini's JSON response and ensure bullets are on separate lines */
 export function parseBlurbResponse(responseText: string): string {
   const parsed = JSON.parse(responseText);
   const blurb = parsed.blurb;
   if (!blurb || typeof blurb !== 'string' || blurb.trim().length === 0) {
     throw new Error('Gemini response missing valid blurb field');
   }
-  return blurb.trim();
+  // Gemini sometimes returns bullets without newlines between them.
+  // Normalize: ensure each "•" starts on its own line.
+  return blurb.trim().replace(/\s*•/g, '\n•').replace(/^\n/, '');
 }
 
 export class BlindDateService {
