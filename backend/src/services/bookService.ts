@@ -72,6 +72,17 @@ export class BookService {
       if (filters.missing_price) {
         sql += ' AND our_price IS NULL';
       }
+      if (filters.blind_date !== undefined) {
+        sql += ` AND blind_date = $${paramCount++}`;
+        params.push(filters.blind_date);
+      }
+      if (filters.blind_date_candidate) {
+        sql += ` AND sold = false AND kept = false AND blind_date = false`;
+        sql += ` AND condition IN ('Like New', 'Very Good')`;
+        sql += ` AND category != 'YA/Nostalgia'`;
+        sql += ` AND google_enrichment_id IS NOT NULL`;
+        sql += ` AND subgenres IS NOT NULL AND array_length(subgenres, 1) > 0`;
+      }
     }
 
     sql += ' ORDER BY author_last_name ASC, book_title ASC, id ASC';
@@ -130,6 +141,7 @@ export class BookService {
       'purchase_price', 'our_price', 'profit_est',
       'author_fullname', 'pulled_to_read', 'kept', 'date_kept', 'subgenres', 'pacing', 'google_enrichment_id',
       'sold', 'date_sold', 'sold_price', 'sale_event', 'sale_transaction_id', 'payment_method',
+      'blind_date', 'blind_date_number', 'blind_date_blurb',
     ]);
 
     const fields: string[] = [];
@@ -549,6 +561,20 @@ export class BookService {
       WHERE ${cleanedWhere}
     `, params);
 
+    const blindDateQuery = await query(`
+      SELECT
+        COUNT(*) FILTER (WHERE blind_date = true AND sold = false) as active_count,
+        COALESCE(SUM(our_price) FILTER (WHERE blind_date = true AND sold = false), 0) as total_value,
+        COUNT(*) FILTER (WHERE blind_date = true AND sold = false AND blind_date_blurb IS NOT NULL AND blind_date_blurb != '') as with_blurb_count,
+        COUNT(*) FILTER (WHERE blind_date = true AND sold = false AND (blind_date_blurb IS NULL OR blind_date_blurb = '')) as without_blurb_count,
+        COUNT(*) FILTER (WHERE sold = false AND kept = false AND blind_date = false
+          AND condition IN ('Like New', 'Very Good') AND category != 'YA/Nostalgia'
+          AND google_enrichment_id IS NOT NULL
+          AND subgenres IS NOT NULL AND array_length(subgenres, 1) > 0) as candidate_count
+      FROM books_with_enrichment
+      WHERE ${cleanedWhere}
+    `, params);
+
     return {
       total_books: parseInt(totalQuery.rows[0].total_books),
       total_value: parseFloat(totalQuery.rows[0].total_value),
@@ -609,6 +635,36 @@ export class BookService {
         kept_count: parseInt(readingQuery.rows[0].kept_count),
         total_kept_cost: parseFloat(readingQuery.rows[0].total_kept_cost),
       },
+      blind_date: {
+        active_count: parseInt(blindDateQuery.rows[0].active_count),
+        total_value: parseFloat(blindDateQuery.rows[0].total_value),
+        with_blurb_count: parseInt(blindDateQuery.rows[0].with_blurb_count),
+        without_blurb_count: parseInt(blindDateQuery.rows[0].without_blurb_count),
+        candidate_count: parseInt(blindDateQuery.rows[0].candidate_count),
+      },
     };
+  }
+
+  async bulkMarkBlindDate(bookIds: number[], blindDate: boolean): Promise<Book[]> {
+    const results: Book[] = [];
+    for (const bookId of bookIds) {
+      let result;
+      if (blindDate) {
+        result = await query(
+          `UPDATE books SET blind_date = true WHERE id = $1 RETURNING *`,
+          [bookId]
+        );
+      } else {
+        result = await query(
+          `UPDATE books SET blind_date = false, blind_date_number = NULL,
+           blind_date_blurb = NULL WHERE id = $1 RETURNING *`,
+          [bookId]
+        );
+      }
+      if (result.rows[0]) {
+        results.push(result.rows[0]);
+      }
+    }
+    return results;
   }
 }

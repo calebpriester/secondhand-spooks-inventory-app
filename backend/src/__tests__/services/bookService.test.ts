@@ -342,7 +342,11 @@ describe('BookService', () => {
         .mockResolvedValueOnce(mockRows(rawStatsRows.sales))        // salesQuery
         .mockResolvedValueOnce(mockRows(rawStatsRows.salesByEvent)) // salesByEventQuery
         .mockResolvedValueOnce(mockRows(rawStatsRows.missingPrice)) // missingPriceQuery
-        .mockResolvedValueOnce(mockRows(rawStatsRows.reading));     // readingQuery
+        .mockResolvedValueOnce(mockRows(rawStatsRows.reading))      // readingQuery
+        .mockResolvedValueOnce(mockRows([{                          // blindDateQuery
+          active_count: '4', total_value: '32.00', with_blurb_count: '2',
+          without_blurb_count: '2', candidate_count: '15',
+        }]));
     };
 
     it('converts string values from PostgreSQL to numbers', async () => {

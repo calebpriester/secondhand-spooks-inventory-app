@@ -2,11 +2,13 @@ import { Router, Request, Response } from 'express';
 import { BookService } from '../services/bookService';
 import { GoogleBooksService } from '../services/googleBooksService';
 import { GeminiService } from '../services/geminiService';
+import { BlindDateService } from '../services/blindDateService';
 
 const router = Router();
 const bookService = new BookService();
 const googleBooksService = new GoogleBooksService();
 const geminiService = new GeminiService();
+const blindDateService = new BlindDateService();
 
 // Get all books with optional filters
 router.get('/', async (req: Request, res: Response) => {
@@ -28,6 +30,8 @@ router.get('/', async (req: Request, res: Response) => {
       date_sold: req.query.date_sold as string,
       sale_transaction_id: req.query.sale_transaction_id as string,
       missing_price: req.query.missing_price === 'true' ? true : undefined,
+      blind_date: req.query.blind_date === 'true' ? true : req.query.blind_date === 'false' ? false : undefined,
+      blind_date_candidate: req.query.blind_date_candidate === 'true' ? true : undefined,
     };
 
     const books = await bookService.getAllBooks(filters);
@@ -328,6 +332,105 @@ router.post('/revert-transaction', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error reverting transaction:', error);
     res.status(500).json({ error: 'Failed to revert transaction' });
+  }
+});
+
+// --- Blind Date routes (before /:id to avoid path conflicts) ---
+
+// Get blind date candidate books
+router.get('/blind-date/candidates', async (req: Request, res: Response) => {
+  try {
+    const limit = parseInt(req.query.limit as string) || 20;
+    const candidates = await blindDateService.getCandidates(limit);
+    res.json(candidates);
+  } catch (error) {
+    console.error('Error fetching blind date candidates:', error);
+    res.status(500).json({ error: 'Failed to fetch candidates' });
+  }
+});
+
+// Mark books as blind date
+router.post('/blind-date/mark', async (req: Request, res: Response) => {
+  try {
+    const { book_ids } = req.body;
+    if (!book_ids || !Array.isArray(book_ids) || book_ids.length === 0) {
+      return res.status(400).json({ error: 'book_ids array is required' });
+    }
+    const results = await bookService.bulkMarkBlindDate(book_ids, true);
+    res.json(results);
+  } catch (error) {
+    console.error('Error marking blind date books:', error);
+    res.status(500).json({ error: 'Failed to mark books as blind date' });
+  }
+});
+
+// Unmark books from blind date
+router.post('/blind-date/unmark', async (req: Request, res: Response) => {
+  try {
+    const { book_ids } = req.body;
+    if (!book_ids || !Array.isArray(book_ids) || book_ids.length === 0) {
+      return res.status(400).json({ error: 'book_ids array is required' });
+    }
+    const results = await bookService.bulkMarkBlindDate(book_ids, false);
+    res.json(results);
+  } catch (error) {
+    console.error('Error unmarking blind date books:', error);
+    res.status(500).json({ error: 'Failed to unmark books' });
+  }
+});
+
+// Generate blurb for one book (user-triggered only)
+router.post('/blind-date/generate-blurb', async (req: Request, res: Response) => {
+  try {
+    if (!blindDateService.isConfigured()) {
+      return res.status(503).json({ error: 'Gemini API key not configured' });
+    }
+    const { book_id } = req.body;
+    if (!book_id) {
+      return res.status(400).json({ error: 'book_id is required' });
+    }
+    const result = await blindDateService.generateBlurb(book_id);
+    res.json(result);
+  } catch (error) {
+    console.error('Error generating blurb:', error);
+    res.status(500).json({ error: 'Failed to generate blurb' });
+  }
+});
+
+// Start batch blurb generation (user-triggered only)
+router.post('/blind-date/batch-blurbs', async (req: Request, res: Response) => {
+  try {
+    if (!blindDateService.isConfigured()) {
+      return res.status(503).json({ error: 'Gemini API key not configured' });
+    }
+    const limit = req.body.limit || 10;
+    await blindDateService.startBatchBlurbGeneration(limit);
+    res.json({ message: 'Batch blurb generation started', limit });
+  } catch (error: any) {
+    console.error('Error starting batch blurb generation:', error);
+    res.status(500).json({ error: error.message || 'Failed to start batch blurb generation' });
+  }
+});
+
+// Get batch blurb generation progress
+router.get('/blind-date/batch-blurbs/progress', async (_req: Request, res: Response) => {
+  try {
+    const progress = blindDateService.getBatchProgress();
+    res.json(progress || { is_running: false, total: 0, processed: 0, succeeded: 0, errors: 0, results: [] });
+  } catch (error) {
+    console.error('Error fetching batch blurb progress:', error);
+    res.status(500).json({ error: 'Failed to fetch batch progress' });
+  }
+});
+
+// Cancel batch blurb generation
+router.post('/blind-date/batch-blurbs/cancel', async (_req: Request, res: Response) => {
+  try {
+    blindDateService.cancelBatchGeneration();
+    res.json({ message: 'Batch blurb generation cancelled' });
+  } catch (error) {
+    console.error('Error cancelling batch blurb generation:', error);
+    res.status(500).json({ error: 'Failed to cancel batch generation' });
   }
 });
 

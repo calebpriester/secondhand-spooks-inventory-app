@@ -153,11 +153,11 @@ body {
   }
 
   .nav-links {
-    gap: 1rem;
+    gap: 0.6rem;
   }
 
   .nav-links a {
-    font-size: 0.9rem;
+    font-size: 0.8rem;
   }
 
   .main-content {

@@ -20,9 +20,11 @@ interface BookDetailProps {
   onUnkeep?: (bookId: number) => void;
   onPullToRead?: (bookId: number) => void;
   onReturnFromPull?: (bookId: number) => void;
+  onMarkBlindDate?: (bookId: number) => void;
+  onUnmarkBlindDate?: (bookId: number) => void;
 }
 
-const BookDetail: React.FC<BookDetailProps> = ({ book, onClose, onEdit, onEnrich, isEnriching, onTagSubgenres, isTagging, onMarkSold, isMarkingSold, saleEvents = [], onMarkAvailable, onMarkKept, onUnkeep, onPullToRead, onReturnFromPull }) => {
+const BookDetail: React.FC<BookDetailProps> = ({ book, onClose, onEdit, onEnrich, isEnriching, onTagSubgenres, isTagging, onMarkSold, isMarkingSold, saleEvents = [], onMarkAvailable, onMarkKept, onUnkeep, onPullToRead, onReturnFromPull, onMarkBlindDate, onUnmarkBlindDate }) => {
   const [showCustomSearch, setShowCustomSearch] = useState(false);
   const [showSaleForm, setShowSaleForm] = useState(false);
   const [showEnrichMenu, setShowEnrichMenu] = useState(false);
@@ -103,6 +105,9 @@ const BookDetail: React.FC<BookDetailProps> = ({ book, onClose, onEdit, onEnrich
               )}
               {book.sold && (
                 <span className="badge badge-sold">SOLD</span>
+              )}
+              {book.blind_date && !book.sold && (
+                <span className="badge badge-blind-date">BLIND DATE</span>
               )}
             </div>
 
@@ -197,6 +202,30 @@ const BookDetail: React.FC<BookDetailProps> = ({ book, onClose, onEdit, onEnrich
             )}
           </div>
         </div>
+
+        {book.blind_date && (
+          <div className="book-detail-blind-date-info">
+            <h3>Blind Date Details</h3>
+            <div className="pricing-grid">
+              <div className="pricing-item">
+                <span className="meta-label">Number</span>
+                <span className="meta-value">{book.blind_date_number || 'Not assigned'}</span>
+              </div>
+            </div>
+            {book.blind_date_blurb && (
+              <div className="blurb-card" style={{
+                backgroundColor: 'rgba(225, 29, 72, 0.08)',
+                borderLeft: '3px solid #E11D48',
+                padding: '0.75rem 1rem',
+                borderRadius: '0 6px 6px 0',
+                fontSize: '0.9rem',
+                lineHeight: '1.5',
+                marginTop: '0.75rem',
+                whiteSpace: 'pre-line',
+              }}>{book.blind_date_blurb}</div>
+            )}
+          </div>
+        )}
 
         {book.sold && (
           <div className="book-detail-sale-info">
@@ -398,6 +427,29 @@ const BookDetail: React.FC<BookDetailProps> = ({ book, onClose, onEdit, onEnrich
               disabled={!book.id}
             >
               Pull to Read
+            </button>
+          )}
+          {!book.sold && !book.kept && !book.blind_date && onMarkBlindDate && (
+            <button
+              className="btn btn-blind-date-action"
+              onClick={() => {
+                if (book.id) onMarkBlindDate(book.id);
+              }}
+              disabled={!book.id}
+            >
+              Blind Date
+            </button>
+          )}
+          {book.blind_date && !book.sold && onUnmarkBlindDate && (
+            <button
+              className="btn btn-secondary"
+              onClick={() => {
+                if (book.id && window.confirm('Remove this book from Blind Date?')) {
+                  onUnmarkBlindDate(book.id);
+                }
+              }}
+            >
+              Remove from Blind Date
             </button>
           )}
           {book.pulled_to_read && !book.sold && !book.kept && onMarkKept && (

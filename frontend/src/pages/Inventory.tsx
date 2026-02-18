@@ -21,7 +21,9 @@ interface FilterDrawerProps {
 function FilterDrawer({ filters, subgenreOptions, onApply, onClear, onClose }: FilterDrawerProps) {
   const [draft, setDraft] = useState<BookFilters>({ ...filters });
 
-  const draftStockStatus = draft.missing_price ? 'missing_price' :
+  const draftStockStatus = draft.blind_date ? 'blind_date' :
+    draft.blind_date_candidate ? 'blind_date_candidate' :
+    draft.missing_price ? 'missing_price' :
     draft.pulled_to_read ? 'pulled_to_read' :
     draft.kept === true && draft.sold === undefined ? 'kept' :
     draft.sold === undefined && draft.kept === undefined ? '' :
@@ -35,11 +37,15 @@ function FilterDrawer({ filters, subgenreOptions, onApply, onClear, onClose }: F
     delete next.kept;
     delete next.missing_price;
     delete next.pulled_to_read;
+    delete next.blind_date;
+    delete next.blind_date_candidate;
     if (val === 'sold') { next.sold = true; }
     else if (val === 'available') { next.sold = false; next.kept = false; }
     else if (val === 'missing_price') { next.sold = false; next.kept = false; next.missing_price = true; }
     else if (val === 'pulled_to_read') { next.sold = false; next.kept = false; next.pulled_to_read = true; }
     else if (val === 'kept') { next.kept = true; }
+    else if (val === 'blind_date') { next.blind_date = true; next.sold = false; }
+    else if (val === 'blind_date_candidate') { next.blind_date_candidate = true; }
     setDraft(next);
   };
 
@@ -73,6 +79,8 @@ function FilterDrawer({ filters, subgenreOptions, onApply, onClear, onClose }: F
               <option value="sold">Sold</option>
               <option value="pulled_to_read">Pulled to Read</option>
               <option value="kept">Kept</option>
+              <option value="blind_date">Blind Date</option>
+              <option value="blind_date_candidate">Blind Date Candidates</option>
               <option value="">All Books</option>
             </select>
           </div>
@@ -405,6 +413,22 @@ function Inventory() {
     });
   };
 
+  const handleMarkBlindDate = (bookId: number) => {
+    bookApi.markBlindDate([bookId]).then(() => {
+      queryClient.invalidateQueries({ queryKey: ['books'] });
+      queryClient.invalidateQueries({ queryKey: ['stats'] });
+      queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+    });
+  };
+
+  const handleUnmarkBlindDate = (bookId: number) => {
+    bookApi.unmarkBlindDate([bookId]).then(() => {
+      queryClient.invalidateQueries({ queryKey: ['books'] });
+      queryClient.invalidateQueries({ queryKey: ['stats'] });
+      queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+    });
+  };
+
   const toggleSelectBook = (bookId: number, book?: Book) => {
     // Save scroll position — iOS Safari aggressively scrolls on checkbox re-renders
     const scrollY = window.scrollY;
@@ -445,12 +469,16 @@ function Inventory() {
 
   const currentSelectedBook = fetchedSelectedBook || selectedBook;
 
-  const stockStatusValue = filters.missing_price ? 'missing_price' :
+  const stockStatusValue = filters.blind_date ? 'blind_date' :
+    filters.blind_date_candidate ? 'blind_date_candidate' :
+    filters.missing_price ? 'missing_price' :
     filters.pulled_to_read ? 'pulled_to_read' :
     filters.kept === true && filters.sold === undefined ? 'kept' :
     filters.sold === undefined && filters.kept === undefined ? '' :
     filters.sold ? 'sold' : 'available';
-  const statusLabel = filters.missing_price ? 'unpriced' :
+  const statusLabel = filters.blind_date ? 'blind date' :
+    filters.blind_date_candidate ? 'blind date candidate' :
+    filters.missing_price ? 'unpriced' :
     filters.pulled_to_read ? 'pulled to read' :
     filters.kept === true && filters.sold === undefined ? 'kept' :
     filters.sold === true ? 'sold' : filters.sold === false ? 'available' : '';
@@ -630,6 +658,8 @@ function Inventory() {
                 delete newFilters.kept;
                 delete newFilters.missing_price;
                 delete newFilters.pulled_to_read;
+                delete newFilters.blind_date;
+                delete newFilters.blind_date_candidate;
 
                 if (val === 'sold') {
                   newFilters.sold = true;
@@ -646,6 +676,11 @@ function Inventory() {
                   newFilters.pulled_to_read = true;
                 } else if (val === 'kept') {
                   newFilters.kept = true;
+                } else if (val === 'blind_date') {
+                  newFilters.blind_date = true;
+                  newFilters.sold = false;
+                } else if (val === 'blind_date_candidate') {
+                  newFilters.blind_date_candidate = true;
                 }
                 setFilters(newFilters);
                 setSelectedIds(new Set());
@@ -658,6 +693,8 @@ function Inventory() {
               <option value="sold">Sold</option>
               <option value="pulled_to_read">Pulled to Read</option>
               <option value="kept">Kept</option>
+              <option value="blind_date">Blind Date</option>
+              <option value="blind_date_candidate">Blind Date Candidates</option>
               <option value="">All Books</option>
             </select>
 
@@ -785,6 +822,7 @@ function Inventory() {
                       {book.sold && <span className="badge badge-sold badge-sold-inline">SOLD</span>}
                       {book.kept && <span className="badge badge-kept badge-kept-inline">KEPT</span>}
                       {book.pulled_to_read && !book.sold && !book.kept && <span className="badge badge-reading badge-reading-inline">READING</span>}
+                      {book.blind_date && !book.sold && <span className="badge badge-blind-date badge-blind-date-inline">BLIND DATE</span>}
                     </span>
                     <button
                       onClick={() => handleEditBook(book)}
@@ -952,6 +990,9 @@ function Inventory() {
                     {book.pulled_to_read && !book.sold && !book.kept && (
                       <span className="badge badge-reading badge-reading-inline">READING</span>
                     )}
+                    {book.blind_date && !book.sold && (
+                      <span className="badge badge-blind-date badge-blind-date-inline">BLIND DATE</span>
+                    )}
                     {book.google_rating && (
                       <span className="google-rating" title={`${book.google_ratings_count} ratings`}>
                         {Number(book.google_rating).toFixed(1)}
@@ -1077,6 +1118,8 @@ function Inventory() {
             onUnkeep={handleUnkeep}
             onPullToRead={handlePullToRead}
             onReturnFromPull={handleReturnFromPull}
+            onMarkBlindDate={handleMarkBlindDate}
+            onUnmarkBlindDate={handleUnmarkBlindDate}
           />
         )}
       </Modal>

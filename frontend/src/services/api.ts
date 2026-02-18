@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Book, BookFilters, BookStats, EnrichmentStatus, EnrichmentResult, BatchEnrichmentProgress, SubgenreOption, GeminiTagResult, GeminiBatchProgress, GeminiTaggingStatus, BulkSaleRequest, BulkPriceRequest, UpdateTransactionRequest, Transaction } from '../types/Book';
+import { Book, BookFilters, BookStats, EnrichmentStatus, EnrichmentResult, BatchEnrichmentProgress, SubgenreOption, GeminiTagResult, GeminiBatchProgress, GeminiTaggingStatus, BulkSaleRequest, BulkPriceRequest, UpdateTransactionRequest, Transaction, BlindDateBlurbResult, BlindDateBatchProgress } from '../types/Book';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -138,6 +138,42 @@ export const bookApi = {
 
   getTransactions: async (filters?: { sale_event?: string; date_sold?: string; payment_method?: string }): Promise<Transaction[]> => {
     const { data } = await api.get('/books/transactions', { params: filters });
+    return data;
+  },
+
+  // Blind Date
+  getBlindDateCandidates: async (limit: number = 20): Promise<Book[]> => {
+    const { data } = await api.get('/books/blind-date/candidates', { params: { limit } });
+    return data;
+  },
+
+  markBlindDate: async (bookIds: number[]): Promise<Book[]> => {
+    const { data } = await api.post('/books/blind-date/mark', { book_ids: bookIds });
+    return data;
+  },
+
+  unmarkBlindDate: async (bookIds: number[]): Promise<Book[]> => {
+    const { data } = await api.post('/books/blind-date/unmark', { book_ids: bookIds });
+    return data;
+  },
+
+  generateBlurb: async (bookId: number): Promise<BlindDateBlurbResult> => {
+    const { data } = await api.post('/books/blind-date/generate-blurb', { book_id: bookId });
+    return data;
+  },
+
+  startBatchBlurbs: async (limit: number = 10): Promise<{ message: string }> => {
+    const { data } = await api.post('/books/blind-date/batch-blurbs', { limit });
+    return data;
+  },
+
+  getBatchBlurbProgress: async (): Promise<BlindDateBatchProgress> => {
+    const { data } = await api.get('/books/blind-date/batch-blurbs/progress');
+    return data;
+  },
+
+  cancelBatchBlurbs: async (): Promise<{ message: string }> => {
+    const { data } = await api.post('/books/blind-date/batch-blurbs/cancel');
     return data;
   },
 };
