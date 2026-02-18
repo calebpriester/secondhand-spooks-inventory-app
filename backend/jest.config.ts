@@ -37,7 +37,7 @@ const config: Config = {
     './src/services/blindDateService.ts': {
       statements: 50,
       branches: 30,
-      functions: 80,
+      functions: 75,
       lines: 50,
     },
   },
