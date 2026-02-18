@@ -7,6 +7,7 @@ import BookForm from '../components/BookForm';
 import BookDetail from '../components/BookDetail';
 import BulkSaleModal from '../components/BulkSaleModal';
 import BulkPriceModal from '../components/BulkPriceModal';
+import InlinePrice from '../components/InlinePrice';
 import { useIsMobile } from '../hooks/useIsMobile';
 import './Inventory.css';
 
@@ -278,6 +279,20 @@ function Inventory() {
       setSelectedBooksMap(new Map());
     },
   });
+
+  const quickPriceMutation = useMutation({
+    mutationFn: ({ bookId, price }: { bookId: number; price: number | null }) =>
+      bookApi.bulkSetPrice({ items: [{ book_id: bookId, our_price: price }] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['books'] });
+      queryClient.invalidateQueries({ queryKey: ['book'] });
+      queryClient.invalidateQueries({ queryKey: ['stats'] });
+    },
+  });
+
+  const handleQuickPrice = (bookId: number, price: number | null) => {
+    quickPriceMutation.mutate({ bookId, price });
+  };
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => bookApi.delete(id),
@@ -899,7 +914,12 @@ function Inventory() {
                     </span>
                     <span className="book-card-detail-label">Our Price</span>
                     <span className="book-card-detail-value">
-                      {book.our_price ? `$${Number(book.our_price).toFixed(2)}` : 'N/A'}
+                      <InlinePrice
+                        book={book}
+                        onSave={handleQuickPrice}
+                        isSaving={quickPriceMutation.isPending}
+                        disabled={!!book.sold || !!book.kept}
+                      />
                     </span>
                     <span className="book-card-detail-label">Source</span>
                     <span className="book-card-detail-value">{book.source || '-'}</span>
@@ -1090,7 +1110,14 @@ function Inventory() {
                         )}
                       </td>
                       <td>{book.purchase_price ? `$${Number(book.purchase_price).toFixed(2)}` : 'N/A'}</td>
-                      <td>{book.our_price ? `$${Number(book.our_price).toFixed(2)}` : 'N/A'}</td>
+                      <td>
+                        <InlinePrice
+                          book={book}
+                          onSave={handleQuickPrice}
+                          isSaving={quickPriceMutation.isPending}
+                          disabled={!!book.sold || !!book.kept}
+                        />
+                      </td>
                       <td className="source-cell">{book.source || '-'}</td>
                       <td className="cleaned-cell">
                         <input
@@ -1139,6 +1166,8 @@ function Inventory() {
             onReturnFromPull={handleReturnFromPull}
             onMarkBlindDate={handleMarkBlindDate}
             onUnmarkBlindDate={handleUnmarkBlindDate}
+            onSetPrice={handleQuickPrice}
+            isSettingPrice={quickPriceMutation.isPending}
           />
         )}
       </Modal>

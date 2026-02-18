@@ -1,0 +1,133 @@
+/* ===== Inline Price Component ===== */
+
+.inline-price-display {
+  color: #FFFFDC;
+}
+
+.inline-price-editable {
+  cursor: pointer;
+  border-bottom: 1px dashed #7C3AED;
+  transition: border-color 0.2s, color 0.2s;
+  width: fit-content;
+}
+
+.inline-price-editable:hover {
+  color: #7C3AED;
+  border-bottom-color: #7C3AED;
+}
+
+.inline-price-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.inline-price-input-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.inline-price-dollar {
+  color: #b8b8a0;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.inline-price-input {
+  width: 70px;
+  padding: 2px 4px;
+  border: 1px solid #7C3AED;
+  border-radius: 4px;
+  background: #1E1B1C;
+  color: #FFFFDC;
+  font-size: 0.85rem;
+  outline: none;
+  -moz-appearance: textfield;
+}
+
+.inline-price-input::-webkit-outer-spin-button,
+.inline-price-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.inline-price-input:focus {
+  border-color: #A78BFA;
+  box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.3);
+}
+
+.inline-price-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.75rem;
+  padding: 0;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.inline-price-confirm {
+  background: #7C3AED;
+  color: white;
+}
+
+.inline-price-confirm:hover {
+  background: #6D28D9;
+}
+
+.inline-price-confirm:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.inline-price-cancel {
+  background: #3d3839;
+  color: #b8b8a0;
+}
+
+.inline-price-cancel:hover {
+  background: #4d4849;
+  color: #FFFFDC;
+}
+
+.inline-price-hint {
+  font-size: 0.65rem;
+  color: #A78BFA;
+}
+
+.inline-price-warning {
+  font-size: 0.65rem;
+  color: #FF6B6B;
+}
+
+/* ===== Mobile Overrides ===== */
+@media (max-width: 768px) {
+  .inline-price-input {
+    font-size: 16px;
+    width: 80px;
+    padding: 4px 6px;
+  }
+
+  .inline-price-btn {
+    width: 32px;
+    height: 32px;
+    min-height: 44px;
+    min-width: 44px;
+    font-size: 0.85rem;
+  }
+
+  .inline-price-dollar {
+    font-size: 1rem;
+  }
+
+  .inline-price-hint,
+  .inline-price-warning {
+    font-size: 0.75rem;
+  }
+}
