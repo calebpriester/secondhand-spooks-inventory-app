@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { bookApi } from '../services/api';
 import './BatchEnrichment.css';
@@ -36,11 +36,18 @@ function BatchEnrichment() {
     },
   });
 
-  // Refresh book list when batch finishes
-  const wasRunning = progress?.is_running;
-  if (wasRunning === false && progress && progress.processed > 0) {
-    // Only invalidate once when it transitions from running to done
-  }
+  // Refresh book list when batch transitions from running to done
+  const wasRunning = useRef(false);
+  useEffect(() => {
+    if (progress?.is_running) {
+      wasRunning.current = true;
+    } else if (wasRunning.current && progress && !progress.is_running) {
+      wasRunning.current = false;
+      queryClient.invalidateQueries({ queryKey: ['books'] });
+      queryClient.invalidateQueries({ queryKey: ['enrichmentStatus'] });
+      queryClient.invalidateQueries({ queryKey: ['stats'] });
+    }
+  }, [progress?.is_running]);
 
   if (!status?.configured) {
     return (

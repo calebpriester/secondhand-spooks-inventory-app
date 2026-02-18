@@ -217,18 +217,28 @@ function BlindDate() {
     });
   };
 
-  const handleDetailMarkBlindDate = (bookId: number) => {
-    bookApi.markBlindDate([bookId]).then(() => {
+  const detailMarkBlindDateMutation = useMutation({
+    mutationFn: (bookId: number) => bookApi.markBlindDate([bookId]),
+    onSuccess: (_data, bookId) => {
       invalidateAll();
       queryClient.invalidateQueries({ queryKey: ['book', bookId] });
-    });
+    },
+  });
+
+  const detailUnmarkBlindDateMutation = useMutation({
+    mutationFn: (bookId: number) => bookApi.unmarkBlindDate([bookId]),
+    onSuccess: (_data, bookId) => {
+      invalidateAll();
+      queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+    },
+  });
+
+  const handleDetailMarkBlindDate = (bookId: number) => {
+    detailMarkBlindDateMutation.mutate(bookId);
   };
 
   const handleDetailUnmarkBlindDate = (bookId: number) => {
-    bookApi.unmarkBlindDate([bookId]).then(() => {
-      invalidateAll();
-      queryClient.invalidateQueries({ queryKey: ['book', bookId] });
-    });
+    detailUnmarkBlindDateMutation.mutate(bookId);
   };
 
   const handleAddCandidate = (book: Book) => {
@@ -254,9 +264,15 @@ function BlindDate() {
   };
 
   const handleSaveBlurb = (bookId: number) => {
-    updateBookMutation.mutate({ id: bookId, updates: { blind_date_blurb: blurbDraft } });
-    setEditingBlurb(null);
-    setBlurbDraft('');
+    updateBookMutation.mutate(
+      { id: bookId, updates: { blind_date_blurb: blurbDraft } },
+      {
+        onSuccess: () => {
+          setEditingBlurb(null);
+          setBlurbDraft('');
+        },
+      },
+    );
   };
 
   const handleNumberChange = (bookId: number, value: string) => {

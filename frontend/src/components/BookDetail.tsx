@@ -362,7 +362,6 @@ const BookDetail: React.FC<BookDetailProps> = ({ book, onClose, onEdit, onEnrich
                     payment_method: paymentMethod,
                     sale_transaction_id: crypto.randomUUID(),
                   });
-                  setShowSaleForm(false);
                 }
               }}
               disabled={isMarkingSold || !salePrice}

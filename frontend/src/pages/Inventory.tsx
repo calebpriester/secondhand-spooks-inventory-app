@@ -11,6 +11,35 @@ import InlinePrice from '../components/InlinePrice';
 import { useIsMobile } from '../hooks/useIsMobile';
 import './Inventory.css';
 
+function getStockStatusValue(filters: BookFilters): string {
+  if (filters.blind_date) return 'blind_date';
+  if (filters.blind_date_candidate) return 'blind_date_candidate';
+  if (filters.missing_price) return 'missing_price';
+  if (filters.pulled_to_read) return 'pulled_to_read';
+  if (filters.kept === true && filters.sold === undefined) return 'kept';
+  if (filters.sold === undefined && filters.kept === undefined) return '';
+  if (filters.sold) return 'sold';
+  return 'available';
+}
+
+function applyStockStatus(filters: BookFilters, val: string): BookFilters {
+  const next = { ...filters };
+  delete next.sold;
+  delete next.kept;
+  delete next.missing_price;
+  delete next.pulled_to_read;
+  delete next.blind_date;
+  delete next.blind_date_candidate;
+  if (val === 'sold') { next.sold = true; }
+  else if (val === 'available') { next.sold = false; next.kept = false; }
+  else if (val === 'missing_price') { next.sold = false; next.kept = false; next.missing_price = true; }
+  else if (val === 'pulled_to_read') { next.sold = false; next.kept = false; next.pulled_to_read = true; }
+  else if (val === 'kept') { next.kept = true; }
+  else if (val === 'blind_date') { next.blind_date = true; next.sold = false; }
+  else if (val === 'blind_date_candidate') { next.blind_date_candidate = true; }
+  return next;
+}
+
 interface FilterDrawerProps {
   filters: BookFilters;
   subgenreOptions: { id: number; name: string }[] | undefined;
@@ -22,32 +51,12 @@ interface FilterDrawerProps {
 function FilterDrawer({ filters, subgenreOptions, onApply, onClear, onClose }: FilterDrawerProps) {
   const [draft, setDraft] = useState<BookFilters>({ ...filters });
 
-  const draftStockStatus = draft.blind_date ? 'blind_date' :
-    draft.blind_date_candidate ? 'blind_date_candidate' :
-    draft.missing_price ? 'missing_price' :
-    draft.pulled_to_read ? 'pulled_to_read' :
-    draft.kept === true && draft.sold === undefined ? 'kept' :
-    draft.sold === undefined && draft.kept === undefined ? '' :
-    draft.sold ? 'sold' : 'available';
+  const draftStockStatus = getStockStatusValue(draft);
   const draftViewingSold = draft.sold === true && !draft.missing_price;
   const draftViewingKept = draft.kept === true && draft.sold === undefined;
 
   const handleStockStatusChange = (val: string) => {
-    const next = { ...draft };
-    delete next.sold;
-    delete next.kept;
-    delete next.missing_price;
-    delete next.pulled_to_read;
-    delete next.blind_date;
-    delete next.blind_date_candidate;
-    if (val === 'sold') { next.sold = true; }
-    else if (val === 'available') { next.sold = false; next.kept = false; }
-    else if (val === 'missing_price') { next.sold = false; next.kept = false; next.missing_price = true; }
-    else if (val === 'pulled_to_read') { next.sold = false; next.kept = false; next.pulled_to_read = true; }
-    else if (val === 'kept') { next.kept = true; }
-    else if (val === 'blind_date') { next.blind_date = true; next.sold = false; }
-    else if (val === 'blind_date_candidate') { next.blind_date_candidate = true; }
-    setDraft(next);
+    setDraft(applyStockStatus(draft, val));
   };
 
   const handleDraftFilterChange = (key: keyof BookFilters, value: string) => {
@@ -202,7 +211,6 @@ function Inventory() {
   const [isBulkPriceOpen, setIsBulkPriceOpen] = useState(false);
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
-  const [selectedBooksMap, setSelectedBooksMap] = useState<Map<number, Book>>(new Map());
   const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
 
   const isMobile = useIsMobile();
@@ -265,8 +273,7 @@ function Inventory() {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       setIsBulkSaleOpen(false);
       setSelectedIds(new Set());
-      setSelectedBooksMap(new Map());
-    },
+          },
   });
 
   const bulkPriceMutation = useMutation({
@@ -276,8 +283,7 @@ function Inventory() {
       queryClient.invalidateQueries({ queryKey: ['stats'] });
       setIsBulkPriceOpen(false);
       setSelectedIds(new Set());
-      setSelectedBooksMap(new Map());
-    },
+          },
   });
 
   const quickPriceMutation = useMutation({
@@ -339,8 +345,7 @@ function Inventory() {
     setFilters({ sold: false, kept: false });
     setSearch('');
     setSelectedIds(new Set());
-    setSelectedBooksMap(new Map());
-  };
+      };
 
   const handleAddBook = () => {
     setSelectedBook(null);
@@ -447,23 +452,33 @@ function Inventory() {
     });
   };
 
-  const handleMarkBlindDate = (bookId: number) => {
-    bookApi.markBlindDate([bookId]).then(() => {
+  const markBlindDateMutation = useMutation({
+    mutationFn: (bookId: number) => bookApi.markBlindDate([bookId]),
+    onSuccess: (_data, bookId) => {
       queryClient.invalidateQueries({ queryKey: ['books'] });
       queryClient.invalidateQueries({ queryKey: ['stats'] });
       queryClient.invalidateQueries({ queryKey: ['book', bookId] });
-    });
+    },
+  });
+
+  const unmarkBlindDateMutation = useMutation({
+    mutationFn: (bookId: number) => bookApi.unmarkBlindDate([bookId]),
+    onSuccess: (_data, bookId) => {
+      queryClient.invalidateQueries({ queryKey: ['books'] });
+      queryClient.invalidateQueries({ queryKey: ['stats'] });
+      queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+    },
+  });
+
+  const handleMarkBlindDate = (bookId: number) => {
+    markBlindDateMutation.mutate(bookId);
   };
 
   const handleUnmarkBlindDate = (bookId: number) => {
-    bookApi.unmarkBlindDate([bookId]).then(() => {
-      queryClient.invalidateQueries({ queryKey: ['books'] });
-      queryClient.invalidateQueries({ queryKey: ['stats'] });
-      queryClient.invalidateQueries({ queryKey: ['book', bookId] });
-    });
+    unmarkBlindDateMutation.mutate(bookId);
   };
 
-  const toggleSelectBook = (bookId: number, book?: Book) => {
+  const toggleSelectBook = (bookId: number) => {
     // Save scroll position — iOS Safari aggressively scrolls on checkbox re-renders
     const scrollY = window.scrollY;
     setSelectedIds(prev => {
@@ -475,22 +490,14 @@ function Inventory() {
       }
       return next;
     });
-    setSelectedBooksMap(prev => {
-      const next = new Map(prev);
-      if (next.has(bookId)) {
-        next.delete(bookId);
-      } else if (book) {
-        next.set(bookId, book);
-      }
-      return next;
-    });
     // Restore scroll position after React re-render
     requestAnimationFrame(() => {
       window.scrollTo(0, scrollY);
     });
   };
 
-  const selectedBooks = Array.from(selectedBooksMap.values());
+  // Derive selected books from current query data so they're always fresh
+  const selectedBooks = (books || []).filter(b => b.id && selectedIds.has(b.id));
   const selectableBooks = books?.filter(b => !b.sold && !b.kept && b.id) || [];
   const allSelected = selectableBooks.length > 0 && selectedIds.size === selectableBooks.length;
 
@@ -503,13 +510,7 @@ function Inventory() {
 
   const currentSelectedBook = fetchedSelectedBook || selectedBook;
 
-  const stockStatusValue = filters.blind_date ? 'blind_date' :
-    filters.blind_date_candidate ? 'blind_date_candidate' :
-    filters.missing_price ? 'missing_price' :
-    filters.pulled_to_read ? 'pulled_to_read' :
-    filters.kept === true && filters.sold === undefined ? 'kept' :
-    filters.sold === undefined && filters.kept === undefined ? '' :
-    filters.sold ? 'sold' : 'available';
+  const stockStatusValue = getStockStatusValue(filters);
   const statusLabel = filters.blind_date ? 'blind date' :
     filters.blind_date_candidate ? 'blind date candidate' :
     filters.missing_price ? 'unpriced' :
@@ -639,7 +640,7 @@ function Inventory() {
                 Sell
               </button>
               <button
-                onClick={() => { setSelectedIds(new Set()); setSelectedBooksMap(new Map()); }}
+                onClick={() => { setSelectedIds(new Set()); }}
                 className="mobile-action-btn mobile-action-clear"
                 title="Clear selection"
               >
@@ -658,8 +659,7 @@ function Inventory() {
           onApply={(newFilters) => {
             setFilters(newFilters);
             setSelectedIds(new Set());
-            setSelectedBooksMap(new Map());
-            setIsFilterDrawerOpen(false);
+                        setIsFilterDrawerOpen(false);
           }}
           onClear={() => {
             clearFilters();
@@ -687,40 +687,9 @@ function Inventory() {
             <select
               value={stockStatusValue}
               onChange={(e) => {
-                const val = e.target.value;
-                const newFilters = { ...filters };
-                delete newFilters.sold;
-                delete newFilters.kept;
-                delete newFilters.missing_price;
-                delete newFilters.pulled_to_read;
-                delete newFilters.blind_date;
-                delete newFilters.blind_date_candidate;
-
-                if (val === 'sold') {
-                  newFilters.sold = true;
-                } else if (val === 'available') {
-                  newFilters.sold = false;
-                  newFilters.kept = false;
-                } else if (val === 'missing_price') {
-                  newFilters.sold = false;
-                  newFilters.kept = false;
-                  newFilters.missing_price = true;
-                } else if (val === 'pulled_to_read') {
-                  newFilters.sold = false;
-                  newFilters.kept = false;
-                  newFilters.pulled_to_read = true;
-                } else if (val === 'kept') {
-                  newFilters.kept = true;
-                } else if (val === 'blind_date') {
-                  newFilters.blind_date = true;
-                  newFilters.sold = false;
-                } else if (val === 'blind_date_candidate') {
-                  newFilters.blind_date_candidate = true;
-                }
-                setFilters(newFilters);
+                setFilters(applyStockStatus(filters, e.target.value));
                 setSelectedIds(new Set());
-                setSelectedBooksMap(new Map());
-              }}
+                              }}
               className="filter-select"
             >
               <option value="available">Available</option>
@@ -828,10 +797,8 @@ function Inventory() {
                   const scrollY = window.scrollY;
                   if (allSelected) {
                     setSelectedIds(new Set());
-                    setSelectedBooksMap(new Map());
                   } else {
                     setSelectedIds(new Set(selectableBooks.map(b => b.id!)));
-                    setSelectedBooksMap(new Map(selectableBooks.map(b => [b.id!, b])));
                   }
                   requestAnimationFrame(() => window.scrollTo(0, scrollY));
                 }}
@@ -847,7 +814,7 @@ function Inventory() {
                     type="checkbox"
                     className="book-select-checkbox"
                     checked={!!book.id && selectedIds.has(book.id)}
-                    onChange={() => book.id && toggleSelectBook(book.id, book)}
+                    onChange={() => book.id && toggleSelectBook(book.id)}
                   />
                 )}
                 {book.cover_image_url ? (
@@ -956,10 +923,8 @@ function Inventory() {
                           const scrollY = window.scrollY;
                           if (allSelected) {
                             setSelectedIds(new Set());
-                            setSelectedBooksMap(new Map());
                           } else {
                             setSelectedIds(new Set(selectableBooks.map(b => b.id!)));
-                            setSelectedBooksMap(new Map(selectableBooks.map(b => [b.id!, b])));
                           }
                           requestAnimationFrame(() => window.scrollTo(0, scrollY));
                         }}
@@ -1008,7 +973,7 @@ function Inventory() {
                         <input
                           type="checkbox"
                           checked={!!book.id && selectedIds.has(book.id)}
-                          onChange={() => book.id && toggleSelectBook(book.id, book)}
+                          onChange={() => book.id && toggleSelectBook(book.id)}
                         />
                       ) : book.sold ? (
                         <span className="badge badge-sold badge-sold-sm">SOLD</span>
