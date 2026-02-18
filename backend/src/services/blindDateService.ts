@@ -1,7 +1,7 @@
 import { query } from '../config/database';
 import { Book, BlindDateBlurbResult, BlindDateBatchProgress } from '../models/Book';
 
-const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 const RATE_LIMIT_DELAY_MS = 500;
 
 /** Build the Gemini prompt for generating a blind date blurb. Does NOT include title or author in the output instructions. */
@@ -16,6 +16,7 @@ export function buildBlurbPrompt(
   const parts: string[] = [
     `You write bullet points for "Blind Date with a Book" cards at a horror book booth called "Secondhand Spooks".`,
     `The book is wrapped — the customer reads your bullets to decide if they want it.`,
+    `Your job: help the customer know what kind of horror experience they're buying. Be honest, direct, and sell the vibe.`,
     ``,
     `Book info (for your reference only — do NOT reveal title, author, or character names):`,
   ];
@@ -34,24 +35,40 @@ export function buildBlurbPrompt(
   }
 
   parts.push('');
-  parts.push(`Write exactly 3-4 bullet points. Mix different types of hints: concrete story hooks (a key element, setting, or trope), genre/tone labels, and "fans of X will love this" comps.`);
-  parts.push(`Rules:`);
-  parts.push(`1. Each bullet is a SHORT fragment — 2-5 words. No full sentences. Think: labels on a tag, not a review`);
-  parts.push(`2. Be specific enough to be interesting but vague enough that you can't identify the book`);
-  parts.push(`3. Do NOT mention the title "${title}", the author "${author}", or any character names`);
-  parts.push(`4. At least one bullet should be a concrete story element (a setting, trope, or key detail). At least one should be a genre/tone label or reader comp`);
-  parts.push(`5. Format: return as a single string, each line starting with "• "`);
+  parts.push(`Write exactly 3-4 bullet points. Each bullet should be one of:`);
+  parts.push(`- A story hook or setting hint (where/what, not who)`);
+  parts.push(`- A genre or tone label that's honest about intensity`);
+  parts.push(`- An era or reputation callout if the book is notable ("'80s cult classic", "infamous banned novel")`);
+  parts.push(`- A vibe check — stacked adjectives that sell the reading experience`);
+  parts.push(`- A "fans of X" reader comp`);
   parts.push(``);
-  parts.push(`Examples of GOOD bullets (from other books — do NOT reuse these):`);
-  parts.push(`• twins`);
-  parts.push(`• tragic accident`);
-  parts.push(`• psychological thriller`);
+  parts.push(`Rules:`);
+  parts.push(`1. Each bullet is 2-5 words. Punchy fragments, not sentences`);
+  parts.push(`2. Be DIRECT about what the reader is getting — if it's brutal, weird, cozy, literary, or extreme, say so`);
+  parts.push(`3. Do NOT mention the title "${title}", the author "${author}", or any character names`);
+  parts.push(`4. Do NOT just restate the sub-genre labels or pacing verbatim — use them to understand the book, then write something more creative and specific`);
+  parts.push(`5. Write like a horror fan recommending to another horror fan — enthusiastic, honest, no hedging`);
+  parts.push(`6. Format: return as a single string, each line starting with "• "`);
+  parts.push(``);
+  parts.push(`Examples of GOOD bullets (from other books — do NOT copy these, write original ones):`);
+  parts.push(``);
+  parts.push(`For a splatterpunk survival novel:`);
+  parts.push(`• Remote getaway gone wrong`);
+  parts.push(`• Savage cannibal horror`);
+  parts.push(`• Infamous '80s shocker`);
+  parts.push(`• Fast, vicious, unforgettable`);
+  parts.push(``);
+  parts.push(`For a psychological thriller:`);
+  parts.push(`• Twins`);
+  parts.push(`• Tragic accident`);
+  parts.push(`• Psychological thriller`);
   parts.push(`• Girl on a Train fans`);
   parts.push(``);
-  parts.push(`Another example:`);
-  parts.push(`• remote cabin in the woods`);
-  parts.push(`• extreme survival horror`);
-  parts.push(`• relentless pacing`);
+  parts.push(`For a Gothic classic:`);
+  parts.push(`• Forbidden experiment gone wrong`);
+  parts.push(`• Gothic literary horror`);
+  parts.push(`• Slow-building existential dread`);
+  parts.push(`• Dracula fans`);
 
   return parts.join('\n');
 }

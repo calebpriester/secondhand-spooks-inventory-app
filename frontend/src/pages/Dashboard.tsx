@@ -185,7 +185,7 @@ function Dashboard() {
       {stats.blind_date && stats.blind_date.active_count > 0 && (
         <div className="stats-grid blind-date-stats-grid">
           <div className="stat-card stat-card-blind-date">
-            <h3>Blind Date Books</h3>
+            <h3>Blind Dates</h3>
             <p className="stat-value">{stats.blind_date.active_count}</p>
           </div>
           <div className="stat-card stat-card-blind-date">

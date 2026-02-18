@@ -67,23 +67,44 @@
 
 .filters {
   display: flex;
-  gap: 1rem;
+  gap: 0.5rem;
   flex-wrap: wrap;
+  align-items: center;
 }
 
 .filter-select {
-  padding: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  height: 36px;
   background-color: var(--surface);
   border: 1px solid var(--border);
   border-radius: 4px;
   color: var(--text);
-  font-size: 0.95rem;
+  font-size: 0.85rem;
   cursor: pointer;
 }
 
 .filter-select:focus {
   outline: none;
   border-color: var(--primary);
+}
+
+.filter-cleaned-toggle {
+  padding: 0.5rem 0.75rem;
+  height: 36px;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s, color 0.15s, background-color 0.15s;
+}
+
+.filter-cleaned-toggle.active {
+  border-color: var(--primary);
+  color: var(--primary);
+  background-color: rgba(0, 255, 163, 0.08);
 }
 
 .books-table-container {
@@ -637,6 +658,25 @@
 .filter-drawer-select:focus {
   outline: none;
   border-color: var(--primary);
+}
+
+.filter-drawer-cleaned-toggle {
+  width: 100%;
+  padding: 0.75rem;
+  height: 48px;
+  background-color: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-size: 16px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background-color 0.15s;
+}
+
+.filter-drawer-cleaned-toggle.active {
+  border-color: var(--primary);
+  color: var(--primary);
+  background-color: rgba(0, 255, 163, 0.08);
 }
 
 .filter-drawer-footer {

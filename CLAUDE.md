@@ -36,7 +36,7 @@ This is a full-stack inventory management system for **Secondhand Spooks**, a ho
 - **Database config**: `src/config/database.ts` - PostgreSQL connection
 - **Schema**: `src/config/schema.sql` - Database schema (682 books currently)
 - **Models**: `src/models/Book.ts` - TypeScript interfaces
-- **Services**: `src/services/bookService.ts` - Business logic (CRUD, stats, sales tracking, bulk sales, transactions, blind date management), `src/services/googleBooksService.ts` - Google Books API integration (enrichment, batch processing), `src/services/geminiService.ts` - Gemini 2.0 Flash integration (sub-genre tagging, pacing, batch processing), `src/services/blindDateService.ts` - Blind Date with a Book (Gemini blurb generation, candidate scoring, batch processing)
+- **Services**: `src/services/bookService.ts` - Business logic (CRUD, stats, sales tracking, bulk sales, transactions, blind date management), `src/services/googleBooksService.ts` - Google Books API integration (enrichment, batch processing), `src/services/geminiService.ts` - Gemini 2.5 Flash integration (sub-genre tagging, pacing, batch processing), `src/services/blindDateService.ts` - Blind Date with a Book (Gemini blurb generation, candidate scoring, batch processing)
 - **Routes**: `src/routes/bookRoutes.ts` - API endpoints (including enrichment + Gemini tagging), `src/routes/subgenreRoutes.ts` - Sub-genre options CRUD
 - **Utilities**: `src/utils/importCsv.ts` - CSV import logic, `src/utils/initDb.ts` - DB initialization, seeding, and migrations
 
@@ -115,7 +115,7 @@ Multiple books can share one enrichment row (duplicates don't waste API calls).
 - `PORT` — API port (default 3001)
 - `NODE_ENV` — 'production' or 'development'
 - `GOOGLE_BOOKS_API_KEY` — Google API key (optional, enables Google Books enrichment + Gemini sub-genre tagging)
-  - Same key works for both Google Books API and Gemini 2.0 Flash API
+  - Same key works for both Google Books API and Gemini 2.5 Flash API
   - Local: Set in `.env` file at project root (read by Docker Compose)
   - Railway: Set in Railway dashboard as environment variable
   - If not set, app works normally but enrichment and tagging are unavailable
@@ -209,12 +209,12 @@ docker compose ps
 ✅ Production deployment on Railway (auto-deploys from main)
 ✅ Mobile-responsive design (Issue #5 - closed) — Inventory page has sticky action bar (search + filter toggle + Price/Sell buttons always visible while scrolling), filter drawer (bottom-sheet modal for all filter dropdowns), no more scroll-to-top on checkbox selection
 ✅ Google Books API integration (cover images, ratings, descriptions, genres, ISBNs)
-✅ Gemini 2.0 Flash integration (sub-genre tagging, pacing classification, batch processing, configurable sub-genre list)
+✅ Gemini 2.5 Flash integration (sub-genre tagging, pacing classification, batch processing, configurable sub-genre list)
 ✅ Sales tracking (Issue #2): single-book mark-as-sold (inline form in BookDetail), bulk sales via checkbox selection + BulkSaleModal, transaction grouping (UUID sale_transaction_id), payment method (Cash/Card), event tagging with autocomplete, dedicated Sales page (`/sales`) with transaction-centric view (cover thumbnail strips, expandable details, filters by event/date/payment, inline edit mode for date/event/payment/per-book prices, full transaction revert), "View Transaction" link from BookDetail, Inventory sold view with sale-relevant columns, Dashboard sales stats (5 cards: Books Sold, Transactions, Total Revenue, Actual Profit, Avg Sale Price) + Sales by Event breakdown table
 ✅ Bulk price management (Issue #3): select books via checkboxes + BulkPriceModal (per-book or flat price modes, nullable pricing for clearing), select-all checkbox in table header + mobile, "Missing Price" filter in stock status dropdown, Dashboard "Need Pricing" alert (purple #7C3AED), pricing suggestions (2x cost rounded up, min $3, whole dollars), below-cost warnings, fill-suggested helper, auto-calculates profit_est, thriftbooks_price deprecated (column retained, removed from UI/forms)
 ✅ Pulled to Read & Kept Books: "Pull to Read" button in BookDetail moves book to reading pile (READING badge inline), "Keep" button on pulled books moves to permanent personal library (kept=true, removed from active inventory/value calculations), "Return to Inventory" reverses both states. Inventory stock status dropdown includes Pulled to Read and Kept filters. Kept view shows Date Kept, Purchase Price, Category columns. Dashboard shows Pulled to Read count, Books Kept count, and Total Kept Cost in Ghostly Blue (#6366F1) stats section. pulled_to_read and kept managed via action buttons (not edit form checkboxes).
 
-✅ Blind Date with a Book: Dedicated `/blind-date` page for managing wrapped mystery books for events. Mark books as blind date from BookDetail or candidate suggestions (excludes YA/Nostalgia category). AI blurb generation via Gemini 2.0 Flash (user-triggered only — no auto-generation). Manual number assignment for physical wrapping ID. Uses `our_price` for pricing (no separate blind date price). Batch blurb generation with progress polling. Inventory shows "Blind Date" badge (Deep Rose #E11D48) and filter options. Dashboard shows blind date stats when active. Candidate criteria: Very Good/Like New condition, non-YA, has enrichment + subgenre tags.
+✅ Blind Date with a Book: Dedicated `/blind-date` page for managing wrapped mystery books for events. Mark books as blind date from BookDetail or candidate suggestions (excludes YA/Nostalgia category). AI blurb generation via Gemini 2.5 Flash (user-triggered only — no auto-generation). Manual number assignment for physical wrapping ID. Uses `our_price` for pricing (no separate blind date price). Batch blurb generation with progress polling. Inventory shows "Blind Date" badge (Deep Rose #E11D48) and filter options. Dashboard shows blind date stats when active. Candidate criteria: Very Good/Like New condition, non-YA, has enrichment + subgenre tags.
 
 ### What's Missing (See GitHub Issues):
 ❌ Limited analytics (Issue #4)
@@ -271,7 +271,7 @@ docker compose ps
 - Future sources: add new table + FK + update view COALESCE (zero changes to existing code)
 
 ### Gemini Sub-Genre Tagging
-- Uses Gemini 2.0 Flash API with same `GOOGLE_BOOKS_API_KEY`
+- Uses Gemini 2.5 Flash API with same `GOOGLE_BOOKS_API_KEY`
 - Tags each book with 1-2 sub-genres from a configurable list + pacing (Slow Burn/Moderate/Fast-Paced)
 - Structured output with JSON schema + enum constraint — Gemini can ONLY return valid values
 - `subgenres TEXT[]` and `pacing VARCHAR(20)` stored directly on `books` table (included in view via `b.*`)
