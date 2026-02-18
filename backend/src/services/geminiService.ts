@@ -1,7 +1,7 @@
 import { query } from '../config/database';
 import { GeminiTagResult, GeminiBatchProgress } from '../models/Book';
 
-const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 const RATE_LIMIT_DELAY_MS = 500;
 export const PACING_OPTIONS = ['Slow Burn', 'Moderate', 'Fast-Paced'];
 
