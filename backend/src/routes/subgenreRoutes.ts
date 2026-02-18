@@ -37,10 +37,16 @@ router.post('/', async (req: Request, res: Response) => {
   }
 });
 
+function parseIdParam(raw: string): number | null {
+  const id = parseInt(raw, 10);
+  return Number.isNaN(id) || id <= 0 ? null : id;
+}
+
 // PUT /api/subgenres/:id - Update a sub-genre option
 router.put('/:id', async (req: Request, res: Response) => {
   try {
-    const id = parseInt(req.params.id);
+    const id = parseIdParam(req.params.id);
+    if (id === null) return res.status(400).json({ error: 'Invalid subgenre ID' });
     const { name, sort_order } = req.body;
 
     const result = await withTransaction(async (client) => {
@@ -86,7 +92,8 @@ router.put('/:id', async (req: Request, res: Response) => {
 // DELETE /api/subgenres/:id - Remove a sub-genre option
 router.delete('/:id', async (req: Request, res: Response) => {
   try {
-    const id = parseInt(req.params.id);
+    const id = parseIdParam(req.params.id);
+    if (id === null) return res.status(400).json({ error: 'Invalid subgenre ID' });
 
     const found = await withTransaction(async (client) => {
       const old = await client.query('SELECT name FROM subgenre_options WHERE id = $1', [id]);

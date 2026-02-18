@@ -252,6 +252,22 @@ async function runMigrations(): Promise<void> {
   // Always ensure FK index exists
   await query('CREATE INDEX IF NOT EXISTS idx_books_google_enrichment_id ON books(google_enrichment_id)');
 
+  // Ensure ON DELETE SET NULL on google_enrichment_id FK (existing DBs may have RESTRICT/NO ACTION)
+  await query(`
+    DO $$ BEGIN
+      IF EXISTS (
+        SELECT 1 FROM information_schema.referential_constraints
+        WHERE constraint_name = 'books_google_enrichment_id_fkey'
+        AND delete_rule != 'SET NULL'
+      ) THEN
+        ALTER TABLE books DROP CONSTRAINT books_google_enrichment_id_fkey;
+        ALTER TABLE books ADD CONSTRAINT books_google_enrichment_id_fkey
+          FOREIGN KEY (google_enrichment_id) REFERENCES google_books_enrichments(id)
+          ON DELETE SET NULL;
+      END IF;
+    END $$;
+  `);
+
   // --- Gemini sub-genre tagging migration ---
 
   // Ensure subgenre_options table exists

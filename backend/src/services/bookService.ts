@@ -150,6 +150,9 @@ export class BookService {
 
     Object.entries(book).forEach(([key, value]) => {
       if (value !== undefined && key !== 'id' && allowedColumns.has(key)) {
+        if (!/^[a-z_][a-z0-9_]*$/.test(key)) {
+          throw new Error(`Invalid column name: ${key}`);
+        }
         fields.push(`${key} = $${paramCount++}`);
         values.push(value);
       }
