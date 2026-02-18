@@ -1,4 +1,4 @@
-import { query } from '../config/database';
+import { query, QueryExecutor } from '../config/database';
 import { Book, BookFilters, BookStats, BulkSaleRequest, BulkPriceRequest, UpdateTransactionRequest, Transaction } from '../models/Book';
 
 export class BookService {
@@ -282,7 +282,9 @@ export class BookService {
     return result.rowCount || 0;
   }
 
-  async updateTransaction(request: UpdateTransactionRequest): Promise<number> {
+  async updateTransaction(request: UpdateTransactionRequest, executor?: QueryExecutor): Promise<number> {
+    const exec = executor ?? { query };
+
     // Update shared fields on all books in the transaction
     const sharedFields: string[] = [];
     const sharedParams: any[] = [];
@@ -303,7 +305,7 @@ export class BookService {
 
     if (sharedFields.length > 0) {
       sharedParams.push(request.sale_transaction_id);
-      await query(
+      await exec.query(
         `UPDATE books SET ${sharedFields.join(', ')} WHERE sale_transaction_id = $${paramCount}`,
         sharedParams
       );
@@ -313,7 +315,7 @@ export class BookService {
     if (request.items && request.items.length > 0) {
       const ids = request.items.map(i => i.book_id);
       const prices = request.items.map(i => i.sold_price);
-      await query(
+      await exec.query(
         `UPDATE books SET sold_price = v.price
          FROM unnest($1::int[], $2::numeric[]) AS v(id, price)
          WHERE books.id = v.id AND books.sale_transaction_id = $3`,
@@ -321,7 +323,7 @@ export class BookService {
       );
     }
 
-    const countResult = await query(
+    const countResult = await exec.query(
       'SELECT COUNT(*) as count FROM books WHERE sale_transaction_id = $1',
       [request.sale_transaction_id]
     );

@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import { withTransaction } from '../config/database';
 import { BookService } from '../services/bookService';
 import { GoogleBooksService } from '../services/googleBooksService';
 import { GeminiService } from '../services/geminiService';
@@ -300,13 +301,15 @@ router.post('/update-transaction', async (req: Request, res: Response) => {
     if (!sale_transaction_id) {
       return res.status(400).json({ error: 'sale_transaction_id is required' });
     }
-    const count = await bookService.updateTransaction({
-      sale_transaction_id,
-      date_sold,
-      sale_event,
-      payment_method,
-      items,
-    });
+    const count = await withTransaction((client) =>
+      bookService.updateTransaction({
+        sale_transaction_id,
+        date_sold,
+        sale_event,
+        payment_method,
+        items,
+      }, client)
+    );
     if (count === 0) {
       return res.status(404).json({ error: 'Transaction not found' });
     }
