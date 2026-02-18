@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { bookApi } from '../services/api';
 import { Book, BlindDateBatchProgress } from '../types/Book';
+import Modal from '../components/Modal';
+import BookDetail from '../components/BookDetail';
 import './BlindDate.css';
 
 function BlindDate() {
@@ -11,6 +13,8 @@ function BlindDate() {
   const [editingBlurb, setEditingBlurb] = useState<number | null>(null);
   const [blurbDraft, setBlurbDraft] = useState('');
   const [blurbError, setBlurbError] = useState<{ bookId: number; message: string } | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [selectedBook, setSelectedBook] = useState<Book | null>(null);
 
   // Active blind date books
   const { data: activeBooks = [], isLoading: loadingActive } = useQuery({
@@ -41,11 +45,36 @@ function BlindDate() {
     },
   });
 
+  // Fetch selected book fresh for BookDetail
+  const { data: fetchedSelectedBook } = useQuery({
+    queryKey: ['book', selectedBook?.id],
+    queryFn: () => bookApi.getById(selectedBook!.id!),
+    enabled: isDetailOpen && !!selectedBook?.id,
+  });
+  const currentSelectedBook = fetchedSelectedBook || selectedBook;
+
+  // Sale events for BookDetail
+  const { data: saleEvents = [] } = useQuery({
+    queryKey: ['saleEvents'],
+    queryFn: bookApi.getSaleEvents,
+  });
+
   const invalidateAll = () => {
     queryClient.invalidateQueries({ queryKey: ['books'] });
     queryClient.invalidateQueries({ queryKey: ['stats'] });
     queryClient.invalidateQueries({ queryKey: ['blindDateCandidates'] });
   };
+
+  // Refresh book list when batch completes
+  const wasRunning = useRef(false);
+  useEffect(() => {
+    if (batchProgress?.is_running) {
+      wasRunning.current = true;
+    } else if (wasRunning.current && batchProgress && !batchProgress.is_running) {
+      wasRunning.current = false;
+      invalidateAll();
+    }
+  }, [batchProgress?.is_running]);
 
   // Mutations
   const markMutation = useMutation({
@@ -101,6 +130,106 @@ function BlindDate() {
       queryClient.invalidateQueries({ queryKey: ['stats'] });
     },
   });
+
+  // Mutations for BookDetail actions
+  const enrichMutation = useMutation({
+    mutationFn: ({ id, title, author, isbn }: { id: number; title?: string; author?: string; isbn?: string }) =>
+      bookApi.enrichBook(id, title, author, isbn),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['books'] });
+      queryClient.invalidateQueries({ queryKey: ['book'] });
+    },
+  });
+
+  const tagMutation = useMutation({
+    mutationFn: (id: number) => bookApi.tagBookSubgenres(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['books'] });
+      queryClient.invalidateQueries({ queryKey: ['book'] });
+    },
+  });
+
+  const handleViewBook = (book: Book) => {
+    setSelectedBook(book);
+    setIsDetailOpen(true);
+  };
+
+  const handleCloseDetail = () => {
+    setIsDetailOpen(false);
+    setSelectedBook(null);
+  };
+
+  const handleEnrichBook = (bookId: number, title?: string, author?: string, isbn?: string) => {
+    enrichMutation.mutate({ id: bookId, title, author, isbn });
+  };
+
+  const handleMarkSold = (bookId: number, saleData: { sold_price: number; date_sold: string; sale_event?: string; payment_method: 'Cash' | 'Card'; sale_transaction_id: string }) => {
+    updateBookMutation.mutate({
+      id: bookId,
+      updates: {
+        sold: true,
+        sold_price: saleData.sold_price,
+        date_sold: saleData.date_sold,
+        sale_event: saleData.sale_event || null,
+        payment_method: saleData.payment_method,
+        sale_transaction_id: saleData.sale_transaction_id,
+      },
+    });
+  };
+
+  const handleMarkAvailable = (bookId: number) => {
+    updateBookMutation.mutate({
+      id: bookId,
+      updates: {
+        sold: false,
+        sold_price: null,
+        date_sold: null,
+        sale_event: null,
+        sale_transaction_id: null,
+        payment_method: null,
+      },
+    });
+  };
+
+  const handlePullToRead = (bookId: number) => {
+    updateBookMutation.mutate({ id: bookId, updates: { pulled_to_read: true } });
+  };
+
+  const handleReturnFromPull = (bookId: number) => {
+    updateBookMutation.mutate({ id: bookId, updates: { pulled_to_read: false } });
+  };
+
+  const handleMarkKept = (bookId: number) => {
+    updateBookMutation.mutate({
+      id: bookId,
+      updates: {
+        kept: true,
+        date_kept: new Date().toISOString().split('T')[0],
+        pulled_to_read: false,
+      },
+    });
+  };
+
+  const handleUnkeep = (bookId: number) => {
+    updateBookMutation.mutate({
+      id: bookId,
+      updates: { kept: false, date_kept: null },
+    });
+  };
+
+  const handleDetailMarkBlindDate = (bookId: number) => {
+    bookApi.markBlindDate([bookId]).then(() => {
+      invalidateAll();
+      queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+    });
+  };
+
+  const handleDetailUnmarkBlindDate = (bookId: number) => {
+    bookApi.unmarkBlindDate([bookId]).then(() => {
+      invalidateAll();
+      queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+    });
+  };
 
   const handleAddCandidate = (book: Book) => {
     if (book.id) {
@@ -246,6 +375,7 @@ function BlindDate() {
                 errorMessage={blurbError && blurbError.bookId === book.id ? blurbError.message : undefined}
                 onRemove={() => handleRemove(book)}
                 onNumberSave={(val) => handleNumberChange(book.id!, val)}
+                onViewBook={() => handleViewBook(book)}
               />
             ))}
           </div>
@@ -284,15 +414,28 @@ function BlindDate() {
             {candidates.map((book) => (
               <div key={book.id} className="blind-date-candidate-card">
                 {book.cover_image_url ? (
-                  <img src={book.cover_image_url} alt="" className="blind-date-book-cover" />
+                  <img
+                    src={book.cover_image_url}
+                    alt=""
+                    className="blind-date-book-cover blind-date-cover-clickable"
+                    onClick={() => handleViewBook(book)}
+                  />
                 ) : (
-                  <div className="blind-date-book-cover-placeholder" />
+                  <div
+                    className="blind-date-book-cover-placeholder blind-date-cover-clickable"
+                    onClick={() => handleViewBook(book)}
+                  />
                 )}
                 <div className="blind-date-candidate-info">
-                  <span className="blind-date-book-title">{book.book_title}</span>
+                  <span className="blind-date-book-title blind-date-title-clickable" onClick={() => handleViewBook(book)}>{book.book_title}</span>
                   <span className="blind-date-book-author">{book.author_fullname}</span>
                   <div className="blind-date-book-badges">
-                    {book.pulled_to_read && <span className="badge badge-reading">READING</span>}
+                    {book.pulled_to_read && !book.sold && !book.kept && <span className="badge badge-reading">READING</span>}
+                    {book.kept && <span className="badge badge-kept">KEPT</span>}
+                    {book.sold && <span className="badge badge-sold">SOLD</span>}
+                    {book.blind_date && !book.sold && (
+                      <span className="badge badge-blind-date">BLIND DATE{book.blind_date_number ? ` #${book.blind_date_number}` : ''}</span>
+                    )}
                     {book.condition && <span className="badge-condition">{book.condition}</span>}
                     {book.subgenres?.map((sg) => (
                       <span key={sg} className="badge-subgenre">{sg}</span>
@@ -313,6 +456,31 @@ function BlindDate() {
           </div>
         )}
       </div>
+
+      {/* Book Detail Modal */}
+      <Modal isOpen={isDetailOpen} onClose={handleCloseDetail}>
+        {currentSelectedBook && (
+          <BookDetail
+            book={currentSelectedBook}
+            onClose={handleCloseDetail}
+            onEdit={() => {}}
+            onEnrich={handleEnrichBook}
+            isEnriching={enrichMutation.isPending}
+            onTagSubgenres={(id: number) => tagMutation.mutate(id)}
+            isTagging={tagMutation.isPending}
+            onMarkSold={handleMarkSold}
+            isMarkingSold={updateBookMutation.isPending}
+            saleEvents={saleEvents}
+            onMarkAvailable={handleMarkAvailable}
+            onMarkKept={handleMarkKept}
+            onUnkeep={handleUnkeep}
+            onPullToRead={handlePullToRead}
+            onReturnFromPull={handleReturnFromPull}
+            onMarkBlindDate={handleDetailMarkBlindDate}
+            onUnmarkBlindDate={handleDetailUnmarkBlindDate}
+          />
+        )}
+      </Modal>
     </div>
   );
 }
@@ -330,6 +498,7 @@ function ActiveBookCard({
   errorMessage,
   onRemove,
   onNumberSave,
+  onViewBook,
 }: {
   book: Book;
   isEditingBlurb: boolean;
@@ -343,6 +512,7 @@ function ActiveBookCard({
   errorMessage?: string;
   onRemove: () => void;
   onNumberSave: (val: string) => void;
+  onViewBook: () => void;
 }) {
   const [localNumber, setLocalNumber] = useState(book.blind_date_number || '');
   const numberChanged = localNumber !== (book.blind_date_number || '');
@@ -350,15 +520,29 @@ function ActiveBookCard({
   return (
     <div className="blind-date-book-card">
       {book.cover_image_url ? (
-        <img src={book.cover_image_url} alt="" className="blind-date-book-cover" />
+        <img
+          src={book.cover_image_url}
+          alt=""
+          className="blind-date-book-cover blind-date-cover-clickable"
+          onClick={onViewBook}
+        />
       ) : (
-        <div className="blind-date-book-cover-placeholder" />
+        <div
+          className="blind-date-book-cover-placeholder blind-date-cover-clickable"
+          onClick={onViewBook}
+        />
       )}
       <div className="blind-date-book-info">
-        <span className="blind-date-book-title">{book.book_title}</span>
+        <span className="blind-date-book-title blind-date-title-clickable" onClick={onViewBook}>{book.book_title}</span>
         <span className="blind-date-book-author">{book.author_fullname}</span>
 
         <div className="blind-date-book-badges">
+          {book.pulled_to_read && !book.sold && !book.kept && <span className="badge badge-reading">READING</span>}
+          {book.kept && <span className="badge badge-kept">KEPT</span>}
+          {book.sold && <span className="badge badge-sold">SOLD</span>}
+          {book.blind_date && !book.sold && (
+            <span className="badge badge-blind-date">BLIND DATE{book.blind_date_number ? ` #${book.blind_date_number}` : ''}</span>
+          )}
           {book.condition && <span className="badge-condition">{book.condition}</span>}
           {book.subgenres?.map((sg) => (
             <span key={sg} className="badge-subgenre">{sg}</span>

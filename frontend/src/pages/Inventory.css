@@ -1,3 +1,39 @@
+/* ===== Custom Checkboxes ===== */
+.inventory input[type="checkbox"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 1.2rem;
+  height: 1.2rem;
+  border: 2px solid #3d3839;
+  border-radius: 4px;
+  background-color: #1E1B1C;
+  cursor: pointer;
+  position: relative;
+  transition: border-color 0.2s, background-color 0.2s;
+  flex-shrink: 0;
+}
+
+.inventory input[type="checkbox"]:hover {
+  border-color: #00FFA3;
+}
+
+.inventory input[type="checkbox"]:checked {
+  background-color: #00FFA3;
+  border-color: #00FFA3;
+}
+
+.inventory input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 0px;
+  width: 5px;
+  height: 10px;
+  border: solid #1E1B1C;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
 .inventory {
   padding: 1rem;
 }
@@ -35,7 +71,6 @@
 }
 
 .mobile-select-all input[type="checkbox"] {
-  accent-color: var(--success);
   width: 1.5rem;
   height: 1.5rem;
 }
@@ -138,6 +173,16 @@
   border-bottom: 1px solid var(--border);
 }
 
+.books-table th:first-child,
+.books-table td:first-child {
+  padding-left: 1rem;
+}
+
+.books-table th:last-child,
+.books-table td:last-child {
+  padding-right: 1rem;
+}
+
 .books-table tr:hover {
   background-color: rgba(0, 255, 163, 0.08);
 }
@@ -153,6 +198,32 @@
 }
 
 .cover-clickable:hover {
+  opacity: 0.75;
+}
+
+.title-clickable {
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.title-clickable:hover {
+  color: #00FFA3;
+}
+
+/* Highlight title when hovering cover, and dim cover when hovering title */
+.book-card-content:hover .title-clickable {
+  color: #00FFA3;
+}
+
+.book-card-content:hover .book-card-cover-clickable {
+  opacity: 0.75;
+}
+
+.books-table tr:hover .title-clickable {
+  color: #00FFA3;
+}
+
+.books-table tr:hover .cover-clickable {
   opacity: 0.75;
 }
 
@@ -229,13 +300,12 @@
 
 .cleaned-cell {
   text-align: center;
+  vertical-align: middle;
 }
 
 .cleaned-checkbox {
   width: 1.2rem;
   height: 1.2rem;
-  cursor: pointer;
-  accent-color: var(--success);
 }
 
 .btn-action {
@@ -446,21 +516,17 @@
 .select-cell {
   width: 36px;
   text-align: center;
+  vertical-align: middle;
 }
 
 .select-cell input[type="checkbox"] {
   width: 1.2rem;
   height: 1.2rem;
-  cursor: pointer;
-  accent-color: var(--success);
 }
 
 .book-select-checkbox {
   width: 1.2rem;
   height: 1.2rem;
-  cursor: pointer;
-  accent-color: var(--success);
-  flex-shrink: 0;
 }
 
 .sold-row {
@@ -885,5 +951,19 @@
     width: 1.5rem;
     height: 1.5rem;
     min-width: 1.5rem;
+  }
+
+  .book-select-checkbox:checked::after {
+    left: 4px;
+    top: 1px;
+    width: 6px;
+    height: 12px;
+  }
+
+  .mobile-select-all input[type="checkbox"]:checked::after {
+    left: 4px;
+    top: 1px;
+    width: 6px;
+    height: 12px;
   }
 }

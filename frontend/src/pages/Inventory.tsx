@@ -854,19 +854,12 @@ function Inventory() {
                 <div className="book-card-info">
                   <div className="book-card-header">
                     <span className="book-card-title">
-                      {book.book_title}
+                      <span className="title-clickable" onClick={() => handleViewBook(book)}>{book.book_title}</span>
                       {book.sold && <span className="badge badge-sold badge-sold-inline">SOLD</span>}
                       {book.kept && <span className="badge badge-kept badge-kept-inline">KEPT</span>}
                       {book.pulled_to_read && !book.sold && !book.kept && <span className="badge badge-reading badge-reading-inline">READING</span>}
                       {book.blind_date && !book.sold && <span className="badge badge-blind-date badge-blind-date-inline">BLIND DATE{book.blind_date_number ? ` #${book.blind_date_number}` : ''}</span>}
                     </span>
-                    <button
-                      onClick={() => handleEditBook(book)}
-                      className="btn btn-action"
-                      title="Edit book"
-                    >
-                      ✏️
-                    </button>
                   </div>
                   <div className="book-card-author">
                     {book.author_fullname}
@@ -984,7 +977,6 @@ function Inventory() {
                     <th>Cleaned</th>
                   </>
                 )}
-                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -1022,7 +1014,7 @@ function Inventory() {
                     )}
                   </td>
                   <td className="book-title">
-                    {book.book_title}
+                    <span className="title-clickable" onClick={() => handleViewBook(book)}>{book.book_title}</span>
                     {book.pulled_to_read && !book.sold && !book.kept && (
                       <span className="badge badge-reading badge-reading-inline">READING</span>
                     )}
@@ -1111,15 +1103,6 @@ function Inventory() {
                       </td>
                     </>
                   )}
-                  <td className="actions-cell">
-                    <button
-                      onClick={() => handleEditBook(book)}
-                      className="btn btn-action"
-                      title="Edit book"
-                    >
-                      ✏️
-                    </button>
-                  </td>
                 </tr>
               ))}
             </tbody>
