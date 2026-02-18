@@ -221,70 +221,55 @@ export class BookService {
   }
 
   async markBulkSold(request: BulkSaleRequest): Promise<Book[]> {
-    const results: Book[] = [];
-    for (const item of request.items) {
-      const result = await query(
-        `UPDATE books SET sold = true, sold_price = $1, date_sold = $2, sale_event = $3,
-         sale_transaction_id = $4, payment_method = $5
-         WHERE id = $6 RETURNING *`,
-        [
-          item.sold_price,
-          request.date_sold,
-          request.sale_event || null,
-          request.sale_transaction_id,
-          request.payment_method,
-          item.book_id,
-        ]
-      );
-      if (result.rows[0]) {
-        results.push(result.rows[0]);
-      }
-    }
-    return results;
+    const ids = request.items.map(i => i.book_id);
+    const prices = request.items.map(i => i.sold_price);
+    const result = await query(
+      `UPDATE books SET sold = true,
+         sold_price = v.price, date_sold = $3, sale_event = $4,
+         sale_transaction_id = $5, payment_method = $6
+       FROM unnest($1::int[], $2::numeric[]) AS v(id, price)
+       WHERE books.id = v.id
+       RETURNING *`,
+      [ids, prices, request.date_sold, request.sale_event || null,
+       request.sale_transaction_id, request.payment_method]
+    );
+    return result.rows;
   }
 
   async bulkSetPrice(request: BulkPriceRequest): Promise<Book[]> {
-    const results: Book[] = [];
-
     if (request.items && request.items.length > 0) {
-      for (const item of request.items) {
-        const result = await query(
-          `UPDATE books SET our_price = $1,
-           profit_est = CASE WHEN purchase_price IS NOT NULL THEN $1 - purchase_price ELSE NULL END
-           WHERE id = $2 RETURNING *`,
-          [item.our_price, item.book_id]
-        );
-        if (result.rows[0]) {
-          results.push(result.rows[0]);
-        }
-      }
+      const ids = request.items.map(i => i.book_id);
+      const prices = request.items.map(i => i.our_price);
+      const result = await query(
+        `UPDATE books SET our_price = v.price,
+         profit_est = CASE WHEN purchase_price IS NOT NULL AND v.price IS NOT NULL THEN v.price - purchase_price ELSE NULL END
+         FROM unnest($1::int[], $2::numeric[]) AS v(id, price)
+         WHERE books.id = v.id
+         RETURNING *`,
+        [ids, prices]
+      );
+      return result.rows;
     } else if (request.book_ids && request.book_ids.length > 0 && request.our_price !== undefined) {
-      for (const bookId of request.book_ids) {
-        const result = await query(
-          `UPDATE books SET our_price = $1,
-           profit_est = CASE WHEN purchase_price IS NOT NULL THEN $1 - purchase_price ELSE NULL END
-           WHERE id = $2 RETURNING *`,
-          [request.our_price, bookId]
-        );
-        if (result.rows[0]) {
-          results.push(result.rows[0]);
-        }
-      }
+      const result = await query(
+        `UPDATE books SET our_price = $1,
+         profit_est = CASE WHEN purchase_price IS NOT NULL THEN $1 - purchase_price ELSE NULL END
+         WHERE id = ANY($2::int[])
+         RETURNING *`,
+        [request.our_price, request.book_ids]
+      );
+      return result.rows;
     }
 
-    return results;
+    return [];
   }
 
   async bulkClearPrice(bookIds: number[]): Promise<number> {
-    let count = 0;
-    for (const bookId of bookIds) {
-      const result = await query(
-        'UPDATE books SET our_price = NULL, profit_est = NULL WHERE id = $1 RETURNING id',
-        [bookId]
-      );
-      if (result.rows[0]) count++;
-    }
-    return count;
+    if (bookIds.length === 0) return 0;
+    const result = await query(
+      'UPDATE books SET our_price = NULL, profit_est = NULL WHERE id = ANY($1::int[]) RETURNING id',
+      [bookIds]
+    );
+    return result.rowCount || 0;
   }
 
   async revertTransaction(saleTransactionId: string): Promise<number> {
@@ -326,12 +311,14 @@ export class BookService {
 
     // Update per-book sold_price
     if (request.items && request.items.length > 0) {
-      for (const item of request.items) {
-        await query(
-          'UPDATE books SET sold_price = $1 WHERE id = $2 AND sale_transaction_id = $3',
-          [item.sold_price, item.book_id, request.sale_transaction_id]
-        );
-      }
+      const ids = request.items.map(i => i.book_id);
+      const prices = request.items.map(i => i.sold_price);
+      await query(
+        `UPDATE books SET sold_price = v.price
+         FROM unnest($1::int[], $2::numeric[]) AS v(id, price)
+         WHERE books.id = v.id AND books.sale_transaction_id = $3`,
+        [ids, prices, request.sale_transaction_id]
+      );
     }
 
     const countResult = await query(
@@ -646,25 +633,20 @@ export class BookService {
   }
 
   async bulkMarkBlindDate(bookIds: number[], blindDate: boolean): Promise<Book[]> {
-    const results: Book[] = [];
-    for (const bookId of bookIds) {
-      let result;
-      if (blindDate) {
-        result = await query(
-          `UPDATE books SET blind_date = true WHERE id = $1 RETURNING *`,
-          [bookId]
-        );
-      } else {
-        result = await query(
-          `UPDATE books SET blind_date = false, blind_date_number = NULL,
-           blind_date_blurb = NULL WHERE id = $1 RETURNING *`,
-          [bookId]
-        );
-      }
-      if (result.rows[0]) {
-        results.push(result.rows[0]);
-      }
+    if (bookIds.length === 0) return [];
+    let result;
+    if (blindDate) {
+      result = await query(
+        `UPDATE books SET blind_date = true WHERE id = ANY($1::int[]) RETURNING *`,
+        [bookIds]
+      );
+    } else {
+      result = await query(
+        `UPDATE books SET blind_date = false, blind_date_number = NULL,
+         blind_date_blurb = NULL WHERE id = ANY($1::int[]) RETURNING *`,
+        [bookIds]
+      );
     }
-    return results;
+    return result.rows;
   }
 }

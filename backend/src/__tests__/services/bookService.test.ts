@@ -428,13 +428,11 @@ describe('BookService', () => {
   });
 
   describe('markBulkSold', () => {
-    it('updates multiple books as sold and returns results', async () => {
+    it('updates multiple books in a single batch query', async () => {
       const soldBook1 = { ...sampleBook, sold: true, sold_price: 8.00, date_sold: '2026-02-15' };
       const soldBook2 = { ...sampleBook2, sold: true, sold_price: 5.00, date_sold: '2026-02-15' };
 
-      mockQuery
-        .mockResolvedValueOnce(mockRows([soldBook1]))
-        .mockResolvedValueOnce(mockRows([soldBook2]));
+      mockQuery.mockResolvedValueOnce(mockRows([soldBook1, soldBook2]));
 
       const result = await service.markBulkSold({
         items: [
@@ -448,34 +446,12 @@ describe('BookService', () => {
       });
 
       expect(result).toHaveLength(2);
-      expect(mockQuery).toHaveBeenCalledTimes(2);
+      expect(mockQuery).toHaveBeenCalledTimes(1);
 
-      // Verify first call
-      const [sql1, params1] = mockQuery.mock.calls[0];
-      expect(sql1).toContain('UPDATE books SET sold = true');
-      expect(params1).toEqual([8.00, '2026-02-15', 'Flea Market', 'TX-001', 'Cash', 1]);
-
-      // Verify second call
-      const [, params2] = mockQuery.mock.calls[1];
-      expect(params2).toEqual([5.00, '2026-02-15', 'Flea Market', 'TX-001', 'Cash', 2]);
-    });
-
-    it('skips books that return no rows', async () => {
-      mockQuery
-        .mockResolvedValueOnce(mockRows([{ ...sampleBook, sold: true }]))
-        .mockResolvedValueOnce(mockRows([])); // book not found
-
-      const result = await service.markBulkSold({
-        items: [
-          { book_id: 1, sold_price: 8.00 },
-          { book_id: 999, sold_price: 5.00 },
-        ],
-        date_sold: '2026-02-15',
-        sale_transaction_id: 'TX-002',
-        payment_method: 'Card',
-      });
-
-      expect(result).toHaveLength(1);
+      const [sql, params] = mockQuery.mock.calls[0];
+      expect(sql).toContain('UPDATE books SET sold = true');
+      expect(sql).toContain('unnest($1::int[], $2::numeric[])');
+      expect(params).toEqual([[1, 2], [8.00, 5.00], '2026-02-15', 'Flea Market', 'TX-001', 'Cash']);
     });
 
     it('passes null for optional sale_event when not provided', async () => {
@@ -489,7 +465,7 @@ describe('BookService', () => {
       });
 
       const [, params] = mockQuery.mock.calls[0];
-      expect(params![2]).toBeNull(); // sale_event should be null
+      expect(params![3]).toBeNull(); // sale_event should be null
     });
   });
 
@@ -625,10 +601,9 @@ describe('BookService', () => {
       expect(params).toContain('tx-123');
     });
 
-    it('updates per-book prices', async () => {
+    it('updates per-book prices in a single batch query', async () => {
       mockQuery.mockResolvedValueOnce(mockRows([])); // shared fields UPDATE
-      mockQuery.mockResolvedValueOnce(mockRows([])); // item 1 UPDATE
-      mockQuery.mockResolvedValueOnce(mockRows([])); // item 2 UPDATE
+      mockQuery.mockResolvedValueOnce(mockRows([])); // batch per-book UPDATE
       mockQuery.mockResolvedValueOnce(mockRows([{ count: '2' }])); // count query
 
       await service.updateTransaction({
@@ -640,10 +615,11 @@ describe('BookService', () => {
         ],
       });
 
-      // calls[1] and calls[2] are the per-book updates
-      expect(mockQuery.mock.calls[1][0]).toContain('UPDATE books SET sold_price');
-      expect(mockQuery.mock.calls[1][1]).toEqual([5.00, 1, 'tx-123']);
-      expect(mockQuery.mock.calls[2][1]).toEqual([3.00, 2, 'tx-123']);
+      // calls[1] is the batch per-book update using unnest
+      const [sql, params] = mockQuery.mock.calls[1];
+      expect(sql).toContain('UPDATE books SET sold_price');
+      expect(sql).toContain('unnest($1::int[], $2::numeric[])');
+      expect(params).toEqual([[1, 2], [5.00, 3.00], 'tx-123']);
     });
 
     it('skips shared fields update when none provided', async () => {
@@ -713,13 +689,11 @@ describe('BookService', () => {
   });
 
   describe('bulkSetPrice', () => {
-    it('updates per-book prices and auto-calculates profit_est', async () => {
+    it('updates per-book prices in a single batch query using unnest', async () => {
       const updatedBook1 = { ...sampleBook, our_price: 10.00, profit_est: 6.01 };
       const updatedBook2 = { ...sampleBook2, our_price: 7.00, profit_est: 5.50 };
 
-      mockQuery
-        .mockResolvedValueOnce(mockRows([updatedBook1]))
-        .mockResolvedValueOnce(mockRows([updatedBook2]));
+      mockQuery.mockResolvedValueOnce(mockRows([updatedBook1, updatedBook2]));
 
       const result = await service.bulkSetPrice({
         items: [
@@ -729,24 +703,20 @@ describe('BookService', () => {
       });
 
       expect(result).toHaveLength(2);
-      expect(mockQuery).toHaveBeenCalledTimes(2);
+      expect(mockQuery).toHaveBeenCalledTimes(1);
 
-      const [sql1, params1] = mockQuery.mock.calls[0];
-      expect(sql1).toContain('UPDATE books SET our_price = $1');
-      expect(sql1).toContain('profit_est');
-      expect(params1).toEqual([10.00, 1]);
-
-      const [, params2] = mockQuery.mock.calls[1];
-      expect(params2).toEqual([7.00, 2]);
+      const [sql, params] = mockQuery.mock.calls[0];
+      expect(sql).toContain('UPDATE books SET our_price');
+      expect(sql).toContain('profit_est');
+      expect(sql).toContain('unnest($1::int[], $2::numeric[])');
+      expect(params).toEqual([[1, 2], [10.00, 7.00]]);
     });
 
-    it('updates flat price for all specified book_ids', async () => {
+    it('updates flat price for all specified book_ids in a single query', async () => {
       const updatedBook1 = { ...sampleBook, our_price: 5.00 };
       const updatedBook2 = { ...sampleBook2, our_price: 5.00 };
 
-      mockQuery
-        .mockResolvedValueOnce(mockRows([updatedBook1]))
-        .mockResolvedValueOnce(mockRows([updatedBook2]));
+      mockQuery.mockResolvedValueOnce(mockRows([updatedBook1, updatedBook2]));
 
       const result = await service.bulkSetPrice({
         book_ids: [1, 2],
@@ -754,27 +724,12 @@ describe('BookService', () => {
       });
 
       expect(result).toHaveLength(2);
-      expect(mockQuery).toHaveBeenCalledTimes(2);
+      expect(mockQuery).toHaveBeenCalledTimes(1);
 
-      const [sql1, params1] = mockQuery.mock.calls[0];
-      expect(sql1).toContain('UPDATE books SET our_price = $1');
-      expect(params1).toEqual([5.00, 1]);
-      expect(mockQuery.mock.calls[1][1]).toEqual([5.00, 2]);
-    });
-
-    it('skips books that return no rows', async () => {
-      mockQuery
-        .mockResolvedValueOnce(mockRows([{ ...sampleBook, our_price: 5.00 }]))
-        .mockResolvedValueOnce(mockRows([]));
-
-      const result = await service.bulkSetPrice({
-        items: [
-          { book_id: 1, our_price: 5.00 },
-          { book_id: 999, our_price: 5.00 },
-        ],
-      });
-
-      expect(result).toHaveLength(1);
+      const [sql, params] = mockQuery.mock.calls[0];
+      expect(sql).toContain('UPDATE books SET our_price = $1');
+      expect(sql).toContain('ANY($2::int[])');
+      expect(params).toEqual([5.00, [1, 2]]);
     });
 
     it('returns empty array when neither items nor book_ids provided', async () => {
@@ -786,19 +741,18 @@ describe('BookService', () => {
   });
 
   describe('bulkClearPrice', () => {
-    it('clears our_price and profit_est for each book', async () => {
-      mockQuery
-        .mockResolvedValueOnce(mockRows([{ id: 1 }]))
-        .mockResolvedValueOnce(mockRows([{ id: 2 }]));
+    it('clears our_price and profit_est in a single batch query', async () => {
+      mockQuery.mockResolvedValueOnce(mockRows([{ id: 1 }, { id: 2 }], 2));
 
       const result = await service.bulkClearPrice([1, 2]);
 
       expect(result).toBe(2);
-      expect(mockQuery).toHaveBeenCalledTimes(2);
+      expect(mockQuery).toHaveBeenCalledTimes(1);
 
       const [sql, params] = mockQuery.mock.calls[0];
       expect(sql).toContain('UPDATE books SET our_price = NULL, profit_est = NULL');
-      expect(params).toEqual([1]);
+      expect(sql).toContain('ANY($1::int[])');
+      expect(params).toEqual([[1, 2]]);
     });
 
     it('returns 0 for empty array', async () => {
