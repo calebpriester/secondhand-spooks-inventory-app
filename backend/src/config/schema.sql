@@ -76,6 +76,9 @@ CREATE INDEX IF NOT EXISTS idx_books_book_series ON books(book_series);
 -- Note: idx_books_subgenres GIN index is created by runMigrations() in initDb.ts
 -- (handles both fresh and existing databases safely, after column is ensured)
 
+-- Note: blind_date columns (blind_date, blind_date_number, blind_date_blurb)
+-- and idx_books_blind_date are created by runMigrations() in initDb.ts
+
 -- Note: google_enrichment_id index, books_with_enrichment view, and
 -- google_books_enrichments trigger are created by runMigrations() in initDb.ts
 -- (handles both fresh and migrated databases safely)

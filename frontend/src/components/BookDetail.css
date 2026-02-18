@@ -236,6 +236,8 @@
   border-top: 2px solid #00FFA3;
   background: linear-gradient(135deg, #1E1B1C 0%, #2a2627 100%);
   flex-shrink: 0;
+  overflow: visible;
+  flex-wrap: wrap;
 }
 
 /* Custom search in footer */
@@ -312,7 +314,7 @@
 .enrich-dropdown {
   position: absolute;
   bottom: 100%;
-  left: 0;
+  right: 0;
   margin-bottom: 0.5rem;
   background-color: #2a2627;
   border: 1px solid #3d3839;
@@ -394,6 +396,34 @@
 }
 
 /* === Sale Info Section === */
+.book-detail-blind-date-info {
+  padding-top: 1.5rem;
+  border-top: 1px solid #3d3839;
+  margin-top: 1.5rem;
+}
+
+.book-detail-blind-date-info h3 {
+  color: #E11D48;
+  font-size: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.btn-blind-date-action {
+  background-color: #E11D48 !important;
+  border-color: #E11D48 !important;
+  color: white !important;
+}
+
+.btn-blind-date-action:hover {
+  background-color: #BE123C !important;
+}
+
+.badge-blind-date {
+  background-color: #E11D48;
+  color: white;
+  font-weight: 600;
+}
+
 .book-detail-sale-info {
   padding-top: 1.5rem;
   border-top: 1px solid #3d3839;

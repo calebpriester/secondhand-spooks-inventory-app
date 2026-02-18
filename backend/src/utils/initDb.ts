@@ -312,6 +312,12 @@ async function runMigrations(): Promise<void> {
   await query('CREATE INDEX IF NOT EXISTS idx_books_sold ON books(sold)');
   await query('CREATE INDEX IF NOT EXISTS idx_books_sale_transaction_id ON books(sale_transaction_id)');
 
+  // --- Blind Date with a Book migration ---
+  await query('ALTER TABLE books ADD COLUMN IF NOT EXISTS blind_date BOOLEAN DEFAULT FALSE');
+  await query('ALTER TABLE books ADD COLUMN IF NOT EXISTS blind_date_number VARCHAR(20)');
+  await query('ALTER TABLE books ADD COLUMN IF NOT EXISTS blind_date_blurb TEXT');
+  await query('CREATE INDEX IF NOT EXISTS idx_books_blind_date ON books(blind_date)');
+
   // Drop and recreate the view (CREATE OR REPLACE can fail if column types change)
   await query('DROP VIEW IF EXISTS books_with_enrichment');
   await query(`

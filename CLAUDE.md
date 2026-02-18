@@ -36,7 +36,7 @@ This is a full-stack inventory management system for **Secondhand Spooks**, a ho
 - **Database config**: `src/config/database.ts` - PostgreSQL connection
 - **Schema**: `src/config/schema.sql` - Database schema (682 books currently)
 - **Models**: `src/models/Book.ts` - TypeScript interfaces
-- **Services**: `src/services/bookService.ts` - Business logic (CRUD, stats, sales tracking, bulk sales, transactions), `src/services/googleBooksService.ts` - Google Books API integration (enrichment, batch processing), `src/services/geminiService.ts` - Gemini 2.0 Flash integration (sub-genre tagging, pacing, batch processing)
+- **Services**: `src/services/bookService.ts` - Business logic (CRUD, stats, sales tracking, bulk sales, transactions, blind date management), `src/services/googleBooksService.ts` - Google Books API integration (enrichment, batch processing), `src/services/geminiService.ts` - Gemini 2.0 Flash integration (sub-genre tagging, pacing, batch processing), `src/services/blindDateService.ts` - Blind Date with a Book (Gemini blurb generation, candidate scoring, batch processing)
 - **Routes**: `src/routes/bookRoutes.ts` - API endpoints (including enrichment + Gemini tagging), `src/routes/subgenreRoutes.ts` - Sub-genre options CRUD
 - **Utilities**: `src/utils/importCsv.ts` - CSV import logic, `src/utils/initDb.ts` - DB initialization, seeding, and migrations
 
@@ -47,6 +47,7 @@ This is a full-stack inventory management system for **Secondhand Spooks**, a ho
   - `src/pages/Dashboard.tsx` - Analytics and stats (including sales stats)
   - `src/pages/Inventory.tsx` - Book browsing and filtering (card view on mobile, table on desktop, cover images, checkbox selection for bulk sales, mobile sticky action bar with search/filters/actions, mobile filter drawer bottom-sheet)
   - `src/pages/Sales.tsx` + `Sales.css` - Transaction-centric sales history (expandable transactions with cover thumbnails, filters by event/date/payment, inline edit mode, transaction revert)
+  - `src/pages/BlindDate.tsx` + `BlindDate.css` - Blind Date with a Book management (active books with inline # editing, AI blurb generation/editing, candidate suggestions, batch blurb processing)
 - **Components**: `src/components/BookDetail.tsx` - Book detail popup (enrichment data, custom search, sub-genre tags, mark as sold with inline form, sale details, "View Transaction" link), `src/components/BulkSaleModal.tsx` + `BulkSaleModal.css` - Bulk sale form (per-book prices, shared event/date/payment), `src/components/BulkPriceModal.tsx` + `BulkPriceModal.css` - Bulk price setting (per-book or flat price mode, nullable pricing, suggestions with fill helper, below-cost warnings, purple #7C3AED accent), `src/components/BatchEnrichment.tsx` - Google Books batch enrichment panel (on Dashboard), `src/components/GeminiEnrichment.tsx` - Gemini sub-genre tagging panel (on Dashboard, includes sub-genre management CRUD)
 - **Hooks**: `src/hooks/useIsMobile.ts` - Responsive breakpoint hook using `matchMedia`
 - **API client**: `src/services/api.ts` - Backend communication
@@ -62,6 +63,7 @@ This is a full-stack inventory management system for **Secondhand Spooks**, a ho
 - Status: cleaned (boolean), pulled_to_read (boolean), kept (boolean), date_kept (date)
 - Gemini tags: subgenres (TEXT[]), pacing (VARCHAR — Slow Burn/Moderate/Fast-Paced)
 - Sales: sold (boolean), date_sold (date), sold_price (decimal), sale_event (varchar), sale_transaction_id (varchar), payment_method (varchar — Cash/Card)
+- Blind Date: blind_date (boolean), blind_date_number (varchar), blind_date_blurb (text) — uses our_price for pricing
 - Enrichment FK: google_enrichment_id (references google_books_enrichments)
 - Metadata: id, created_at, updated_at
 
@@ -212,6 +214,8 @@ docker compose ps
 ✅ Bulk price management (Issue #3): select books via checkboxes + BulkPriceModal (per-book or flat price modes, nullable pricing for clearing), select-all checkbox in table header + mobile, "Missing Price" filter in stock status dropdown, Dashboard "Need Pricing" alert (purple #7C3AED), pricing suggestions (2x cost rounded up, min $3, whole dollars), below-cost warnings, fill-suggested helper, auto-calculates profit_est, thriftbooks_price deprecated (column retained, removed from UI/forms)
 ✅ Pulled to Read & Kept Books: "Pull to Read" button in BookDetail moves book to reading pile (READING badge inline), "Keep" button on pulled books moves to permanent personal library (kept=true, removed from active inventory/value calculations), "Return to Inventory" reverses both states. Inventory stock status dropdown includes Pulled to Read and Kept filters. Kept view shows Date Kept, Purchase Price, Category columns. Dashboard shows Pulled to Read count, Books Kept count, and Total Kept Cost in Ghostly Blue (#6366F1) stats section. pulled_to_read and kept managed via action buttons (not edit form checkboxes).
 
+✅ Blind Date with a Book: Dedicated `/blind-date` page for managing wrapped mystery books for events. Mark books as blind date from BookDetail or candidate suggestions (excludes YA/Nostalgia category). AI blurb generation via Gemini 2.0 Flash (user-triggered only — no auto-generation). Manual number assignment for physical wrapping ID. Uses `our_price` for pricing (no separate blind date price). Batch blurb generation with progress polling. Inventory shows "Blind Date" badge (Deep Rose #E11D48) and filter options. Dashboard shows blind date stats when active. Candidate criteria: Very Good/Like New condition, non-YA, has enrichment + subgenre tags.
+
 ### What's Missing (See GitHub Issues):
 ❌ Limited analytics (Issue #4)
 
@@ -230,7 +234,8 @@ docker compose ps
 - Handle errors with appropriate status codes
 - Sales endpoints: `GET /api/books/sale-events`, `GET /api/books/transactions`, `POST /api/books/bulk-sale`, `POST /api/books/update-transaction`, `POST /api/books/revert-transaction`
 - Pricing endpoints: `POST /api/books/bulk-price` (per-book or flat price mode, auto-calculates profit_est), `POST /api/books/clear-prices` (bulk clear our_price + profit_est to NULL)
-- Book filters include: `sold`, `kept`, `pulled_to_read`, `sale_event`, `date_sold`, `sale_transaction_id`, `missing_price` (see `BookFilters` interface in `models/Book.ts`)
+- Blind Date endpoints: `GET /api/books/blind-date/candidates`, `POST /api/books/blind-date/mark`, `POST /api/books/blind-date/unmark`, `POST /api/books/blind-date/generate-blurb` (user-triggered), `POST /api/books/blind-date/batch-blurbs` (user-triggered), `GET /api/books/blind-date/batch-blurbs/progress`, `POST /api/books/blind-date/batch-blurbs/cancel`
+- Book filters include: `sold`, `kept`, `pulled_to_read`, `blind_date`, `blind_date_candidate`, `sale_event`, `date_sold`, `sale_transaction_id`, `missing_price` (see `BookFilters` interface in `models/Book.ts`)
 
 ### Database
 - Use parameterized queries (avoid SQL injection)
@@ -239,7 +244,7 @@ docker compose ps
 - DECIMAL types return as strings from PostgreSQL (convert with Number())
 
 ### UI/UX
-- Dark horror theme (Ghostly Foam Green #00FFA3, Paper White #FFFFDC, Inky Black #1E1B1C, Pumpkin Orange #E85D04, Pricing Purple #7C3AED, Ghostly Blue #6366F1 for reading/kept)
+- Dark horror theme (Ghostly Foam Green #00FFA3, Paper White #FFFFDC, Inky Black #1E1B1C, Pumpkin Orange #E85D04, Pricing Purple #7C3AED, Ghostly Blue #6366F1 for reading/kept, Deep Rose #E11D48 for blind date)
 - Keep interface simple and intuitive
 - **Mobile is the primary use case** — this app is used at a booth during events; every feature MUST work well on phones
 - Mobile-responsive: breakpoints at 768px (mobile) and 1024px (tablet)

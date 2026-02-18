@@ -28,6 +28,9 @@ export interface Book {
   sale_event?: string | null;
   sale_transaction_id?: string | null;
   payment_method?: string | null;
+  blind_date?: boolean;
+  blind_date_number?: string | null;
+  blind_date_blurb?: string | null;
   google_books_id?: string | null;
   cover_image_url?: string | null;
   description?: string | null;
@@ -93,6 +96,8 @@ export interface BookFilters {
   date_sold?: string;
   sale_transaction_id?: string;
   missing_price?: boolean;
+  blind_date?: boolean;
+  blind_date_candidate?: boolean;
 }
 
 export interface BookStats {
@@ -110,6 +115,7 @@ export interface BookStats {
   sales: SalesStats;
   books_missing_price: number;
   reading: ReadingStats;
+  blind_date: BlindDateStats;
 }
 
 export interface CategoryBreakdown {
@@ -253,4 +259,29 @@ export interface SaleEventBreakdown {
   transaction_count: number;
   revenue: number;
   profit: number;
+}
+
+export interface BlindDateStats {
+  active_count: number;
+  total_value: number;
+  with_blurb_count: number;
+  without_blurb_count: number;
+  candidate_count: number;
+}
+
+export interface BlindDateBlurbResult {
+  book_id: number;
+  book_title: string;
+  status: 'success' | 'error';
+  blurb?: string;
+  error?: string;
+}
+
+export interface BlindDateBatchProgress {
+  total: number;
+  processed: number;
+  succeeded: number;
+  errors: number;
+  is_running: boolean;
+  results: BlindDateBlurbResult[];
 }

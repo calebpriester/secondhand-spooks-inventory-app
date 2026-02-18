@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Dashboard from './pages/Dashboard';
 import Inventory from './pages/Inventory';
 import Sales from './pages/Sales';
+import BlindDate from './pages/BlindDate';
 import './App.css';
 
 const queryClient = new QueryClient();
@@ -24,6 +25,7 @@ function App() {
                 <Link to="/">Dashboard</Link>
                 <Link to="/inventory" onClick={() => setInventoryKey(k => k + 1)}>Inventory</Link>
                 <Link to="/sales">Sales</Link>
+                <Link to="/blind-date">Blind Date</Link>
               </div>
             </div>
           </nav>
@@ -33,6 +35,7 @@ function App() {
               <Route path="/" element={<Dashboard />} />
               <Route path="/inventory" element={<Inventory key={inventoryKey} />} />
               <Route path="/sales" element={<Sales />} />
+              <Route path="/blind-date" element={<BlindDate />} />
             </Routes>
           </main>
         </div>

@@ -94,7 +94,7 @@ function Dashboard() {
         </div>
       </div>
 
-      {(stats.reading.pulled_to_read_count > 0 || stats.reading.kept_count > 0 || stats.books_missing_price > 0) && (
+      {(stats.reading.pulled_to_read_count > 0 || stats.reading.kept_count > 0 || stats.books_missing_price > 0 || (stats.blind_date && stats.blind_date.without_blurb_count > 0)) && (
         <div className="inventory-alerts">
           {stats.reading.pulled_to_read_count > 0 && (
             <span className="inventory-alert-item alert-reading">
@@ -112,6 +112,12 @@ function Dashboard() {
             <span className="inventory-alert-item alert-pricing">
               <span className="inventory-alert-count">{stats.books_missing_price}</span>
               <span className="inventory-alert-label"><strong>need pricing</strong></span>
+            </span>
+          )}
+          {stats.blind_date && stats.blind_date.without_blurb_count > 0 && (
+            <span className="inventory-alert-item alert-blind-date">
+              <span className="inventory-alert-count">{stats.blind_date.without_blurb_count}</span>
+              <span className="inventory-alert-label"><strong>need blurbs</strong></span>
             </span>
           )}
         </div>
@@ -174,6 +180,27 @@ function Dashboard() {
             </div>
           )}
         </>
+      )}
+
+      {stats.blind_date && stats.blind_date.active_count > 0 && (
+        <div className="stats-grid blind-date-stats-grid">
+          <div className="stat-card stat-card-blind-date">
+            <h3>Blind Date Books</h3>
+            <p className="stat-value">{stats.blind_date.active_count}</p>
+          </div>
+          <div className="stat-card stat-card-blind-date">
+            <h3>Total Value</h3>
+            <p className="stat-value">${stats.blind_date.total_value.toFixed(2)}</p>
+          </div>
+          <div className="stat-card stat-card-blind-date">
+            <h3>Have Blurbs</h3>
+            <p className="stat-value">{stats.blind_date.with_blurb_count}</p>
+          </div>
+          <div className="stat-card stat-card-blind-date">
+            <h3>Need Blurbs</h3>
+            <p className="stat-value">{stats.blind_date.without_blurb_count}</p>
+          </div>
+        </div>
       )}
 
       <div className="charts-section">

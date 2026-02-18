@@ -183,6 +183,13 @@ describe('Book Routes', () => {
           kept_count: 2,
           total_kept_cost: 7.49,
         },
+        blind_date: {
+          active_count: 0,
+          total_value: 0,
+          with_blurb_count: 0,
+          without_blurb_count: 0,
+          candidate_count: 0,
+        },
       });
 
       const response = await request(app)

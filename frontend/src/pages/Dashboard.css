@@ -130,6 +130,10 @@
   color: #7C3AED;
 }
 
+.alert-blind-date .inventory-alert-count {
+  color: #E11D48;
+}
+
 .inventory-alert-label {
   font-size: 0.85rem;
   color: var(--text);
@@ -152,6 +156,25 @@
 
 .stat-card-sales h3 {
   color: #E85D04;
+}
+
+/* ===== Blind Date Stats ===== */
+.blind-date-stats-grid {
+  margin-top: 0;
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.stat-card-blind-date {
+  border-color: #E11D48;
+}
+
+.stat-card-blind-date:hover {
+  border-color: #E11D48;
+  box-shadow: 0 4px 12px rgba(225, 29, 72, 0.15);
+}
+
+.stat-card-blind-date h3 {
+  color: #E11D48;
 }
 
 .sales-event-breakdown {
