@@ -34,6 +34,9 @@ body {
   border-bottom: 2px solid var(--primary);
   padding: 1rem 0;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+  position: sticky;
+  top: 0;
+  z-index: 200;
 }
 
 .nav-container {
@@ -143,6 +146,10 @@ body {
 
 /* ===== Mobile ===== */
 @media (max-width: 768px) {
+  .navbar {
+    position: static;
+  }
+
   .nav-logo {
     height: 50px;
     padding: 4px 6px;

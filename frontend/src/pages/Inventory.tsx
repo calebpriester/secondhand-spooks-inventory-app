@@ -85,6 +85,24 @@ function FilterDrawer({ filters, subgenreOptions, onApply, onClear, onClose }: F
             </select>
           </div>
 
+          <div className="filter-drawer-group">
+            <button
+              type="button"
+              className={`filter-drawer-cleaned-toggle ${draft.cleaned ? 'active' : ''}`}
+              onClick={() => {
+                const next = { ...draft };
+                if (next.cleaned) {
+                  delete next.cleaned;
+                } else {
+                  next.cleaned = true;
+                }
+                setDraft(next);
+              }}
+            >
+              Cleaned only
+            </button>
+          </div>
+
           {!draftViewingSold && !draftViewingKept && (
             <>
               <div className="filter-drawer-group">
@@ -492,6 +510,7 @@ function Inventory() {
     filters.subgenre,
     filters.pacing,
     filters.search,
+    filters.cleaned,
   ].filter(Boolean).length + (stockStatusValue !== 'available' ? 1 : 0);
 
   // Lock body scroll when filter drawer is open (mobile)
@@ -697,6 +716,22 @@ function Inventory() {
               <option value="blind_date_candidate">Blind Date Candidates</option>
               <option value="">All Books</option>
             </select>
+
+            <button
+              type="button"
+              className={`filter-cleaned-toggle ${filters.cleaned ? 'active' : ''}`}
+              onClick={() => {
+                const newFilters = { ...filters };
+                if (newFilters.cleaned) {
+                  delete newFilters.cleaned;
+                } else {
+                  newFilters.cleaned = true;
+                }
+                setFilters(newFilters);
+              }}
+            >
+              Cleaned
+            </button>
 
             {!viewingSold && !viewingKept && (
               <>
