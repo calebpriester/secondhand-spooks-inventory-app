@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { bookApi, subgenreApi } from '../services/api';
 import { Book, BookFilters, BulkSaleRequest, BulkPriceRequest } from '../types/Book';
 import Modal from '../components/Modal';
@@ -210,6 +210,7 @@ function Inventory() {
   const { data: books, isLoading } = useQuery({
     queryKey: ['books', filters],
     queryFn: () => bookApi.getAll(filters),
+    placeholderData: keepPreviousData,
   });
 
   const createMutation = useMutation({
@@ -544,7 +545,7 @@ function Inventory() {
     };
   }, [isFilterDrawerOpen]);
 
-  if (isLoading) {
+  if (isLoading && !books) {
     return <div className="loading">Loading inventory...</div>;
   }
 
