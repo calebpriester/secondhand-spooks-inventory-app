@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { bookApi } from '../services/api';
 import { Transaction, UpdateTransactionRequest } from '../types/Book';
 import { useIsMobile } from '../hooks/useIsMobile';
+import { formatDate, toDateOnly } from '../utils/dates';
 import './Sales.css';
 
 function Sales() {
@@ -193,7 +194,7 @@ function TransactionCard({ transaction: tx, isExpanded, onToggle, onRevert, isRe
   const [editPrices, setEditPrices] = useState<Record<number, string>>({});
 
   const startEditing = () => {
-    setEditDate(tx.date_sold ? String(tx.date_sold).split('T')[0] : '');
+    setEditDate(toDateOnly(tx.date_sold));
     setEditEvent(tx.sale_event || '');
     setEditPayment((tx.payment_method as 'Cash' | 'Card') || 'Cash');
     const prices: Record<number, string> = {};
@@ -254,7 +255,7 @@ function TransactionCard({ transaction: tx, isExpanded, onToggle, onRevert, isRe
         <div className="transaction-info">
           <div className="transaction-meta">
             <span className="transaction-date">
-              {tx.date_sold ? new Date(String(tx.date_sold).split('T')[0] + 'T00:00:00').toLocaleDateString() : 'Unknown date'}
+              {formatDate(tx.date_sold, 'Unknown date')}
             </span>
             {tx.sale_event && (
               <span className="transaction-event-badge">{tx.sale_event}</span>

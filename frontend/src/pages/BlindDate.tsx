@@ -4,10 +4,25 @@ import { bookApi } from '../services/api';
 import { Book, BlindDateBatchProgress } from '../types/Book';
 import Modal from '../components/Modal';
 import BookDetail from '../components/BookDetail';
+import { useBookActions } from '../hooks/useBookActions';
 import './BlindDate.css';
 
 function BlindDate() {
   const queryClient = useQueryClient();
+  const {
+    updateMutation: sharedUpdateMutation,
+    enrichMutation,
+    tagMutation,
+    handleEnrichBook,
+    handleMarkSold,
+    handleMarkAvailable,
+    handlePullToRead,
+    handleReturnFromPull,
+    handleMarkKept,
+    handleUnkeep,
+    handleMarkBlindDate: handleDetailMarkBlindDate,
+    handleUnmarkBlindDate: handleDetailUnmarkBlindDate,
+  } = useBookActions();
 
   const [batchSize, setBatchSize] = useState(10);
   const [editingBlurb, setEditingBlurb] = useState<number | null>(null);
@@ -122,33 +137,6 @@ function BlindDate() {
     },
   });
 
-  const updateBookMutation = useMutation({
-    mutationFn: ({ id, updates }: { id: number; updates: Partial<Book> }) =>
-      bookApi.update(id, updates),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['books'] });
-      queryClient.invalidateQueries({ queryKey: ['stats'] });
-    },
-  });
-
-  // Mutations for BookDetail actions
-  const enrichMutation = useMutation({
-    mutationFn: ({ id, title, author, isbn }: { id: number; title?: string; author?: string; isbn?: string }) =>
-      bookApi.enrichBook(id, title, author, isbn),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['books'] });
-      queryClient.invalidateQueries({ queryKey: ['book'] });
-    },
-  });
-
-  const tagMutation = useMutation({
-    mutationFn: (id: number) => bookApi.tagBookSubgenres(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['books'] });
-      queryClient.invalidateQueries({ queryKey: ['book'] });
-    },
-  });
-
   const handleViewBook = (book: Book) => {
     setSelectedBook(book);
     setIsDetailOpen(true);
@@ -157,88 +145,6 @@ function BlindDate() {
   const handleCloseDetail = () => {
     setIsDetailOpen(false);
     setSelectedBook(null);
-  };
-
-  const handleEnrichBook = (bookId: number, title?: string, author?: string, isbn?: string) => {
-    enrichMutation.mutate({ id: bookId, title, author, isbn });
-  };
-
-  const handleMarkSold = (bookId: number, saleData: { sold_price: number; date_sold: string; sale_event?: string; payment_method: 'Cash' | 'Card'; sale_transaction_id: string }) => {
-    updateBookMutation.mutate({
-      id: bookId,
-      updates: {
-        sold: true,
-        sold_price: saleData.sold_price,
-        date_sold: saleData.date_sold,
-        sale_event: saleData.sale_event || null,
-        payment_method: saleData.payment_method,
-        sale_transaction_id: saleData.sale_transaction_id,
-      },
-    });
-  };
-
-  const handleMarkAvailable = (bookId: number) => {
-    updateBookMutation.mutate({
-      id: bookId,
-      updates: {
-        sold: false,
-        sold_price: null,
-        date_sold: null,
-        sale_event: null,
-        sale_transaction_id: null,
-        payment_method: null,
-      },
-    });
-  };
-
-  const handlePullToRead = (bookId: number) => {
-    updateBookMutation.mutate({ id: bookId, updates: { pulled_to_read: true } });
-  };
-
-  const handleReturnFromPull = (bookId: number) => {
-    updateBookMutation.mutate({ id: bookId, updates: { pulled_to_read: false } });
-  };
-
-  const handleMarkKept = (bookId: number) => {
-    updateBookMutation.mutate({
-      id: bookId,
-      updates: {
-        kept: true,
-        date_kept: new Date().toISOString().split('T')[0],
-        pulled_to_read: false,
-      },
-    });
-  };
-
-  const handleUnkeep = (bookId: number) => {
-    updateBookMutation.mutate({
-      id: bookId,
-      updates: { kept: false, date_kept: null },
-    });
-  };
-
-  const detailMarkBlindDateMutation = useMutation({
-    mutationFn: (bookId: number) => bookApi.markBlindDate([bookId]),
-    onSuccess: (_data, bookId) => {
-      invalidateAll();
-      queryClient.invalidateQueries({ queryKey: ['book', bookId] });
-    },
-  });
-
-  const detailUnmarkBlindDateMutation = useMutation({
-    mutationFn: (bookId: number) => bookApi.unmarkBlindDate([bookId]),
-    onSuccess: (_data, bookId) => {
-      invalidateAll();
-      queryClient.invalidateQueries({ queryKey: ['book', bookId] });
-    },
-  });
-
-  const handleDetailMarkBlindDate = (bookId: number) => {
-    detailMarkBlindDateMutation.mutate(bookId);
-  };
-
-  const handleDetailUnmarkBlindDate = (bookId: number) => {
-    detailUnmarkBlindDateMutation.mutate(bookId);
   };
 
   const handleAddCandidate = (book: Book) => {
@@ -264,8 +170,8 @@ function BlindDate() {
   };
 
   const handleSaveBlurb = (bookId: number) => {
-    updateBookMutation.mutate(
-      { id: bookId, updates: { blind_date_blurb: blurbDraft } },
+    sharedUpdateMutation.mutate(
+      { id: bookId, book: { blind_date_blurb: blurbDraft } },
       {
         onSuccess: () => {
           setEditingBlurb(null);
@@ -276,7 +182,7 @@ function BlindDate() {
   };
 
   const handleNumberChange = (bookId: number, value: string) => {
-    updateBookMutation.mutate({ id: bookId, updates: { blind_date_number: value || null } });
+    sharedUpdateMutation.mutate({ id: bookId, book: { blind_date_number: value || null } });
   };
 
   const isRunning = batchProgress?.is_running ?? false;
@@ -485,7 +391,7 @@ function BlindDate() {
             onTagSubgenres={(id: number) => tagMutation.mutate(id)}
             isTagging={tagMutation.isPending}
             onMarkSold={handleMarkSold}
-            isMarkingSold={updateBookMutation.isPending}
+            isMarkingSold={sharedUpdateMutation.isPending}
             saleEvents={saleEvents}
             onMarkAvailable={handleMarkAvailable}
             onMarkKept={handleMarkKept}

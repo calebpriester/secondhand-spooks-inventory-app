@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Book } from '../types/Book';
 import Autocomplete from './Autocomplete';
 import InlinePrice from './InlinePrice';
+import { todayDateString, toDateOnly } from '../utils/dates';
 import './BookDetail.css';
 
 interface BookDetailProps {
@@ -35,9 +36,19 @@ const BookDetail: React.FC<BookDetailProps> = ({ book, onClose, onEdit, onEnrich
   const [customAuthor, setCustomAuthor] = useState(book.author_fullname || '');
   const [customIsbn, setCustomIsbn] = useState('');
   const [salePrice, setSalePrice] = useState(book.our_price ? String(Number(book.our_price).toFixed(2)) : '');
-  const [saleDate, setSaleDate] = useState(new Date().toISOString().split('T')[0]);
+  const [saleDate, setSaleDate] = useState(todayDateString());
   const [saleEvent, setSaleEvent] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'Cash' | 'Card'>('Cash');
+
+  // Sync sale price when book's our_price changes
+  useEffect(() => {
+    setSalePrice(book.our_price != null ? String(Number(book.our_price).toFixed(2)) : '');
+  }, [book.our_price]);
+
+  // Clear sale form when book becomes sold (mutation succeeded)
+  useEffect(() => {
+    if (book.sold) setShowSaleForm(false);
+  }, [book.sold]);
 
   const handleEnrich = () => {
     if (book.id && window.confirm(
@@ -240,7 +251,7 @@ const BookDetail: React.FC<BookDetailProps> = ({ book, onClose, onEdit, onEnrich
             {book.date_purchased && (
               <div className="pricing-item">
                 <span className="meta-label">Purchased</span>
-                <span className="meta-value">{book.date_purchased.split('T')[0]}</span>
+                <span className="meta-value">{toDateOnly(book.date_purchased)}</span>
               </div>
             )}
           </div>
@@ -256,7 +267,7 @@ const BookDetail: React.FC<BookDetailProps> = ({ book, onClose, onEdit, onEnrich
               </div>
               <div className="pricing-item">
                 <span className="meta-label">Date Sold</span>
-                <span className="meta-value">{book.date_sold ? String(book.date_sold).split('T')[0] : 'N/A'}</span>
+                <span className="meta-value">{toDateOnly(book.date_sold) || 'N/A'}</span>
               </div>
               <div className="pricing-item">
                 <span className="meta-label">Actual Profit</span>
@@ -293,7 +304,7 @@ const BookDetail: React.FC<BookDetailProps> = ({ book, onClose, onEdit, onEnrich
 
       </div>
 
-      {showSaleForm ? (
+      {showSaleForm && !book.sold ? (
         <div className="book-detail-footer sale-form-footer">
           <div className="sale-form-fields">
             <div className="custom-search-row">

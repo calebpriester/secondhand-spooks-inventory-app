@@ -9,6 +9,8 @@ import BulkSaleModal from '../components/BulkSaleModal';
 import BulkPriceModal from '../components/BulkPriceModal';
 import InlinePrice from '../components/InlinePrice';
 import { useIsMobile } from '../hooks/useIsMobile';
+import { useBookActions } from '../hooks/useBookActions';
+import { formatDate } from '../utils/dates';
 import './Inventory.css';
 
 function getStockStatusValue(filters: BookFilters): string {
@@ -215,6 +217,20 @@ function Inventory() {
 
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
+  const {
+    updateMutation: sharedUpdateMutation,
+    enrichMutation,
+    tagMutation,
+    handleEnrichBook,
+    handleMarkSold,
+    handleMarkAvailable,
+    handlePullToRead,
+    handleReturnFromPull,
+    handleMarkKept,
+    handleUnkeep,
+    handleMarkBlindDate,
+    handleUnmarkBlindDate,
+  } = useBookActions();
 
   const { data: books, isLoading } = useQuery({
     queryKey: ['books', filters],
@@ -231,38 +247,6 @@ function Inventory() {
     },
   });
 
-  const updateMutation = useMutation({
-    mutationFn: ({ id, book }: { id: number; book: Partial<Book> }) =>
-      bookApi.update(id, book),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['books'] });
-      queryClient.invalidateQueries({ queryKey: ['book'] });
-      queryClient.invalidateQueries({ queryKey: ['stats'] });
-      queryClient.invalidateQueries({ queryKey: ['saleEvents'] });
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
-      if (isFormOpen) {
-        setIsFormOpen(false);
-        setSelectedBook(null);
-      }
-    },
-  });
-
-  const enrichMutation = useMutation({
-    mutationFn: ({ id, title, author, isbn }: { id: number; title?: string; author?: string; isbn?: string }) =>
-      bookApi.enrichBook(id, title, author, isbn),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['books'] });
-      queryClient.invalidateQueries({ queryKey: ['book'] });
-    },
-  });
-
-  const tagMutation = useMutation({
-    mutationFn: (id: number) => bookApi.tagBookSubgenres(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['books'] });
-      queryClient.invalidateQueries({ queryKey: ['book'] });
-    },
-  });
 
   const bulkSaleMutation = useMutation({
     mutationFn: (request: BulkSaleRequest) => bookApi.bulkMarkSold(request),
@@ -328,7 +312,7 @@ function Inventory() {
 
   const toggleCleaned = (book: Book) => {
     if (!book.id) return;
-    updateMutation.mutate({ id: book.id, book: { cleaned: !book.cleaned } });
+    sharedUpdateMutation.mutate({ id: book.id, book: { cleaned: !book.cleaned } });
   };
 
   const handleFilterChange = (key: keyof BookFilters, value: string) => {
@@ -365,7 +349,10 @@ function Inventory() {
 
   const handleSubmitBook = (bookData: Partial<Book>) => {
     if (selectedBook?.id) {
-      updateMutation.mutate({ id: selectedBook.id, book: bookData });
+      sharedUpdateMutation.mutate(
+        { id: selectedBook.id, book: bookData },
+        { onSuccess: () => { setIsFormOpen(false); setSelectedBook(null); } },
+      );
     } else {
       createMutation.mutate(bookData as Book);
     }
@@ -385,98 +372,6 @@ function Inventory() {
     setSelectedBook(null);
   };
 
-  const handleEnrichBook = (bookId: number, title?: string, author?: string, isbn?: string) => {
-    enrichMutation.mutate({ id: bookId, title, author, isbn });
-  };
-
-  const handleMarkSold = (bookId: number, saleData: { sold_price: number; date_sold: string; sale_event?: string; payment_method: 'Cash' | 'Card'; sale_transaction_id: string }) => {
-    updateMutation.mutate({
-      id: bookId,
-      book: {
-        sold: true,
-        sold_price: saleData.sold_price,
-        date_sold: saleData.date_sold,
-        sale_event: saleData.sale_event || null,
-        payment_method: saleData.payment_method,
-        sale_transaction_id: saleData.sale_transaction_id,
-      },
-    });
-  };
-
-  const handleMarkAvailable = (bookId: number) => {
-    updateMutation.mutate({
-      id: bookId,
-      book: {
-        sold: false,
-        sold_price: null,
-        date_sold: null,
-        sale_event: null,
-        sale_transaction_id: null,
-        payment_method: null,
-      },
-    });
-  };
-
-  const handlePullToRead = (bookId: number) => {
-    updateMutation.mutate({
-      id: bookId,
-      book: { pulled_to_read: true },
-    });
-  };
-
-  const handleReturnFromPull = (bookId: number) => {
-    updateMutation.mutate({
-      id: bookId,
-      book: { pulled_to_read: false },
-    });
-  };
-
-  const handleMarkKept = (bookId: number) => {
-    updateMutation.mutate({
-      id: bookId,
-      book: {
-        kept: true,
-        date_kept: new Date().toISOString().split('T')[0],
-        pulled_to_read: false,
-      },
-    });
-  };
-
-  const handleUnkeep = (bookId: number) => {
-    updateMutation.mutate({
-      id: bookId,
-      book: {
-        kept: false,
-        date_kept: null,
-      },
-    });
-  };
-
-  const markBlindDateMutation = useMutation({
-    mutationFn: (bookId: number) => bookApi.markBlindDate([bookId]),
-    onSuccess: (_data, bookId) => {
-      queryClient.invalidateQueries({ queryKey: ['books'] });
-      queryClient.invalidateQueries({ queryKey: ['stats'] });
-      queryClient.invalidateQueries({ queryKey: ['book', bookId] });
-    },
-  });
-
-  const unmarkBlindDateMutation = useMutation({
-    mutationFn: (bookId: number) => bookApi.unmarkBlindDate([bookId]),
-    onSuccess: (_data, bookId) => {
-      queryClient.invalidateQueries({ queryKey: ['books'] });
-      queryClient.invalidateQueries({ queryKey: ['stats'] });
-      queryClient.invalidateQueries({ queryKey: ['book', bookId] });
-    },
-  });
-
-  const handleMarkBlindDate = (bookId: number) => {
-    markBlindDateMutation.mutate(bookId);
-  };
-
-  const handleUnmarkBlindDate = (bookId: number) => {
-    unmarkBlindDateMutation.mutate(bookId);
-  };
 
   const toggleSelectBook = (bookId: number) => {
     // Save scroll position — iOS Safari aggressively scrolls on checkbox re-renders
@@ -884,7 +779,7 @@ function Inventory() {
                       <InlinePrice
                         book={book}
                         onSave={handleQuickPrice}
-                        isSaving={quickPriceMutation.isPending}
+                        isSaving={quickPriceMutation.isPending && quickPriceMutation.variables?.bookId === book.id}
                         disabled={!!book.sold || !!book.kept}
                       />
                     </span>
@@ -1021,7 +916,7 @@ function Inventory() {
                           ? `$${(Number(book.sold_price) - Number(book.purchase_price)).toFixed(2)}`
                           : 'N/A'}
                       </td>
-                      <td>{book.date_sold ? new Date(String(book.date_sold).split('T')[0] + 'T00:00:00').toLocaleDateString() : 'N/A'}</td>
+                      <td>{formatDate(book.date_sold)}</td>
                       <td className="source-cell">{book.sale_event || '-'}</td>
                       <td>
                         {book.payment_method && (
@@ -1041,7 +936,7 @@ function Inventory() {
                         )}
                       </td>
                       <td>{book.purchase_price ? `$${Number(book.purchase_price).toFixed(2)}` : 'N/A'}</td>
-                      <td>{book.date_kept ? new Date(String(book.date_kept).split('T')[0] + 'T00:00:00').toLocaleDateString() : 'N/A'}</td>
+                      <td>{formatDate(book.date_kept)}</td>
                     </>
                   ) : (
                     <>
@@ -1079,7 +974,7 @@ function Inventory() {
                         <InlinePrice
                           book={book}
                           onSave={handleQuickPrice}
-                          isSaving={quickPriceMutation.isPending}
+                          isSaving={quickPriceMutation.isPending && quickPriceMutation.variables?.bookId === book.id}
                           disabled={!!book.sold || !!book.kept}
                         />
                       </td>
@@ -1122,7 +1017,7 @@ function Inventory() {
             onTagSubgenres={(id) => tagMutation.mutate(id)}
             isTagging={tagMutation.isPending}
             onMarkSold={handleMarkSold}
-            isMarkingSold={updateMutation.isPending}
+            isMarkingSold={sharedUpdateMutation.isPending}
             saleEvents={saleEvents}
             onMarkAvailable={handleMarkAvailable}
             onMarkKept={handleMarkKept}
@@ -1132,7 +1027,7 @@ function Inventory() {
             onMarkBlindDate={handleMarkBlindDate}
             onUnmarkBlindDate={handleUnmarkBlindDate}
             onSetPrice={handleQuickPrice}
-            isSettingPrice={quickPriceMutation.isPending}
+            isSettingPrice={quickPriceMutation.isPending && quickPriceMutation.variables?.bookId === currentSelectedBook?.id}
           />
         )}
       </Modal>
