@@ -398,171 +398,166 @@ export class BookService {
     const params = [cleanedParam];
     const cleanedWhere = '($1::boolean IS NULL OR cleaned = $1)';
 
-    const totalQuery = await query(`
-      SELECT
-        COUNT(*) as total_books,
-        COALESCE(SUM(our_price), 0) as total_value,
-        COALESCE(SUM(purchase_price), 0) as total_cost,
-        COALESCE(SUM(our_price - purchase_price), 0) as estimated_profit
-      FROM books_with_enrichment
-      WHERE ${cleanedWhere}
-    `, params);
-
-    const categoryQuery = await query(`
-      SELECT
-        category,
-        COUNT(*) as count,
-        COALESCE(SUM(our_price), 0) as total_value,
-        ROUND(COUNT(*)::numeric / NULLIF(SUM(COUNT(*)) OVER(), 0) * 100, 1) as percentage
-      FROM books_with_enrichment
-      WHERE ${cleanedWhere}
-      GROUP BY category
-      ORDER BY count DESC
-    `, params);
-
-    const conditionQuery = await query(`
-      SELECT
-        condition,
-        COUNT(*) as count,
-        ROUND(COUNT(*)::numeric / NULLIF(SUM(COUNT(*)) OVER(), 0) * 100, 1) as percentage
-      FROM books_with_enrichment
-      WHERE ${cleanedWhere}
-      GROUP BY condition
-      ORDER BY count DESC
-    `, params);
-
-    const authorQuery = await query(`
-      SELECT
-        author_fullname as author,
-        COUNT(*) as count,
-        COALESCE(SUM(our_price), 0) as total_value
-      FROM books_with_enrichment
-      WHERE ${cleanedWhere}
-      GROUP BY author_fullname
-      ORDER BY count DESC
-      LIMIT 10
-    `, params);
-
-    const genreQuery = await query(`
-      SELECT
-        genre,
-        COUNT(*) as count,
-        ROUND(COUNT(*)::numeric / NULLIF(SUM(COUNT(*)) OVER(), 0) * 100, 1) as percentage
-      FROM (
-        SELECT UNNEST(genres) as genre
+    const [
+      totalQuery, categoryQuery, conditionQuery, authorQuery,
+      genreQuery, decadeQuery, subgenreQuery, ratingQuery,
+      salesQuery, salesByEventQuery, missingPriceQuery,
+      readingQuery, blindDateQuery,
+    ] = await Promise.all([
+      query(`
+        SELECT
+          COUNT(*) as total_books,
+          COALESCE(SUM(our_price), 0) as total_value,
+          COALESCE(SUM(purchase_price), 0) as total_cost,
+          COALESCE(SUM(our_price - purchase_price), 0) as estimated_profit
         FROM books_with_enrichment
-        WHERE genres IS NOT NULL AND ${cleanedWhere}
-      ) g
-      GROUP BY genre
-      ORDER BY count DESC
-      LIMIT 20
-    `, params);
-
-    const decadeQuery = await query(`
-      SELECT
-        CONCAT(FLOOR(CAST(LEFT(published_date, 4) AS INTEGER) / 10) * 10, 's') as decade,
-        COUNT(*) as count,
-        ROUND(COUNT(*)::numeric / NULLIF(SUM(COUNT(*)) OVER(), 0) * 100, 1) as percentage
-      FROM books_with_enrichment
-      WHERE published_date IS NOT NULL
-        AND LENGTH(published_date) >= 4
-        AND LEFT(published_date, 4) ~ '^\\d{4}$'
-        AND ${cleanedWhere}
-      GROUP BY FLOOR(CAST(LEFT(published_date, 4) AS INTEGER) / 10) * 10
-      ORDER BY FLOOR(CAST(LEFT(published_date, 4) AS INTEGER) / 10) * 10 ASC
-    `, params);
-
-    const subgenreQuery = await query(`
-      SELECT
-        subgenre,
-        COUNT(*) as count,
-        ROUND(COUNT(*)::numeric / NULLIF(SUM(COUNT(*)) OVER(), 0) * 100, 1) as percentage
-      FROM (
-        SELECT UNNEST(subgenres) as subgenre
+        WHERE ${cleanedWhere}
+      `, params),
+      query(`
+        SELECT
+          category,
+          COUNT(*) as count,
+          COALESCE(SUM(our_price), 0) as total_value,
+          ROUND(COUNT(*)::numeric / NULLIF(SUM(COUNT(*)) OVER(), 0) * 100, 1) as percentage
         FROM books_with_enrichment
-        WHERE subgenres IS NOT NULL AND ${cleanedWhere}
-      ) s
-      GROUP BY subgenre
-      ORDER BY count DESC
-    `, params);
-
-    const ratingQuery = await query(`
-      SELECT
-        CASE
-          WHEN google_rating >= 4.5 THEN '4.5-5.0'
-          WHEN google_rating >= 4.0 THEN '4.0-4.4'
-          WHEN google_rating >= 3.5 THEN '3.5-3.9'
-          WHEN google_rating >= 3.0 THEN '3.0-3.4'
-          WHEN google_rating >= 2.0 THEN '2.0-2.9'
-          ELSE '0-1.9'
-        END as rating_bucket,
-        COUNT(*) as count,
-        ROUND(AVG(google_rating)::numeric, 2) as avg_rating,
-        CASE
-          WHEN google_rating >= 4.5 THEN 6
-          WHEN google_rating >= 4.0 THEN 5
-          WHEN google_rating >= 3.5 THEN 4
-          WHEN google_rating >= 3.0 THEN 3
-          WHEN google_rating >= 2.0 THEN 2
-          ELSE 1
-        END as sort_order
-      FROM books_with_enrichment
-      WHERE google_rating IS NOT NULL AND ${cleanedWhere}
-      GROUP BY rating_bucket, sort_order
-      ORDER BY sort_order ASC
-    `, params);
-
-    const salesQuery = await query(`
-      SELECT
-        COUNT(*) as books_sold,
-        COALESCE(SUM(sold_price), 0) as total_revenue,
-        COALESCE(SUM(sold_price - purchase_price), 0) as actual_profit,
-        COUNT(DISTINCT sale_transaction_id) as transaction_count
-      FROM books_with_enrichment
-      WHERE sold = true AND ${cleanedWhere}
-    `, params);
-
-    const salesByEventQuery = await query(`
-      SELECT
-        COALESCE(sale_event, 'No Event') as event,
-        COUNT(*) as count,
-        COUNT(DISTINCT sale_transaction_id) as transaction_count,
-        COALESCE(SUM(sold_price), 0) as revenue,
-        COALESCE(SUM(sold_price - purchase_price), 0) as profit
-      FROM books_with_enrichment
-      WHERE sold = true AND ${cleanedWhere}
-      GROUP BY sale_event
-      ORDER BY count DESC
-    `, params);
-
-    const missingPriceQuery = await query(`
-      SELECT COUNT(*) as books_missing_price
-      FROM books_with_enrichment
-      WHERE our_price IS NULL AND sold = false AND kept = false AND ${cleanedWhere}
-    `, params);
-
-    const readingQuery = await query(`
-      SELECT
-        COUNT(*) FILTER (WHERE pulled_to_read = true AND sold = false AND kept = false) as pulled_to_read_count,
-        COUNT(*) FILTER (WHERE kept = true) as kept_count,
-        COALESCE(SUM(purchase_price) FILTER (WHERE kept = true), 0) as total_kept_cost
-      FROM books_with_enrichment
-      WHERE ${cleanedWhere}
-    `, params);
-
-    const blindDateQuery = await query(`
-      SELECT
-        COUNT(*) FILTER (WHERE blind_date = true AND sold = false) as active_count,
-        COALESCE(SUM(our_price) FILTER (WHERE blind_date = true AND sold = false), 0) as total_value,
-        COUNT(*) FILTER (WHERE blind_date = true AND sold = false AND blind_date_blurb IS NOT NULL AND blind_date_blurb != '') as with_blurb_count,
-        COUNT(*) FILTER (WHERE blind_date = true AND sold = false AND (blind_date_blurb IS NULL OR blind_date_blurb = '')) as without_blurb_count,
-        COUNT(*) FILTER (WHERE sold = false AND kept = false AND blind_date = false
-          AND condition IN ('Like New', 'Very Good') AND category != 'YA/Nostalgia'
-          AND google_enrichment_id IS NOT NULL
-          AND subgenres IS NOT NULL AND array_length(subgenres, 1) > 0) as candidate_count
-      FROM books_with_enrichment
-      WHERE ${cleanedWhere}
-    `, params);
+        WHERE ${cleanedWhere}
+        GROUP BY category
+        ORDER BY count DESC
+      `, params),
+      query(`
+        SELECT
+          condition,
+          COUNT(*) as count,
+          ROUND(COUNT(*)::numeric / NULLIF(SUM(COUNT(*)) OVER(), 0) * 100, 1) as percentage
+        FROM books_with_enrichment
+        WHERE ${cleanedWhere}
+        GROUP BY condition
+        ORDER BY count DESC
+      `, params),
+      query(`
+        SELECT
+          author_fullname as author,
+          COUNT(*) as count,
+          COALESCE(SUM(our_price), 0) as total_value
+        FROM books_with_enrichment
+        WHERE ${cleanedWhere}
+        GROUP BY author_fullname
+        ORDER BY count DESC
+        LIMIT 10
+      `, params),
+      query(`
+        SELECT
+          genre,
+          COUNT(*) as count,
+          ROUND(COUNT(*)::numeric / NULLIF(SUM(COUNT(*)) OVER(), 0) * 100, 1) as percentage
+        FROM (
+          SELECT UNNEST(genres) as genre
+          FROM books_with_enrichment
+          WHERE genres IS NOT NULL AND ${cleanedWhere}
+        ) g
+        GROUP BY genre
+        ORDER BY count DESC
+        LIMIT 20
+      `, params),
+      query(`
+        SELECT
+          CONCAT(FLOOR(CAST(LEFT(published_date, 4) AS INTEGER) / 10) * 10, 's') as decade,
+          COUNT(*) as count,
+          ROUND(COUNT(*)::numeric / NULLIF(SUM(COUNT(*)) OVER(), 0) * 100, 1) as percentage
+        FROM books_with_enrichment
+        WHERE published_date IS NOT NULL
+          AND LENGTH(published_date) >= 4
+          AND LEFT(published_date, 4) ~ '^\\d{4}$'
+          AND ${cleanedWhere}
+        GROUP BY FLOOR(CAST(LEFT(published_date, 4) AS INTEGER) / 10) * 10
+        ORDER BY FLOOR(CAST(LEFT(published_date, 4) AS INTEGER) / 10) * 10 ASC
+      `, params),
+      query(`
+        SELECT
+          subgenre,
+          COUNT(*) as count,
+          ROUND(COUNT(*)::numeric / NULLIF(SUM(COUNT(*)) OVER(), 0) * 100, 1) as percentage
+        FROM (
+          SELECT UNNEST(subgenres) as subgenre
+          FROM books_with_enrichment
+          WHERE subgenres IS NOT NULL AND ${cleanedWhere}
+        ) s
+        GROUP BY subgenre
+        ORDER BY count DESC
+      `, params),
+      query(`
+        SELECT
+          CASE
+            WHEN google_rating >= 4.5 THEN '4.5-5.0'
+            WHEN google_rating >= 4.0 THEN '4.0-4.4'
+            WHEN google_rating >= 3.5 THEN '3.5-3.9'
+            WHEN google_rating >= 3.0 THEN '3.0-3.4'
+            WHEN google_rating >= 2.0 THEN '2.0-2.9'
+            ELSE '0-1.9'
+          END as rating_bucket,
+          COUNT(*) as count,
+          ROUND(AVG(google_rating)::numeric, 2) as avg_rating,
+          CASE
+            WHEN google_rating >= 4.5 THEN 6
+            WHEN google_rating >= 4.0 THEN 5
+            WHEN google_rating >= 3.5 THEN 4
+            WHEN google_rating >= 3.0 THEN 3
+            WHEN google_rating >= 2.0 THEN 2
+            ELSE 1
+          END as sort_order
+        FROM books_with_enrichment
+        WHERE google_rating IS NOT NULL AND ${cleanedWhere}
+        GROUP BY rating_bucket, sort_order
+        ORDER BY sort_order ASC
+      `, params),
+      query(`
+        SELECT
+          COUNT(*) as books_sold,
+          COALESCE(SUM(sold_price), 0) as total_revenue,
+          COALESCE(SUM(sold_price - purchase_price), 0) as actual_profit,
+          COUNT(DISTINCT sale_transaction_id) as transaction_count
+        FROM books_with_enrichment
+        WHERE sold = true AND ${cleanedWhere}
+      `, params),
+      query(`
+        SELECT
+          COALESCE(sale_event, 'No Event') as event,
+          COUNT(*) as count,
+          COUNT(DISTINCT sale_transaction_id) as transaction_count,
+          COALESCE(SUM(sold_price), 0) as revenue,
+          COALESCE(SUM(sold_price - purchase_price), 0) as profit
+        FROM books_with_enrichment
+        WHERE sold = true AND ${cleanedWhere}
+        GROUP BY sale_event
+        ORDER BY count DESC
+      `, params),
+      query(`
+        SELECT COUNT(*) as books_missing_price
+        FROM books_with_enrichment
+        WHERE our_price IS NULL AND sold = false AND kept = false AND ${cleanedWhere}
+      `, params),
+      query(`
+        SELECT
+          COUNT(*) FILTER (WHERE pulled_to_read = true AND sold = false AND kept = false) as pulled_to_read_count,
+          COUNT(*) FILTER (WHERE kept = true) as kept_count,
+          COALESCE(SUM(purchase_price) FILTER (WHERE kept = true), 0) as total_kept_cost
+        FROM books_with_enrichment
+        WHERE ${cleanedWhere}
+      `, params),
+      query(`
+        SELECT
+          COUNT(*) FILTER (WHERE blind_date = true AND sold = false) as active_count,
+          COALESCE(SUM(our_price) FILTER (WHERE blind_date = true AND sold = false), 0) as total_value,
+          COUNT(*) FILTER (WHERE blind_date = true AND sold = false AND blind_date_blurb IS NOT NULL AND blind_date_blurb != '') as with_blurb_count,
+          COUNT(*) FILTER (WHERE blind_date = true AND sold = false AND (blind_date_blurb IS NULL OR blind_date_blurb = '')) as without_blurb_count,
+          COUNT(*) FILTER (WHERE sold = false AND kept = false AND blind_date = false
+            AND condition IN ('Like New', 'Very Good') AND category != 'YA/Nostalgia'
+            AND google_enrichment_id IS NOT NULL
+            AND subgenres IS NOT NULL AND array_length(subgenres, 1) > 0) as candidate_count
+        FROM books_with_enrichment
+        WHERE ${cleanedWhere}
+      `, params),
+    ]);
 
     return {
       total_books: parseInt(totalQuery.rows[0].total_books),

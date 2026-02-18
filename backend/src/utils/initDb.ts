@@ -325,16 +325,16 @@ async function runMigrations(): Promise<void> {
     SELECT
       b.*,
       gb.google_books_id,
-      COALESCE(gb.cover_image_url) AS cover_image_url,
-      COALESCE(gb.description) AS description,
-      COALESCE(gb.genres) AS genres,
-      COALESCE(gb.google_rating) AS google_rating,
-      COALESCE(gb.google_ratings_count) AS google_ratings_count,
-      COALESCE(gb.page_count) AS page_count,
-      COALESCE(gb.publisher) AS publisher,
-      COALESCE(gb.published_date) AS published_date,
-      COALESCE(gb.isbn_10) AS isbn_10,
-      COALESCE(gb.isbn_13) AS isbn_13,
+      gb.cover_image_url,
+      gb.description,
+      gb.genres,
+      gb.google_rating,
+      gb.google_ratings_count,
+      gb.page_count,
+      gb.publisher,
+      gb.published_date,
+      gb.isbn_10,
+      gb.isbn_13,
       gb.created_at AS enriched_at
     FROM books b
     LEFT JOIN google_books_enrichments gb ON b.google_enrichment_id = gb.id
