@@ -155,11 +155,12 @@ ss_inventory_app/
 │       └── utils/           # CSV import, DB init + migrations
 ├── frontend/
 │   └── src/
-│       ├── components/      # BookDetail, BulkSaleModal, BulkPriceModal, etc.
-│       ├── hooks/           # useIsMobile
+│       ├── components/      # BookDetail, BulkSaleModal, BulkPriceModal, ErrorBoundary, etc.
+│       ├── hooks/           # useIsMobile, useBookActions
 │       ├── pages/           # Dashboard, Inventory, Sales, BlindDate
 │       ├── services/        # API client
-│       └── types/           # TypeScript interfaces
+│       ├── types/           # TypeScript interfaces
+│       └── utils/           # Date formatting helpers
 ├── data/
 │   ├── seed/                # Seed CSV (Feb 16, 2026)
 │   └── backups/             # Database backups
