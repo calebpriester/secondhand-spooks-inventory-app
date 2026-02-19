@@ -32,7 +32,7 @@ function BlindDate() {
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
 
   // Active blind date books
-  const { data: activeBooks = [], isLoading: loadingActive } = useQuery({
+  const { data: activeBooks = [], isLoading: loadingActive, isError: errorActive, refetch: refetchActive } = useQuery({
     queryKey: ['books', { blind_date: true, sold: false }],
     queryFn: () => bookApi.getAll({ blind_date: true, sold: false }),
   });
@@ -189,6 +189,15 @@ function BlindDate() {
 
   if (loadingActive) {
     return <div className="loading">Loading blind date books...</div>;
+  }
+
+  if (errorActive) {
+    return (
+      <div className="loading">
+        <p>Failed to load blind date books.</p>
+        <button onClick={() => refetchActive()} className="btn btn-primary" style={{ marginTop: '1rem' }}>Try Again</button>
+      </div>
+    );
   }
 
   return (

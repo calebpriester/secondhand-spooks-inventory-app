@@ -232,7 +232,7 @@ function Inventory() {
     handleUnmarkBlindDate,
   } = useBookActions();
 
-  const { data: books, isLoading } = useQuery({
+  const { data: books, isLoading, isError, refetch } = useQuery({
     queryKey: ['books', filters],
     queryFn: () => bookApi.getAll(filters),
     placeholderData: keepPreviousData,
@@ -458,6 +458,15 @@ function Inventory() {
 
   if (isLoading && !books) {
     return <div className="loading">Loading inventory...</div>;
+  }
+
+  if (isError && !books) {
+    return (
+      <div className="loading">
+        <p>Failed to load inventory.</p>
+        <button onClick={() => refetch()} className="btn btn-primary" style={{ marginTop: '1rem' }}>Try Again</button>
+      </div>
+    );
   }
 
   return (

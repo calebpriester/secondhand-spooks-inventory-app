@@ -31,7 +31,7 @@ const tooltipStyle = {
 function Dashboard() {
   const [cleanedFilter, setCleanedFilter] = useState<boolean | undefined>(undefined);
 
-  const { data: stats, isLoading } = useQuery({
+  const { data: stats, isLoading, isError, refetch } = useQuery({
     queryKey: ['stats', cleanedFilter],
     queryFn: () => bookApi.getStats(cleanedFilter),
   });
@@ -40,8 +40,13 @@ function Dashboard() {
     return <div className="loading">Loading statistics...</div>;
   }
 
-  if (!stats) {
-    return <div className="error">Failed to load statistics</div>;
+  if (isError || !stats) {
+    return (
+      <div className="loading">
+        <p>Failed to load statistics.</p>
+        <button onClick={() => refetch()} className="btn btn-primary" style={{ marginTop: '1rem' }}>Try Again</button>
+      </div>
+    );
   }
 
   const filterLabel = cleanedFilter === true ? 'Cleaned' : cleanedFilter === false ? 'Not Cleaned' : 'All';
