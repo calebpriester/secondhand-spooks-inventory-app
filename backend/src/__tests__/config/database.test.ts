@@ -84,15 +84,19 @@ describe('query', () => {
   });
 
   it('retries on transient error then succeeds', async () => {
+    jest.useFakeTimers();
     const transientErr = Object.assign(new Error('conn refused'), { code: 'ECONNREFUSED' });
     mockPool.query
       .mockRejectedValueOnce(transientErr)
       .mockResolvedValueOnce({ rows: [], rowCount: 0 });
 
-    const result = await query('SELECT 1');
+    const promise = query('SELECT 1');
+    await jest.advanceTimersByTimeAsync(1_000);
+    const result = await promise;
 
     expect(mockPool.query).toHaveBeenCalledTimes(2);
     expect(result).toEqual({ rows: [], rowCount: 0 });
+    jest.useRealTimers();
   });
 
   it('does not retry on non-transient error', async () => {
@@ -105,15 +109,22 @@ describe('query', () => {
   });
 
   it('throws after exhausting retries on persistent transient error', async () => {
-    const transientErr = Object.assign(new Error('conn refused'), { code: 'ECONNREFUSED' });
-    mockPool.query
-      .mockRejectedValueOnce(transientErr)
-      .mockRejectedValueOnce(transientErr)
-      .mockRejectedValueOnce(transientErr);
+    jest.useFakeTimers();
+    mockPool.query.mockImplementation(() =>
+      Promise.reject(Object.assign(new Error('conn refused'), { code: 'ECONNREFUSED' }))
+    );
 
-    await expect(query('SELECT 1')).rejects.toThrow('conn refused');
+    let caught: Error | undefined;
+    const promise = query('SELECT 1').catch((e: Error) => { caught = e; });
+    // Flush each retry: advance timer then yield to microtasks
+    for (let i = 0; i < 4; i++) {
+      await jest.advanceTimersByTimeAsync(8_000);
+    }
+    await promise;
 
-    expect(mockPool.query).toHaveBeenCalledTimes(3); // 1 original + 2 retries
+    expect(caught?.message).toBe('conn refused');
+    expect(mockPool.query).toHaveBeenCalledTimes(5); // 1 original + 4 retries
+    jest.useRealTimers();
   });
 });
 
@@ -177,19 +188,23 @@ describe('withTransaction', () => {
   });
 
   it('retries the entire transaction on transient connect error', async () => {
+    jest.useFakeTimers();
     const transientErr = Object.assign(new Error('conn refused'), { code: 'ECONNREFUSED' });
     mockPool.connect
       .mockRejectedValueOnce(transientErr)
       .mockResolvedValueOnce(mockClient);
     mockClient.query.mockResolvedValue({ rows: [{ ok: true }], rowCount: 1 });
 
-    const result = await withTransaction(async (client) => {
+    const promise = withTransaction(async (client) => {
       const res = await client.query('SELECT 1');
       return res.rows;
     });
+    await jest.advanceTimersByTimeAsync(1_000);
+    const result = await promise;
 
     expect(mockPool.connect).toHaveBeenCalledTimes(2);
     expect(result).toEqual([{ ok: true }]);
+    jest.useRealTimers();
   });
 
   it('does not retry transaction on non-transient error', async () => {

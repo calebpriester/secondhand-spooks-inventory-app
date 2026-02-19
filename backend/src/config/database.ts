@@ -24,8 +24,8 @@ export type QueryExecutor = {
 
 // --- Transient error retry logic ---
 
-const RETRY_COUNT = 2;
-const RETRY_BASE_MS = 200;
+const RETRY_COUNT = 4;
+const RETRY_BASE_MS = 1_000;
 
 export function isTransientError(err: any): boolean {
   const code = err?.code;
