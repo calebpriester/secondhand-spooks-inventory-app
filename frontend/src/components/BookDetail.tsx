@@ -6,6 +6,7 @@ import { subgenreApi } from '../services/api';
 import Autocomplete from './Autocomplete';
 import InlinePrice from './InlinePrice';
 import { todayDateString, toDateOnly } from '../utils/dates';
+import { buildThriftbooksUrl, buildEbaySoldUrl } from '../utils/pricingLinks';
 import './BookDetail.css';
 
 interface BookDetailProps {
@@ -352,6 +353,27 @@ const BookDetail: React.FC<BookDetailProps> = ({ book, onClose, onEdit, onEnrich
               </div>
             )}
           </div>
+          {!book.sold && (
+            <div className="price-check-links">
+              <span className="price-check-label">Price Check:</span>
+              <a
+                href={buildThriftbooksUrl(book.book_title, book.author_fullname || undefined)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="price-check-link"
+              >
+                Thriftbooks
+              </a>
+              <a
+                href={buildEbaySoldUrl(book.book_title, book.author_fullname || undefined)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="price-check-link"
+              >
+                eBay Sold
+              </a>
+            </div>
+          )}
         </div>
 
         {book.sold && (

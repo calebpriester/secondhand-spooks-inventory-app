@@ -662,6 +662,33 @@
   background-color: rgba(167, 139, 250, 0.08);
 }
 
+/* === Price Check Links === */
+.price-check-links {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.price-check-label {
+  color: #b8b8a0;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.price-check-link {
+  color: #7C3AED;
+  font-size: 0.85rem;
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.price-check-link:hover {
+  color: #A78BFA;
+  text-decoration: underline;
+}
+
 /* Mobile */
 @media (max-width: 768px) {
   .book-detail-header {
@@ -797,5 +824,12 @@
     font-size: 16px;
     min-height: 44px;
     padding: 0.5rem 0.75rem;
+  }
+
+  .price-check-link {
+    font-size: 16px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
   }
 }
