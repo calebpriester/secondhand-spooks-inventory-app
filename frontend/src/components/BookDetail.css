@@ -105,7 +105,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0.4rem;
 }
 
 .rating-stars {
@@ -123,6 +123,20 @@
 .rating-count {
   color: #b8b8a0;
   font-size: 0.8rem;
+}
+
+.goodreads-link {
+  color: #00FFA3;
+  font-size: 0.85rem;
+  text-decoration: none;
+  transition: color 0.15s;
+  margin-bottom: 0.75rem;
+  display: inline-block;
+}
+
+.goodreads-link:hover {
+  color: #FFFFDC;
+  text-decoration: underline;
 }
 
 .book-detail-meta {
@@ -728,6 +742,13 @@
 
   .book-detail-rating {
     justify-content: center;
+  }
+
+  .goodreads-link {
+    font-size: 16px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
   }
 
   .book-detail-meta {
