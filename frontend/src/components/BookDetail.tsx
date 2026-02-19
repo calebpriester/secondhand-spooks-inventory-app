@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { Book } from '../types/Book';
+import { subgenreApi } from '../services/api';
 import Autocomplete from './Autocomplete';
 import InlinePrice from './InlinePrice';
 import { todayDateString, toDateOnly } from '../utils/dates';
@@ -26,9 +28,11 @@ interface BookDetailProps {
   onUnmarkBlindDate?: (bookId: number) => void;
   onSetPrice?: (bookId: number, price: number | null) => void;
   isSettingPrice?: boolean;
+  onSaveTags?: (bookId: number, subgenres: string[], pacing: string | null) => void;
+  isSavingTags?: boolean;
 }
 
-const BookDetail: React.FC<BookDetailProps> = ({ book, onClose, onEdit, onEnrich, isEnriching, onTagSubgenres, isTagging, onMarkSold, isMarkingSold, saleEvents = [], onMarkAvailable, onMarkKept, onUnkeep, onPullToRead, onReturnFromPull, onMarkBlindDate, onUnmarkBlindDate, onSetPrice, isSettingPrice }) => {
+const BookDetail: React.FC<BookDetailProps> = ({ book, onClose, onEdit, onEnrich, isEnriching, onTagSubgenres, isTagging, onMarkSold, isMarkingSold, saleEvents = [], onMarkAvailable, onMarkKept, onUnkeep, onPullToRead, onReturnFromPull, onMarkBlindDate, onUnmarkBlindDate, onSetPrice, isSettingPrice, onSaveTags, isSavingTags }) => {
   const [showCustomSearch, setShowCustomSearch] = useState(false);
   const [showSaleForm, setShowSaleForm] = useState(false);
   const [showEnrichMenu, setShowEnrichMenu] = useState(false);
@@ -39,6 +43,15 @@ const BookDetail: React.FC<BookDetailProps> = ({ book, onClose, onEdit, onEnrich
   const [saleDate, setSaleDate] = useState(todayDateString());
   const [saleEvent, setSaleEvent] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'Cash' | 'Card'>('Cash');
+  const [showTagEditor, setShowTagEditor] = useState(false);
+  const [editSubgenres, setEditSubgenres] = useState<string[]>(book.subgenres || []);
+  const [editPacing, setEditPacing] = useState<string | null>(book.pacing || null);
+
+  const { data: subgenreOptions = [] } = useQuery({
+    queryKey: ['subgenreOptions'],
+    queryFn: subgenreApi.getAll,
+    enabled: showTagEditor,
+  });
 
   // Sync sale price when book's our_price changes
   useEffect(() => {
@@ -49,6 +62,13 @@ const BookDetail: React.FC<BookDetailProps> = ({ book, onClose, onEdit, onEnrich
   useEffect(() => {
     if (book.sold) setShowSaleForm(false);
   }, [book.sold]);
+
+  // Sync tag editor state when book tags change (e.g., after save or Gemini re-tag)
+  useEffect(() => {
+    setEditSubgenres(book.subgenres || []);
+    setEditPacing(book.pacing || null);
+    setShowTagEditor(false);
+  }, [book.subgenres, book.pacing]);
 
   const handleEnrich = () => {
     if (book.id && window.confirm(
@@ -125,15 +145,92 @@ const BookDetail: React.FC<BookDetailProps> = ({ book, onClose, onEdit, onEnrich
               )}
             </div>
 
-            {((book.subgenres && book.subgenres.length > 0) || book.pacing) && (
-              <div className="book-detail-subgenres">
-                {book.subgenres?.map(sg => (
-                  <span key={sg} className="badge badge-subgenre">{sg}</span>
-                ))}
-                {book.pacing && (
-                  <span className="badge badge-pacing">{book.pacing}</span>
-                )}
+            {showTagEditor && onSaveTags ? (
+              <div className="tag-editor">
+                <div className="tag-editor-label">Sub-genres <span className="tag-editor-hint">(pick up to 2)</span></div>
+                <div className="tag-editor-subgenres">
+                  {subgenreOptions.map(sg => (
+                    <button
+                      key={sg.id}
+                      type="button"
+                      className={`tag-chip ${editSubgenres.includes(sg.name) ? 'tag-chip-selected' : ''}`}
+                      onClick={() => {
+                        setEditSubgenres(prev =>
+                          prev.includes(sg.name)
+                            ? prev.filter(s => s !== sg.name)
+                            : prev.length < 2 ? [...prev, sg.name] : prev
+                        );
+                      }}
+                    >
+                      {sg.name}
+                    </button>
+                  ))}
+                </div>
+                <div className="tag-editor-label">Pacing</div>
+                <div className="tag-editor-pacing">
+                  <select
+                    value={editPacing || ''}
+                    onChange={(e) => setEditPacing(e.target.value || null)}
+                    className="tag-editor-pacing-select"
+                  >
+                    <option value="">None</option>
+                    <option value="Slow Burn">Slow Burn</option>
+                    <option value="Moderate">Moderate</option>
+                    <option value="Fast-Paced">Fast-Paced</option>
+                  </select>
+                </div>
+                <div className="tag-editor-actions">
+                  <button
+                    className="btn btn-subgenre-save"
+                    onClick={() => {
+                      if (book.id) {
+                        onSaveTags(book.id, editSubgenres, editPacing);
+                      }
+                    }}
+                    disabled={isSavingTags}
+                  >
+                    {isSavingTags ? 'Saving...' : 'Save Tags'}
+                  </button>
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => {
+                      setEditSubgenres(book.subgenres || []);
+                      setEditPacing(book.pacing || null);
+                      setShowTagEditor(false);
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
               </div>
+            ) : (
+              (((book.subgenres && book.subgenres.length > 0) || book.pacing) || onSaveTags) && (
+                <div className="book-detail-subgenres">
+                  {book.subgenres?.map(sg => (
+                    <span key={sg} className="badge badge-subgenre">{sg}</span>
+                  ))}
+                  {book.pacing && (
+                    <span className="badge badge-pacing">{book.pacing}</span>
+                  )}
+                  {onSaveTags && (book.subgenres?.length || book.pacing) && (
+                    <button
+                      className="tag-edit-btn"
+                      onClick={() => setShowTagEditor(true)}
+                      title="Edit tags"
+                    >
+                      &#9998;
+                    </button>
+                  )}
+                  {onSaveTags && !book.subgenres?.length && !book.pacing && (
+                    <button
+                      className="tag-add-btn"
+                      onClick={() => setShowTagEditor(true)}
+                    >
+                      + Add Tags
+                    </button>
+                  )}
+                </div>
+              )
             )}
 
             {book.google_rating && (

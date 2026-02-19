@@ -539,6 +539,129 @@
   background-color: #2a2627;
 }
 
+/* === Tag Editor === */
+.tag-editor {
+  margin-bottom: 1rem;
+}
+
+.tag-editor-label {
+  color: #b8b8a0;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.35rem;
+}
+
+.tag-editor-hint {
+  text-transform: none;
+  letter-spacing: 0;
+  opacity: 0.7;
+}
+
+.tag-editor-subgenres {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.75rem;
+}
+
+.tag-chip {
+  background-color: rgba(167, 139, 250, 0.08);
+  color: #A78BFA;
+  border: 1px solid rgba(167, 139, 250, 0.3);
+  padding: 0.25rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.tag-chip:hover {
+  background-color: rgba(167, 139, 250, 0.15);
+}
+
+.tag-chip-selected {
+  background-color: rgba(167, 139, 250, 0.25);
+  border-color: #A78BFA;
+  font-weight: 600;
+}
+
+.tag-editor-pacing {
+  margin-bottom: 0.75rem;
+}
+
+.tag-editor-pacing-select {
+  width: auto;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid rgba(103, 232, 249, 0.3);
+  border-radius: 4px;
+  background-color: #1E1B1C;
+  color: #67E8F9;
+  font-size: 0.85rem;
+}
+
+.tag-editor-pacing-select:focus {
+  outline: none;
+  border-color: #67E8F9;
+}
+
+.tag-editor-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.btn-subgenre-save {
+  background-color: #A78BFA !important;
+  border-color: #A78BFA !important;
+  color: white !important;
+  font-size: 0.8rem;
+  padding: 0.3rem 0.75rem;
+  min-height: 32px;
+}
+
+.btn-subgenre-save:hover {
+  background-color: #8B5CF6 !important;
+}
+
+.btn-sm {
+  font-size: 0.8rem !important;
+  padding: 0.3rem 0.75rem !important;
+  min-height: 32px !important;
+}
+
+.tag-edit-btn {
+  background: none;
+  border: none;
+  color: #A78BFA;
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 0.15rem 0.3rem;
+  opacity: 0.6;
+  transition: opacity 0.15s;
+}
+
+.tag-edit-btn:hover {
+  opacity: 1;
+}
+
+.tag-add-btn {
+  background: none;
+  border: 1px dashed rgba(167, 139, 250, 0.3);
+  color: #A78BFA;
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  opacity: 0.7;
+  transition: opacity 0.15s;
+}
+
+.tag-add-btn:hover {
+  opacity: 1;
+  background-color: rgba(167, 139, 250, 0.08);
+}
+
 /* Mobile */
 @media (max-width: 768px) {
   .book-detail-header {
@@ -637,5 +760,42 @@
     font-size: 16px;
     padding: 0.75rem 1rem;
     min-height: 44px;
+  }
+
+  .tag-chip {
+    font-size: 16px;
+    padding: 0.5rem 0.75rem;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+
+  .tag-editor-pacing-select {
+    font-size: 16px;
+    padding: 0.6rem;
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .btn-subgenre-save,
+  .tag-editor-actions .btn-sm {
+    font-size: 16px !important;
+    min-height: 44px !important;
+    padding: 0.5rem 1rem !important;
+  }
+
+  .tag-edit-btn {
+    font-size: 1.2rem;
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .tag-add-btn {
+    font-size: 16px;
+    min-height: 44px;
+    padding: 0.5rem 0.75rem;
   }
 }

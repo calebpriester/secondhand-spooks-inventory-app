@@ -230,6 +230,7 @@ function Inventory() {
     handleUnkeep,
     handleMarkBlindDate,
     handleUnmarkBlindDate,
+    handleSaveTags,
   } = useBookActions();
 
   const { data: books, isLoading, isError, refetch } = useQuery({
@@ -1037,6 +1038,8 @@ function Inventory() {
             onUnmarkBlindDate={handleUnmarkBlindDate}
             onSetPrice={handleQuickPrice}
             isSettingPrice={quickPriceMutation.isPending && quickPriceMutation.variables?.bookId === currentSelectedBook?.id}
+            onSaveTags={handleSaveTags}
+            isSavingTags={sharedUpdateMutation.isPending}
           />
         )}
       </Modal>
