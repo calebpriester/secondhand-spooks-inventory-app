@@ -133,8 +133,23 @@ function PricingAnalysisTab({ cleanedFilter }: { cleanedFilter?: boolean }) {
                 />
                 <YAxis stroke="#a09c9d" fontSize={12} />
                 <Tooltip
-                  {...tooltipStyle}
-                  labelFormatter={(label: any) => `$${label}`}
+                  content={({ active, payload, label }) => {
+                    if (!active || !payload?.length) return null;
+                    const total = payload.reduce((sum, p) => sum + (Number(p.value) || 0), 0);
+                    return (
+                      <div style={{ backgroundColor: '#1E1B1C', border: '1px solid #3d3839', borderRadius: 4, padding: '0.5rem 0.75rem', color: '#e8e8e0', fontSize: '0.85rem' }}>
+                        <p style={{ margin: '0 0 0.35rem', fontWeight: 600 }}>${label}</p>
+                        {payload.map(p => (
+                          <p key={p.dataKey as string} style={{ margin: '0.15rem 0', color: p.color }}>
+                            {p.dataKey}: {p.value}
+                          </p>
+                        ))}
+                        <p style={{ margin: '0.35rem 0 0', borderTop: '1px solid #3d3839', paddingTop: '0.35rem', fontWeight: 600 }}>
+                          Total: {total}
+                        </p>
+                      </div>
+                    );
+                  }}
                 />
                 <Legend wrapperStyle={{ color: '#e8e8e0', fontSize: 12 }} />
                 {conditions.map(cond => (
