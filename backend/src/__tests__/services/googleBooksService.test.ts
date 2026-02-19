@@ -69,13 +69,22 @@ describe('scoreResult', () => {
     expect(scoreResult(item, 'The Shining', 'Stephen King')).toBe(25);
   });
 
-  it('adds bonus for description', () => {
+  it('adds small bonus for short description', () => {
     const item = makeItem({
       title: 'The Shining',
       authors: ['Stephen King'],
       description: 'A horror novel',
     });
     expect(scoreResult(item, 'The Shining', 'Stephen King')).toBe(23);
+  });
+
+  it('adds large bonus for substantial description (>= 200 chars)', () => {
+    const item = makeItem({
+      title: 'The Shining',
+      authors: ['Stephen King'],
+      description: 'A'.repeat(200),
+    });
+    expect(scoreResult(item, 'The Shining', 'Stephen King')).toBe(28);
   });
 
   it('adds bonus for page count', () => {
@@ -237,6 +246,27 @@ describe('pickBestMatch', () => {
     ];
     const result = pickBestMatch(items, 'The Shining', 'Stephen King');
     expect(result.id).toBe('english');
+  });
+
+  it('prefers result with substantial description over one without', () => {
+    const items = [
+      makeItem({
+        id: 'no-desc',
+        title: 'Insomnia',
+        authors: ['Stephen King'],
+        imageLinks: { thumbnail: 'url' },
+        description: 'A man has trouble sleeping.',
+      }),
+      makeItem({
+        id: 'long-desc',
+        title: 'Insomnia',
+        authors: ['Stephen King'],
+        imageLinks: { thumbnail: 'url' },
+        description: 'A'.repeat(250),
+      }),
+    ];
+    const result = pickBestMatch(items, 'Insomnia', 'Stephen King');
+    expect(result!.id).toBe('long-desc');
   });
 
   it('handles middle name variations via last-name fallback', () => {

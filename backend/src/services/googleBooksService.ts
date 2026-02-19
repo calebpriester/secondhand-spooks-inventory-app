@@ -45,7 +45,8 @@ export function scoreResult(
   }
 
   if (vi.imageLinks) score += 5;
-  if (vi.description) score += 3;
+  if (vi.description && vi.description.length >= 200) score += 8;
+  else if (vi.description) score += 3;
   if (vi.pageCount) score += 1;
 
   return score;
