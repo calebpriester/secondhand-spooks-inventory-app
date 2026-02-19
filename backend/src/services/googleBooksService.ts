@@ -45,7 +45,8 @@ export function scoreResult(
   }
 
   if (vi.imageLinks) score += 5;
-  if (vi.description) score += 3;
+  if (vi.description && vi.description.length >= 200) score += 8;
+  else if (vi.description) score += 3;
   if (vi.pageCount) score += 1;
 
   return score;
@@ -114,7 +115,7 @@ export class GoogleBooksService {
       const cleanAuthor = author.replace(/\./g, '').trim();
       searchQuery = `intitle:${encodeURIComponent(cleanTitle)}+inauthor:${encodeURIComponent(cleanAuthor)}`;
     }
-    const url = `${GOOGLE_BOOKS_API_BASE}?q=${searchQuery}&maxResults=20&langRestrict=en&key=${this.apiKey}`;
+    const url = `${GOOGLE_BOOKS_API_BASE}?q=${searchQuery}&maxResults=40&langRestrict=en&key=${this.apiKey}`;
 
     const response = await fetch(url);
     if (!response.ok) {
