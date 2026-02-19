@@ -80,16 +80,22 @@ function BlindDate() {
     queryClient.invalidateQueries({ queryKey: ['blindDateCandidates'] });
   };
 
-  // Refresh book list when batch completes
+  // Refresh book list as blurbs complete (not just when batch finishes)
   const wasRunning = useRef(false);
+  const lastProcessed = useRef(0);
   useEffect(() => {
     if (batchProgress?.is_running) {
       wasRunning.current = true;
+      if (batchProgress.processed > lastProcessed.current) {
+        lastProcessed.current = batchProgress.processed;
+        queryClient.invalidateQueries({ queryKey: ['books'] });
+      }
     } else if (wasRunning.current && batchProgress && !batchProgress.is_running) {
       wasRunning.current = false;
+      lastProcessed.current = 0;
       invalidateAll();
     }
-  }, [batchProgress?.is_running]);
+  }, [batchProgress?.is_running, batchProgress?.processed]);
 
   // Mutations
   const markMutation = useMutation({
