@@ -103,6 +103,22 @@ router.get('/stats', async (req: Request, res: Response) => {
   }
 });
 
+// Get pricing analysis stats
+router.get('/pricing-stats', async (req: Request, res: Response) => {
+  try {
+    const cleaned = req.query.cleaned === 'true' ? true
+                  : req.query.cleaned === 'false' ? false
+                  : undefined;
+    const category = req.query.category as string | undefined;
+    const author = req.query.author as string | undefined;
+    const stats = await bookService.getPricingStats({ cleaned, category, author });
+    res.json(stats);
+  } catch (error) {
+    console.error('Error fetching pricing stats:', error);
+    res.status(500).json({ error: 'Failed to fetch pricing stats' });
+  }
+});
+
 // --- Enrichment routes (before /:id to avoid path conflicts) ---
 
 // Get enrichment status

@@ -44,7 +44,7 @@ This is a full-stack inventory management system for **Secondhand Spooks**, a ho
 - **Entry point**: `src/main.tsx`
 - **App**: `src/App.tsx` - Routing and layout
 - **Pages**:
-  - `src/pages/Dashboard.tsx` - Analytics and stats (including sales stats)
+  - `src/pages/Dashboard.tsx` - Analytics and stats (including sales stats), with tab toggle between Inventory Stats and Pricing Analysis views
   - `src/pages/Inventory.tsx` - Book browsing and filtering (card view on mobile, table on desktop, cover images, checkbox selection for bulk sales, mobile sticky action bar with search/filters/actions, mobile filter drawer bottom-sheet)
   - `src/pages/Sales.tsx` + `Sales.css` - Transaction-centric sales history (expandable transactions with cover thumbnails, filters by event/date/payment, inline edit mode, transaction revert)
   - `src/pages/BlindDate.tsx` + `BlindDate.css` - Blind Date with a Book management (active books with inline # editing, AI blurb generation/editing, candidate suggestions, batch blurb processing)
@@ -217,6 +217,8 @@ docker compose ps
 
 ✅ Blind Date with a Book: Dedicated `/blind-date` page for managing wrapped mystery books for events. Mark books as blind date from BookDetail or candidate suggestions (excludes YA/Nostalgia category). AI blurb generation via Gemini 2.5 Flash (user-triggered only — no auto-generation). Manual number assignment for physical wrapping ID. Uses `our_price` for pricing (no separate blind date price). Batch blurb generation with progress polling. Inventory shows "Blind Date" badge (Deep Rose #E11D48) and filter options. Dashboard shows blind date stats when active. Candidate criteria: Very Good/Like New condition, non-YA, has enrichment + subgenre tags.
 
+✅ Pricing Analysis: Dashboard tab toggle between "Inventory Stats" and "Pricing Analysis" views. Pricing tab shows summary cards (priced books, price range, most common price, avg/median, distinct prices), price distribution bar chart, and breakdown tables by category, condition, and author (2+ books) with inline price chips showing count and percentage at each price point. Uses Pricing Purple (#7C3AED) accent throughout. Excludes unpriced/sold/kept books. Lazy-loaded via separate `GET /api/books/pricing-stats` endpoint. Cleaned filter works across both tabs.
+
 ### What's Missing (See GitHub Issues):
 ❌ Limited analytics (Issue #4)
 
@@ -234,7 +236,7 @@ docker compose ps
 - Return JSON responses
 - Handle errors with appropriate status codes
 - Sales endpoints: `GET /api/books/sale-events`, `GET /api/books/transactions`, `POST /api/books/bulk-sale`, `POST /api/books/update-transaction`, `POST /api/books/revert-transaction`
-- Pricing endpoints: `POST /api/books/bulk-price` (per-book or flat price mode, auto-calculates profit_est), `POST /api/books/clear-prices` (bulk clear our_price + profit_est to NULL)
+- Pricing endpoints: `GET /api/books/pricing-stats?cleaned=true|false` (pricing analysis: distribution, by category/condition/author), `POST /api/books/bulk-price` (per-book or flat price mode, auto-calculates profit_est), `POST /api/books/clear-prices` (bulk clear our_price + profit_est to NULL)
 - Blind Date endpoints: `GET /api/books/blind-date/candidates`, `POST /api/books/blind-date/mark`, `POST /api/books/blind-date/unmark`, `POST /api/books/blind-date/generate-blurb` (user-triggered), `POST /api/books/blind-date/batch-blurbs` (user-triggered), `GET /api/books/blind-date/batch-blurbs/progress`, `POST /api/books/blind-date/batch-blurbs/cancel`
 - Book filters include: `sold`, `kept`, `pulled_to_read`, `blind_date`, `blind_date_candidate`, `sale_event`, `date_sold`, `sale_transaction_id`, `missing_price` (see `BookFilters` interface in `models/Book.ts`)
 

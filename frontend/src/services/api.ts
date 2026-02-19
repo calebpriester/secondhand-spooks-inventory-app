@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Book, BookFilters, BookStats, EnrichmentStatus, EnrichmentResult, BatchEnrichmentProgress, SubgenreOption, GeminiTagResult, GeminiBatchProgress, GeminiTaggingStatus, BulkSaleRequest, BulkPriceRequest, UpdateTransactionRequest, Transaction, BlindDateBlurbResult, BlindDateBatchProgress } from '../types/Book';
+import { Book, BookFilters, BookStats, EnrichmentStatus, EnrichmentResult, BatchEnrichmentProgress, SubgenreOption, GeminiTagResult, GeminiBatchProgress, GeminiTaggingStatus, BulkSaleRequest, BulkPriceRequest, UpdateTransactionRequest, Transaction, BlindDateBlurbResult, BlindDateBatchProgress, PricingStats, PricingStatsFilters } from '../types/Book';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -38,6 +38,21 @@ export const bookApi = {
       params.cleaned = String(cleaned);
     }
     const { data } = await api.get('/books/stats', { params });
+    return data;
+  },
+
+  getPricingStats: async (filters?: PricingStatsFilters): Promise<PricingStats> => {
+    const params: Record<string, string> = {};
+    if (filters?.cleaned !== undefined) {
+      params.cleaned = String(filters.cleaned);
+    }
+    if (filters?.category) {
+      params.category = filters.category;
+    }
+    if (filters?.author) {
+      params.author = filters.author;
+    }
+    const { data } = await api.get('/books/pricing-stats', { params });
     return data;
   },
 

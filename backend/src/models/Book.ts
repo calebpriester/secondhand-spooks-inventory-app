@@ -286,3 +286,69 @@ export interface BlindDateBatchProgress {
   stopped_reason?: string;
   results: BlindDateBlurbResult[];
 }
+
+// --- Pricing Analysis ---
+
+export interface PricePoint {
+  price: number;
+  count: number;
+  percentage: number;
+}
+
+export interface CategoryPricing {
+  category: string;
+  total_priced: number;
+  avg_price: number;
+  min_price: number;
+  max_price: number;
+  price_points: PricePoint[];
+}
+
+export interface ConditionPricing {
+  condition: string;
+  total_priced: number;
+  avg_price: number;
+  min_price: number;
+  max_price: number;
+  price_points: PricePoint[];
+}
+
+export interface AuthorPricing {
+  author: string;
+  total_priced: number;
+  avg_price: number;
+  min_price: number;
+  max_price: number;
+  price_points: PricePoint[];
+}
+
+export interface PriceByConditionRow {
+  price: number;
+  condition: string;
+  count: number;
+}
+
+export interface PricingStatsFilters {
+  cleaned?: boolean;
+  category?: string;
+  author?: string;
+}
+
+export interface PricingStats {
+  summary: {
+    total_priced: number;
+    total_unpriced: number;
+    price_range_min: number;
+    price_range_max: number;
+    most_common_price: number;
+    most_common_price_count: number;
+    unique_price_count: number;
+    avg_price: number;
+    median_price: number;
+  };
+  distribution: PricePoint[];
+  price_by_condition: PriceByConditionRow[];
+  by_category: CategoryPricing[];
+  by_condition: ConditionPricing[];
+  by_author: AuthorPricing[];
+}
