@@ -22,6 +22,7 @@ function BlindDate() {
     handleUnkeep,
     handleMarkBlindDate: handleDetailMarkBlindDate,
     handleUnmarkBlindDate: handleDetailUnmarkBlindDate,
+    handleSaveTags,
   } = useBookActions();
 
   const [batchSize, setBatchSize] = useState(10);
@@ -421,6 +422,8 @@ function BlindDate() {
             onReturnFromPull={handleReturnFromPull}
             onMarkBlindDate={handleDetailMarkBlindDate}
             onUnmarkBlindDate={handleDetailUnmarkBlindDate}
+            onSaveTags={handleSaveTags}
+            isSavingTags={sharedUpdateMutation.isPending}
           />
         )}
       </Modal>

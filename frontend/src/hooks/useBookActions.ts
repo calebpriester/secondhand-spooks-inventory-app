@@ -131,6 +131,16 @@ export function useBookActions() {
     unmarkBlindDateMutation.mutate(bookId);
   };
 
+  const handleSaveTags = (bookId: number, subgenres: string[], pacing: string | null) => {
+    updateMutation.mutate({
+      id: bookId,
+      book: {
+        subgenres: subgenres.length > 0 ? subgenres : null,
+        pacing,
+      },
+    });
+  };
+
   return {
     updateMutation,
     enrichMutation,
@@ -146,5 +156,6 @@ export function useBookActions() {
     handleUnkeep,
     handleMarkBlindDate,
     handleUnmarkBlindDate,
+    handleSaveTags,
   };
 }
