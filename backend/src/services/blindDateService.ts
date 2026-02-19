@@ -3,6 +3,8 @@ import { Book, BlindDateBlurbResult, BlindDateBatchProgress } from '../models/Bo
 
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 const RATE_LIMIT_DELAY_MS = 500;
+const FETCH_TIMEOUT_MS = 30_000;
+const MAX_CONSECUTIVE_ERRORS = 3;
 
 /** Build the Gemini prompt for generating a blind date blurb. Does NOT include title or author in the output instructions. */
 export function buildBlurbPrompt(
@@ -98,7 +100,7 @@ export class BlindDateService {
     return this.apiKey !== null && this.apiKey.length > 0;
   }
 
-  private async callGemini(prompt: string): Promise<string> {
+  private async callGemini(prompt: string, signal?: AbortSignal): Promise<string> {
     const requestBody = {
       contents: [{ parts: [{ text: prompt }] }],
       generationConfig: {
@@ -117,10 +119,16 @@ export class BlindDateService {
     const maxRetries = 3;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      const timeoutSignal = AbortSignal.timeout(FETCH_TIMEOUT_MS);
+      const fetchSignal = signal
+        ? AbortSignal.any([signal, timeoutSignal])
+        : timeoutSignal;
+
       const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestBody),
+        signal: fetchSignal,
       });
 
       if (response.status === 429) {
@@ -150,7 +158,7 @@ export class BlindDateService {
     throw new Error('Gemini API failed after retries');
   }
 
-  async generateBlurb(bookId: number): Promise<BlindDateBlurbResult> {
+  async generateBlurb(bookId: number, signal?: AbortSignal): Promise<BlindDateBlurbResult> {
     const bookResult = await query(
       `SELECT id, book_title, author_fullname, description, subgenres, pacing, page_count
        FROM books_with_enrichment WHERE id = $1`,
@@ -177,7 +185,7 @@ export class BlindDateService {
         book.page_count ? parseInt(book.page_count) : null
       );
 
-      const blurb = await this.callGemini(prompt);
+      const blurb = await this.callGemini(prompt, signal);
 
       await query('UPDATE books SET blind_date_blurb = $1 WHERE id = $2', [blurb, bookId]);
 
@@ -222,18 +230,32 @@ export class BlindDateService {
   }
 
   private async processBatch(books: any[]): Promise<void> {
-    for (const book of books) {
-      if (this.batchAbortController?.signal.aborted) break;
+    const signal = this.batchAbortController?.signal;
+    let consecutiveErrors = 0;
 
-      const result = await this.generateBlurb(book.id);
+    for (const book of books) {
+      if (signal?.aborted) break;
+
+      const result = await this.generateBlurb(book.id, signal);
 
       if (!this.batchProgress) break;
 
       this.batchProgress.processed++;
       this.batchProgress.results.push(result);
 
-      if (result.status === 'success') this.batchProgress.succeeded++;
-      else this.batchProgress.errors++;
+      if (result.status === 'success') {
+        this.batchProgress.succeeded++;
+        consecutiveErrors = 0;
+      } else {
+        this.batchProgress.errors++;
+        consecutiveErrors++;
+
+        if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+          console.warn(`Batch blurb generation stopped: ${MAX_CONSECUTIVE_ERRORS} consecutive errors`);
+          this.batchProgress.stopped_reason = `Stopped after ${MAX_CONSECUTIVE_ERRORS} consecutive errors`;
+          break;
+        }
+      }
 
       // Rate limit between API calls
       if (this.batchProgress.processed < this.batchProgress.total) {
