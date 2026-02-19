@@ -6,7 +6,7 @@ import { subgenreApi } from '../services/api';
 import Autocomplete from './Autocomplete';
 import InlinePrice from './InlinePrice';
 import { todayDateString, toDateOnly } from '../utils/dates';
-import { buildThriftbooksUrl, buildEbaySoldUrl } from '../utils/pricingLinks';
+import { buildThriftbooksUrl, buildEbaySoldUrl, buildGoodreadsUrl } from '../utils/pricingLinks';
 import './BookDetail.css';
 
 interface BookDetailProps {
@@ -248,6 +248,15 @@ const BookDetail: React.FC<BookDetailProps> = ({ book, onClose, onEdit, onEnrich
                 )}
               </div>
             )}
+
+            <a
+              href={buildGoodreadsUrl(book.book_title, book.author_fullname || undefined)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="goodreads-link"
+            >
+              Goodreads &#8599;
+            </a>
 
             <div className="book-detail-meta">
               {book.publisher && (
