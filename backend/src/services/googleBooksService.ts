@@ -115,7 +115,7 @@ export class GoogleBooksService {
       const cleanAuthor = author.replace(/\./g, '').trim();
       searchQuery = `intitle:${encodeURIComponent(cleanTitle)}+inauthor:${encodeURIComponent(cleanAuthor)}`;
     }
-    const url = `${GOOGLE_BOOKS_API_BASE}?q=${searchQuery}&maxResults=20&langRestrict=en&key=${this.apiKey}`;
+    const url = `${GOOGLE_BOOKS_API_BASE}?q=${searchQuery}&maxResults=40&langRestrict=en&key=${this.apiKey}`;
 
     const response = await fetch(url);
     if (!response.ok) {
