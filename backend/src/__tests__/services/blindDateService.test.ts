@@ -340,5 +340,47 @@ describe('BlindDateService', () => {
       expect(progress?.errors).toBe(1);
       expect(progress?.is_running).toBe(false);
     });
+
+    it('stops batch after 3 consecutive errors (circuit breaker)', async () => {
+      const bookRow = (id: number) => ({
+        id, book_title: `Book ${id}`, author_fullname: 'Author',
+        description: null, subgenres: null, pacing: null, page_count: null,
+      });
+
+      // 5 books queued
+      mockQuery.mockResolvedValueOnce(mockRows([
+        { id: 1, book_title: 'Book 1', author_fullname: 'Author' },
+        { id: 2, book_title: 'Book 2', author_fullname: 'Author' },
+        { id: 3, book_title: 'Book 3', author_fullname: 'Author' },
+        { id: 4, book_title: 'Book 4', author_fullname: 'Author' },
+        { id: 5, book_title: 'Book 5', author_fullname: 'Author' },
+      ]));
+
+      // Mock book lookups for each generateBlurb call (only 3 will run)
+      mockQuery
+        .mockResolvedValueOnce(mockRows([bookRow(1)]))
+        .mockResolvedValueOnce(mockRows([bookRow(2)]))
+        .mockResolvedValueOnce(mockRows([bookRow(3)]))
+        .mockResolvedValueOnce(mockRows([bookRow(4)]))
+        .mockResolvedValueOnce(mockRows([bookRow(5)]));
+
+      // All API calls fail
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: false,
+        status: 500,
+        text: async () => 'Internal Server Error',
+      }) as any;
+
+      await service.startBatchBlurbGeneration(5);
+
+      // Wait for batch to hit circuit breaker
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      const progress = service.getBatchProgress();
+      expect(progress?.processed).toBe(3);
+      expect(progress?.errors).toBe(3);
+      expect(progress?.is_running).toBe(false);
+      expect(progress?.stopped_reason).toContain('consecutive errors');
+    });
   });
 });

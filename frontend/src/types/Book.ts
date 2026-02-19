@@ -292,5 +292,6 @@ export interface BlindDateBatchProgress {
   succeeded: number;
   errors: number;
   is_running: boolean;
+  stopped_reason?: string;
   results: BlindDateBlurbResult[];
 }

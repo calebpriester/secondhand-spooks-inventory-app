@@ -276,7 +276,13 @@ function BlindDate() {
               {batchProgress.processed} / {batchProgress.total}
               {batchProgress.succeeded > 0 && ` | OK: ${batchProgress.succeeded}`}
               {batchProgress.errors > 0 && ` | Errors: ${batchProgress.errors}`}
-              {!batchProgress.is_running && batchProgress.processed > 0 && ' — Done'}
+              {!batchProgress.is_running && batchProgress.processed > 0 && (
+                batchProgress.stopped_reason
+                  ? ` — ${batchProgress.stopped_reason}`
+                  : batchProgress.errors > 0
+                    ? ` — Done (${batchProgress.errors} failed)`
+                    : ' — Done'
+              )}
             </span>
           </div>
         )}
