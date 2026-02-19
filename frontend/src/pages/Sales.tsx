@@ -19,7 +19,7 @@ function Sales() {
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
 
-  const { data: transactions = [], isLoading } = useQuery({
+  const { data: transactions = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['transactions', eventFilter, dateFilter, paymentFilter],
     queryFn: () => bookApi.getTransactions({
       sale_event: eventFilter || undefined,
@@ -85,6 +85,15 @@ function Sales() {
 
   if (isLoading) {
     return <div className="loading">Loading sales...</div>;
+  }
+
+  if (isError) {
+    return (
+      <div className="loading">
+        <p>Failed to load sales.</p>
+        <button onClick={() => refetch()} className="btn btn-primary" style={{ marginTop: '1rem' }}>Try Again</button>
+      </div>
+    );
   }
 
   return (
