@@ -36,7 +36,8 @@ This is the full-stack inventory management system that powers Secondhand Spooks
 | **Gemini AI Tagging** | Sub-genre classification and pacing analysis via Gemini 2.5 Flash. Configurable sub-genre list with batch processing. |
 | **Blind Date with a Book** | Manage wrapped mystery books for events. AI-generated blurbs, candidate scoring, batch processing. |
 | **Pulled to Read / Kept** | Track personal reading pile and permanently kept books, separate from active inventory and value calculations. |
-| **Analytics Dashboard** | Inventory value, profit estimates, category breakdowns, sales stats, event breakdowns, top authors. |
+| **Analytics Dashboard** | Inventory value, profit estimates, category breakdowns, sales stats, event breakdowns, top authors. Tab toggle to Pricing Analysis view. |
+| **Pricing Analysis** | Price distribution bar chart, breakdown tables by category/condition/author with inline price chips showing count and percentage at each price point. |
 | **Mobile-First** | Sticky action bar, bottom-sheet filters, touch-friendly controls. Built for use at the booth. |
 
 ### Tech Stack

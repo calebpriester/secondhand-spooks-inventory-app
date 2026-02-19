@@ -642,4 +642,80 @@ describe('Book Routes', () => {
       expect(response.body.error).toBe('payment_method must be Cash or Card');
     });
   });
+
+  describe('GET /api/books/pricing-stats', () => {
+    const mockPricingStats = {
+      summary: {
+        total_priced: 500, total_unpriced: 182, price_range_min: 3, price_range_max: 15,
+        most_common_price: 8, most_common_price_count: 200, unique_price_count: 8,
+        avg_price: 7.5, median_price: 8,
+      },
+      distribution: [{ price: 8, count: 200, percentage: 40.0 }],
+      price_by_condition: [{ price: 8, condition: 'Very Good', count: 100 }],
+      by_category: [], by_condition: [], by_author: [],
+    };
+
+    it('returns 200 with pricing stats', async () => {
+      mockService.getPricingStats.mockResolvedValueOnce(mockPricingStats);
+
+      const response = await request(app)
+        .get('/api/books/pricing-stats')
+        .expect(200);
+
+      expect(response.body.summary.total_priced).toBe(500);
+      expect(response.body.distribution).toHaveLength(1);
+    });
+
+    it('passes cleaned query param to service', async () => {
+      mockService.getPricingStats.mockResolvedValueOnce(mockPricingStats);
+
+      await request(app)
+        .get('/api/books/pricing-stats?cleaned=true')
+        .expect(200);
+
+      expect(mockService.getPricingStats).toHaveBeenCalledWith({ cleaned: true, category: undefined, author: undefined });
+    });
+
+    it('passes cleaned=false to service', async () => {
+      mockService.getPricingStats.mockResolvedValueOnce(mockPricingStats);
+
+      await request(app)
+        .get('/api/books/pricing-stats?cleaned=false')
+        .expect(200);
+
+      expect(mockService.getPricingStats).toHaveBeenCalledWith({ cleaned: false, category: undefined, author: undefined });
+    });
+
+    it('passes undefined when no params', async () => {
+      mockService.getPricingStats.mockResolvedValueOnce(mockPricingStats);
+
+      await request(app)
+        .get('/api/books/pricing-stats')
+        .expect(200);
+
+      expect(mockService.getPricingStats).toHaveBeenCalledWith({ cleaned: undefined, category: undefined, author: undefined });
+    });
+
+    it('passes category and author filters', async () => {
+      mockService.getPricingStats.mockResolvedValueOnce(mockPricingStats);
+
+      await request(app)
+        .get('/api/books/pricing-stats?category=Mainstream&author=Stephen+King')
+        .expect(200);
+
+      expect(mockService.getPricingStats).toHaveBeenCalledWith({
+        cleaned: undefined, category: 'Mainstream', author: 'Stephen King',
+      });
+    });
+
+    it('returns 500 on service error', async () => {
+      mockService.getPricingStats.mockRejectedValueOnce(new Error('DB error'));
+
+      const response = await request(app)
+        .get('/api/books/pricing-stats')
+        .expect(500);
+
+      expect(response.body.error).toBe('Failed to fetch pricing stats');
+    });
+  });
 });

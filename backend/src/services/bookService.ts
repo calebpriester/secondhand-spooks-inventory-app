@@ -1,5 +1,5 @@
 import { query, QueryExecutor } from '../config/database';
-import { Book, BookFilters, BookStats, BulkSaleRequest, BulkPriceRequest, UpdateTransactionRequest, Transaction } from '../models/Book';
+import { Book, BookFilters, BookStats, BulkSaleRequest, BulkPriceRequest, UpdateTransactionRequest, Transaction, PricingStats, PricePoint, PricingStatsFilters, PriceByConditionRow } from '../models/Book';
 
 export class BookService {
   async getAllBooks(filters?: BookFilters): Promise<Book[]> {
@@ -629,6 +629,207 @@ export class BookService {
         without_blurb_count: parseInt(blindDateQuery.rows[0].without_blurb_count),
         candidate_count: parseInt(blindDateQuery.rows[0].candidate_count),
       },
+    };
+  }
+
+  async getPricingStats(filters?: PricingStatsFilters): Promise<PricingStats> {
+    const cleanedParam = filters?.cleaned ?? null;
+    const params: any[] = [cleanedParam];
+    let paramCount = 2;
+    let extraWhere = '';
+
+    if (filters?.category) {
+      extraWhere += ` AND category = $${paramCount++}`;
+      params.push(filters.category);
+    }
+    if (filters?.author) {
+      extraWhere += ` AND author_fullname = $${paramCount++}`;
+      params.push(filters.author);
+    }
+
+    const cleanedWhere = '($1::boolean IS NULL OR cleaned = $1)';
+    const priceBase = `our_price IS NOT NULL AND sold = false AND kept = false AND ${cleanedWhere}${extraWhere}`;
+
+    const [
+      summaryResult, distributionResult, priceByConditionResult,
+      categoryResult, conditionResult, authorResult,
+    ] = await Promise.all([
+      query(`
+        SELECT
+          COUNT(*) FILTER (WHERE our_price IS NOT NULL) as total_priced,
+          COUNT(*) FILTER (WHERE our_price IS NULL) as total_unpriced,
+          MIN(our_price) as price_range_min,
+          MAX(our_price) as price_range_max,
+          COUNT(DISTINCT our_price) as unique_price_count,
+          ROUND(AVG(our_price)::numeric, 2) as avg_price,
+          PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY our_price) as median_price
+        FROM books_with_enrichment
+        WHERE sold = false AND kept = false AND ${cleanedWhere}${extraWhere}
+      `, params),
+      query(`
+        SELECT
+          our_price as price,
+          COUNT(*) as count,
+          ROUND(COUNT(*)::numeric / NULLIF(SUM(COUNT(*)) OVER(), 0) * 100, 1) as percentage
+        FROM books_with_enrichment
+        WHERE ${priceBase}
+        GROUP BY our_price
+        ORDER BY our_price ASC
+      `, params),
+      query(`
+        SELECT
+          our_price as price,
+          COALESCE(condition, 'Unknown') as condition,
+          COUNT(*) as count
+        FROM books_with_enrichment
+        WHERE ${priceBase}
+        GROUP BY our_price, condition
+        ORDER BY our_price ASC, condition
+      `, params),
+      query(`
+        SELECT
+          category,
+          COUNT(*) as total_priced,
+          ROUND(AVG(sub.price)::numeric, 2) as avg_price,
+          MIN(sub.price) as min_price,
+          MAX(sub.price) as max_price,
+          json_agg(
+            json_build_object('price', sub.price, 'count', sub.cnt, 'percentage', sub.pct)
+            ORDER BY sub.price
+          ) as price_points
+        FROM (
+          SELECT
+            category,
+            our_price as price,
+            COUNT(*) as cnt,
+            ROUND(COUNT(*)::numeric / NULLIF(SUM(COUNT(*)) OVER(PARTITION BY category), 0) * 100, 1) as pct
+          FROM books_with_enrichment
+          WHERE ${priceBase}
+          GROUP BY category, our_price
+        ) sub
+        GROUP BY category
+        ORDER BY total_priced DESC
+      `, params),
+      query(`
+        SELECT
+          condition,
+          COUNT(*) as total_priced,
+          ROUND(AVG(sub.price)::numeric, 2) as avg_price,
+          MIN(sub.price) as min_price,
+          MAX(sub.price) as max_price,
+          json_agg(
+            json_build_object('price', sub.price, 'count', sub.cnt, 'percentage', sub.pct)
+            ORDER BY sub.price
+          ) as price_points
+        FROM (
+          SELECT
+            condition,
+            our_price as price,
+            COUNT(*) as cnt,
+            ROUND(COUNT(*)::numeric / NULLIF(SUM(COUNT(*)) OVER(PARTITION BY condition), 0) * 100, 1) as pct
+          FROM books_with_enrichment
+          WHERE ${priceBase}
+          GROUP BY condition, our_price
+        ) sub
+        GROUP BY condition
+        ORDER BY total_priced DESC
+      `, params),
+      query(`
+        SELECT
+          author_fullname as author,
+          COUNT(*) as total_priced,
+          ROUND(AVG(sub.price)::numeric, 2) as avg_price,
+          MIN(sub.price) as min_price,
+          MAX(sub.price) as max_price,
+          json_agg(
+            json_build_object('price', sub.price, 'count', sub.cnt, 'percentage', sub.pct)
+            ORDER BY sub.price
+          ) as price_points
+        FROM (
+          SELECT
+            author_fullname,
+            our_price as price,
+            COUNT(*) as cnt,
+            ROUND(COUNT(*)::numeric / NULLIF(SUM(COUNT(*)) OVER(PARTITION BY author_fullname), 0) * 100, 1) as pct
+          FROM books_with_enrichment
+          WHERE ${priceBase}
+          GROUP BY author_fullname, our_price
+        ) sub
+        GROUP BY author_fullname
+        HAVING COUNT(*) >= 2
+        ORDER BY total_priced DESC
+        LIMIT 15
+      `, params),
+    ]);
+
+    const distribution: PricePoint[] = distributionResult.rows.map(r => ({
+      price: parseFloat(r.price),
+      count: parseInt(r.count),
+      percentage: parseFloat(r.percentage),
+    }));
+
+    const mostCommon = distribution.reduce(
+      (max, p) => p.count > max.count ? p : max,
+      { price: 0, count: 0, percentage: 0 },
+    );
+
+    const priceByCondition: PriceByConditionRow[] = priceByConditionResult.rows.map(r => ({
+      price: parseFloat(r.price),
+      condition: r.condition,
+      count: parseInt(r.count),
+    }));
+
+    const parsePricePoints = (row: any): PricePoint[] => {
+      if (!row.price_points) return [];
+      const points = typeof row.price_points === 'string'
+        ? JSON.parse(row.price_points)
+        : row.price_points;
+      return points.map((p: any) => ({
+        price: parseFloat(p.price),
+        count: parseInt(p.count),
+        percentage: parseFloat(p.percentage),
+      }));
+    };
+
+    const summary = summaryResult.rows[0];
+    return {
+      summary: {
+        total_priced: parseInt(summary.total_priced),
+        total_unpriced: parseInt(summary.total_unpriced),
+        price_range_min: parseFloat(summary.price_range_min) || 0,
+        price_range_max: parseFloat(summary.price_range_max) || 0,
+        most_common_price: mostCommon.price,
+        most_common_price_count: mostCommon.count,
+        unique_price_count: parseInt(summary.unique_price_count),
+        avg_price: parseFloat(summary.avg_price) || 0,
+        median_price: parseFloat(summary.median_price) || 0,
+      },
+      distribution,
+      price_by_condition: priceByCondition,
+      by_category: categoryResult.rows.map(row => ({
+        category: row.category || 'Uncategorized',
+        total_priced: parseInt(row.total_priced),
+        avg_price: parseFloat(row.avg_price),
+        min_price: parseFloat(row.min_price),
+        max_price: parseFloat(row.max_price),
+        price_points: parsePricePoints(row),
+      })),
+      by_condition: conditionResult.rows.map(row => ({
+        condition: row.condition || 'Unknown',
+        total_priced: parseInt(row.total_priced),
+        avg_price: parseFloat(row.avg_price),
+        min_price: parseFloat(row.min_price),
+        max_price: parseFloat(row.max_price),
+        price_points: parsePricePoints(row),
+      })),
+      by_author: authorResult.rows.map(row => ({
+        author: row.author,
+        total_priced: parseInt(row.total_priced),
+        avg_price: parseFloat(row.avg_price),
+        min_price: parseFloat(row.min_price),
+        max_price: parseFloat(row.max_price),
+        price_points: parsePricePoints(row),
+      })),
     };
   }
 

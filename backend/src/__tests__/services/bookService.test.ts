@@ -778,4 +778,189 @@ describe('BookService', () => {
     });
   });
 
+  describe('getPricingStats', () => {
+    const mockAllPricingQueries = () => {
+      mockQuery
+        .mockResolvedValueOnce(mockRows([{
+          total_priced: '500', total_unpriced: '182',
+          price_range_min: '3.00', price_range_max: '15.00',
+          unique_price_count: '8', avg_price: '7.50', median_price: '8.00',
+        }]))
+        .mockResolvedValueOnce(mockRows([
+          { price: '5.00', count: '42', percentage: '8.4' },
+          { price: '8.00', count: '200', percentage: '40.0' },
+          { price: '10.00', count: '150', percentage: '30.0' },
+        ]))
+        .mockResolvedValueOnce(mockRows([
+          { price: '5.00', condition: 'Good', count: '20' },
+          { price: '8.00', condition: 'Very Good', count: '100' },
+          { price: '8.00', condition: 'Good', count: '100' },
+        ]))
+        .mockResolvedValueOnce(mockRows([{
+          category: 'Mainstream', total_priced: '250', avg_price: '8.50',
+          min_price: '5.00', max_price: '12.00',
+          price_points: JSON.stringify([
+            { price: 5, count: 20, percentage: 8.0 },
+            { price: 8, count: 130, percentage: 52.0 },
+          ]),
+        }]))
+        .mockResolvedValueOnce(mockRows([{
+          condition: 'Very Good', total_priced: '180', avg_price: '9.00',
+          min_price: '5.00', max_price: '15.00',
+          price_points: JSON.stringify([
+            { price: 8, count: 90, percentage: 50.0 },
+            { price: 10, count: 60, percentage: 33.3 },
+          ]),
+        }]))
+        .mockResolvedValueOnce(mockRows([{
+          author: 'Stephen King', total_priced: '40', avg_price: '10.00',
+          min_price: '8.00', max_price: '15.00',
+          price_points: JSON.stringify([
+            { price: 8, count: 10, percentage: 25.0 },
+            { price: 10, count: 20, percentage: 50.0 },
+            { price: 15, count: 10, percentage: 25.0 },
+          ]),
+        }]));
+    };
+
+    it('converts string values from PostgreSQL to numbers', async () => {
+      mockAllPricingQueries();
+
+      const result = await service.getPricingStats();
+
+      expect(result.summary.total_priced).toBe(500);
+      expect(typeof result.summary.total_priced).toBe('number');
+      expect(result.summary.total_unpriced).toBe(182);
+      expect(result.summary.avg_price).toBe(7.50);
+      expect(result.summary.median_price).toBe(8.00);
+      expect(result.summary.unique_price_count).toBe(8);
+      expect(result.summary.price_range_min).toBe(3);
+      expect(result.summary.price_range_max).toBe(15);
+    });
+
+    it('computes most common price from distribution', async () => {
+      mockAllPricingQueries();
+
+      const result = await service.getPricingStats();
+
+      expect(result.summary.most_common_price).toBe(8);
+      expect(result.summary.most_common_price_count).toBe(200);
+    });
+
+    it('parses overall distribution correctly', async () => {
+      mockAllPricingQueries();
+
+      const result = await service.getPricingStats();
+
+      expect(result.distribution).toHaveLength(3);
+      expect(result.distribution[0]).toEqual({ price: 5, count: 42, percentage: 8.4 });
+      expect(result.distribution[1]).toEqual({ price: 8, count: 200, percentage: 40.0 });
+    });
+
+    it('parses category breakdown with nested price points', async () => {
+      mockAllPricingQueries();
+
+      const result = await service.getPricingStats();
+
+      expect(result.by_category).toHaveLength(1);
+      expect(result.by_category[0].category).toBe('Mainstream');
+      expect(result.by_category[0].total_priced).toBe(250);
+      expect(result.by_category[0].price_points).toHaveLength(2);
+      expect(result.by_category[0].price_points[0]).toEqual({ price: 5, count: 20, percentage: 8.0 });
+    });
+
+    it('parses condition and author breakdowns', async () => {
+      mockAllPricingQueries();
+
+      const result = await service.getPricingStats();
+
+      expect(result.by_condition[0].condition).toBe('Very Good');
+      expect(result.by_condition[0].price_points).toHaveLength(2);
+      expect(result.by_author[0].author).toBe('Stephen King');
+      expect(result.by_author[0].price_points).toHaveLength(3);
+    });
+
+    it('passes cleaned parameter to all queries', async () => {
+      mockAllPricingQueries();
+
+      await service.getPricingStats({ cleaned: true });
+
+      for (let i = 0; i < 6; i++) {
+        const params = mockQuery.mock.calls[i][1] as any[];
+        expect(params[0]).toBe(true);
+      }
+    });
+
+    it('passes category and author filters to queries', async () => {
+      mockAllPricingQueries();
+
+      await service.getPricingStats({ category: 'Mainstream', author: 'Stephen King' });
+
+      for (let i = 0; i < 6; i++) {
+        const params = mockQuery.mock.calls[i][1] as any[];
+        expect(params).toContain('Mainstream');
+        expect(params).toContain('Stephen King');
+      }
+    });
+
+    it('parses price_by_condition rows', async () => {
+      mockAllPricingQueries();
+
+      const result = await service.getPricingStats();
+
+      expect(result.price_by_condition).toHaveLength(3);
+      expect(result.price_by_condition[0]).toEqual({ price: 5, condition: 'Good', count: 20 });
+      expect(result.price_by_condition[1]).toEqual({ price: 8, condition: 'Very Good', count: 100 });
+    });
+
+    it('handles empty distribution gracefully', async () => {
+      mockQuery
+        .mockResolvedValueOnce(mockRows([{
+          total_priced: '0', total_unpriced: '682',
+          price_range_min: null, price_range_max: null,
+          unique_price_count: '0', avg_price: null, median_price: null,
+        }]))
+        .mockResolvedValueOnce(mockRows([]))
+        .mockResolvedValueOnce(mockRows([]))
+        .mockResolvedValueOnce(mockRows([]))
+        .mockResolvedValueOnce(mockRows([]))
+        .mockResolvedValueOnce(mockRows([]));
+
+      const result = await service.getPricingStats();
+
+      expect(result.summary.total_priced).toBe(0);
+      expect(result.summary.most_common_price).toBe(0);
+      expect(result.summary.price_range_min).toBe(0);
+      expect(result.summary.avg_price).toBe(0);
+      expect(result.distribution).toEqual([]);
+      expect(result.price_by_condition).toEqual([]);
+      expect(result.by_category).toEqual([]);
+      expect(result.by_condition).toEqual([]);
+      expect(result.by_author).toEqual([]);
+    });
+
+    it('handles price_points as already-parsed objects', async () => {
+      mockQuery
+        .mockResolvedValueOnce(mockRows([{
+          total_priced: '10', total_unpriced: '0',
+          price_range_min: '5.00', price_range_max: '5.00',
+          unique_price_count: '1', avg_price: '5.00', median_price: '5.00',
+        }]))
+        .mockResolvedValueOnce(mockRows([{ price: '5.00', count: '10', percentage: '100.0' }]))
+        .mockResolvedValueOnce(mockRows([{ price: '5.00', condition: 'Good', count: '10' }]))
+        .mockResolvedValueOnce(mockRows([{
+          category: 'PFH/Vintage', total_priced: '10', avg_price: '5.00',
+          min_price: '5.00', max_price: '5.00',
+          price_points: [{ price: 5, count: 10, percentage: 100.0 }],
+        }]))
+        .mockResolvedValueOnce(mockRows([]))
+        .mockResolvedValueOnce(mockRows([]));
+
+      const result = await service.getPricingStats();
+
+      expect(result.by_category[0].price_points).toHaveLength(1);
+      expect(result.by_category[0].price_points[0]).toEqual({ price: 5, count: 10, percentage: 100.0 });
+    });
+  });
+
 });
