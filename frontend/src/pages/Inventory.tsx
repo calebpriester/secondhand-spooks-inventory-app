@@ -551,6 +551,7 @@ function Inventory() {
                 placeholder="Search..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
+                onFocus={(e) => e.target.select()}
                 className="mobile-search-input"
               />
               <button type="submit" className="mobile-search-btn">Go</button>
@@ -615,6 +616,7 @@ function Inventory() {
               placeholder="Search by title, author, or series..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              onFocus={(e) => e.target.select()}
               className="search-input"
             />
             <button type="submit" className="btn btn-primary">Search</button>
