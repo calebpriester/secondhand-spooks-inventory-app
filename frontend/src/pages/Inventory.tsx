@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { bookApi, subgenreApi } from '../services/api';
 import { Book, BookFilters, BulkSaleRequest, BulkPriceRequest } from '../types/Book';
@@ -213,7 +213,25 @@ function Inventory() {
   const [isBulkPriceOpen, setIsBulkPriceOpen] = useState(false);
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const selectedBooksRef = useRef<Map<number, Book>>(new Map());
   const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
+
+  const clearSelection = useCallback(() => {
+    setSelectedIds(new Set());
+    selectedBooksRef.current.clear();
+  }, []);
+
+  const selectAllVisible = useCallback((booksToSelect: Book[]) => {
+    const ids = new Set<number>();
+    selectedBooksRef.current.clear();
+    for (const b of booksToSelect) {
+      if (b.id) {
+        ids.add(b.id);
+        selectedBooksRef.current.set(b.id, b);
+      }
+    }
+    setSelectedIds(ids);
+  }, []);
 
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
@@ -257,7 +275,7 @@ function Inventory() {
       queryClient.invalidateQueries({ queryKey: ['saleEvents'] });
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       setIsBulkSaleOpen(false);
-      setSelectedIds(new Set());
+      clearSelection();
           },
   });
 
@@ -267,7 +285,7 @@ function Inventory() {
       queryClient.invalidateQueries({ queryKey: ['books'] });
       queryClient.invalidateQueries({ queryKey: ['stats'] });
       setIsBulkPriceOpen(false);
-      setSelectedIds(new Set());
+      clearSelection();
           },
   });
 
@@ -329,7 +347,7 @@ function Inventory() {
   const clearFilters = () => {
     setFilters({ sold: false, kept: false });
     setSearch('');
-    setSelectedIds(new Set());
+    clearSelection();
       };
 
   const handleAddBook = () => {
@@ -374,15 +392,19 @@ function Inventory() {
   };
 
 
-  const toggleSelectBook = (bookId: number) => {
+  const toggleSelectBook = useCallback((bookId: number) => {
     // Save scroll position — iOS Safari aggressively scrolls on checkbox re-renders
     const scrollY = window.scrollY;
     setSelectedIds(prev => {
       const next = new Set(prev);
       if (next.has(bookId)) {
         next.delete(bookId);
+        selectedBooksRef.current.delete(bookId);
       } else {
         next.add(bookId);
+        // Snapshot the book data so it persists across search changes
+        const book = books?.find(b => b.id === bookId);
+        if (book) selectedBooksRef.current.set(bookId, book);
       }
       return next;
     });
@@ -390,10 +412,20 @@ function Inventory() {
     requestAnimationFrame(() => {
       window.scrollTo(0, scrollY);
     });
-  };
+  }, [books]);
 
-  // Derive selected books from current query data so they're always fresh
-  const selectedBooks = (books || []).filter(b => b.id && selectedIds.has(b.id));
+  // Keep cached book data fresh when the same book appears in current results
+  useEffect(() => {
+    if (!books) return;
+    for (const book of books) {
+      if (book.id && selectedBooksRef.current.has(book.id)) {
+        selectedBooksRef.current.set(book.id, book);
+      }
+    }
+  }, [books]);
+
+  // Derive selected books from the ref map — persists across search changes
+  const selectedBooks = Array.from(selectedBooksRef.current.values());
   const selectableBooks = books?.filter(b => !b.sold && !b.kept && b.id) || [];
   const allSelected = selectableBooks.length > 0 && selectedIds.size === selectableBooks.length;
 
@@ -545,7 +577,7 @@ function Inventory() {
                 Sell
               </button>
               <button
-                onClick={() => { setSelectedIds(new Set()); }}
+                onClick={() => { clearSelection(); }}
                 className="mobile-action-btn mobile-action-clear"
                 title="Clear selection"
               >
@@ -563,7 +595,7 @@ function Inventory() {
           subgenreOptions={subgenreOptions}
           onApply={(newFilters) => {
             setFilters(newFilters);
-            setSelectedIds(new Set());
+            clearSelection();
                         setIsFilterDrawerOpen(false);
           }}
           onClear={() => {
@@ -593,7 +625,7 @@ function Inventory() {
               value={stockStatusValue}
               onChange={(e) => {
                 setFilters(applyStockStatus(filters, e.target.value));
-                setSelectedIds(new Set());
+                clearSelection();
                               }}
               className="filter-select"
             >
@@ -701,9 +733,9 @@ function Inventory() {
                 onChange={() => {
                   const scrollY = window.scrollY;
                   if (allSelected) {
-                    setSelectedIds(new Set());
+                    clearSelection();
                   } else {
-                    setSelectedIds(new Set(selectableBooks.map(b => b.id!)));
+                    selectAllVisible(selectableBooks);
                   }
                   requestAnimationFrame(() => window.scrollTo(0, scrollY));
                 }}
@@ -827,9 +859,9 @@ function Inventory() {
                         onChange={() => {
                           const scrollY = window.scrollY;
                           if (allSelected) {
-                            setSelectedIds(new Set());
+                            clearSelection();
                           } else {
-                            setSelectedIds(new Set(selectableBooks.map(b => b.id!)));
+                            selectAllVisible(selectableBooks);
                           }
                           requestAnimationFrame(() => window.scrollTo(0, scrollY));
                         }}
