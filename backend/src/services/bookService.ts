@@ -41,9 +41,11 @@ export class BookService {
         params.push(filters.kept);
       }
       if (filters.search) {
-        sql += ` AND (book_title ILIKE $${paramCount} OR author_fullname ILIKE $${paramCount} OR book_series ILIKE $${paramCount})`;
+        const blindDateNum = filters.search.replace(/^#/, '').trim();
+        sql += ` AND (book_title ILIKE $${paramCount} OR author_fullname ILIKE $${paramCount} OR book_series ILIKE $${paramCount} OR blind_date_number = $${paramCount + 1})`;
         params.push(`%${filters.search}%`);
-        paramCount++;
+        params.push(blindDateNum);
+        paramCount += 2;
       }
       if (filters.subgenre) {
         sql += ` AND $${paramCount++} = ANY(subgenres)`;
