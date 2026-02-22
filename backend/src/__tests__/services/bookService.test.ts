@@ -51,7 +51,7 @@ describe('BookService', () => {
       expect(params).toEqual(['Mainstream', 'Good', 'Paper']);
     });
 
-    it('uses ILIKE for search across title, author, and series', async () => {
+    it('uses ILIKE for search across title, author, and series plus blind_date_number', async () => {
       mockQuery.mockResolvedValueOnce(mockRows([]));
 
       await service.getAllBooks({ search: 'haunting' });
@@ -60,7 +60,18 @@ describe('BookService', () => {
       expect(sql).toContain('book_title ILIKE');
       expect(sql).toContain('author_fullname ILIKE');
       expect(sql).toContain('book_series ILIKE');
-      expect(params).toEqual(['%haunting%']);
+      expect(sql).toContain('blind_date_number =');
+      expect(params).toEqual(['%haunting%', 'haunting']);
+    });
+
+    it('strips leading # from search for blind_date_number match', async () => {
+      mockQuery.mockResolvedValueOnce(mockRows([]));
+
+      await service.getAllBooks({ search: '#7' });
+
+      const [sql, params] = mockQuery.mock.calls[0];
+      expect(sql).toContain('blind_date_number =');
+      expect(params).toEqual(['%#7%', '7']);
     });
 
     it('uses ILIKE for author filter', async () => {
