@@ -226,6 +226,8 @@ export interface TransactionBook {
   sold_price: number;
   purchase_price: number | null;
   cover_image_url: string | null;
+  blind_date: boolean;
+  blind_date_number: string | null;
 }
 
 export interface Transaction {

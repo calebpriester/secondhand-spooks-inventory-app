@@ -245,13 +245,14 @@ function TransactionCard({ transaction: tx, isExpanded, onToggle, onRevert, isRe
         <div className="transaction-covers">
           {visibleBooks.map(book => (
             book.cover_image_url ? (
-              <img
-                key={book.id}
-                src={book.cover_image_url}
-                alt={book.book_title}
-                className="transaction-cover-thumb"
-                loading="lazy"
-              />
+              <span key={book.id} className={`transaction-cover-wrap${book.blind_date ? ' blind-date' : ''}`}>
+                <img
+                  src={book.cover_image_url}
+                  alt={book.book_title}
+                  className="transaction-cover-thumb"
+                  loading="lazy"
+                />
+              </span>
             ) : (
               <div key={book.id} className="transaction-cover-placeholder" />
             )
@@ -338,7 +339,14 @@ function TransactionCard({ transaction: tx, isExpanded, onToggle, onRevert, isRe
               )}
               <div className="transaction-book-info">
                 <span className="transaction-book-title">{book.book_title}</span>
-                <span className="transaction-book-author">{book.author_fullname}</span>
+                <span className="transaction-book-author">
+                  {book.author_fullname}
+                  {book.blind_date && (
+                    <span className="transaction-blind-date-badge">
+                      Blind Date{book.blind_date_number ? ` #${book.blind_date_number}` : ''}
+                    </span>
+                  )}
+                </span>
               </div>
               <div className="transaction-book-price">
                 {isEditing ? (

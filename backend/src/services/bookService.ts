@@ -41,9 +41,11 @@ export class BookService {
         params.push(filters.kept);
       }
       if (filters.search) {
-        sql += ` AND (book_title ILIKE $${paramCount} OR author_fullname ILIKE $${paramCount} OR book_series ILIKE $${paramCount})`;
+        const blindDateNum = filters.search.replace(/^#/, '').trim();
+        sql += ` AND (book_title ILIKE $${paramCount} OR author_fullname ILIKE $${paramCount} OR book_series ILIKE $${paramCount} OR blind_date_number = $${paramCount + 1})`;
         params.push(`%${filters.search}%`);
-        paramCount++;
+        params.push(blindDateNum);
+        paramCount += 2;
       }
       if (filters.subgenre) {
         sql += ` AND $${paramCount++} = ANY(subgenres)`;
@@ -337,7 +339,8 @@ export class BookService {
     let sql = `
       SELECT
         sale_transaction_id, date_sold, sale_event, payment_method,
-        id, book_title, author_fullname, sold_price, purchase_price, cover_image_url
+        id, book_title, author_fullname, sold_price, purchase_price, cover_image_url,
+        blind_date, blind_date_number
       FROM books_with_enrichment
       WHERE sold = true AND sale_transaction_id IS NOT NULL
     `;
@@ -390,6 +393,8 @@ export class BookService {
         sold_price: soldPrice,
         purchase_price: row.purchase_price ? purchasePrice : null,
         cover_image_url: row.cover_image_url || null,
+        blind_date: row.blind_date || false,
+        blind_date_number: row.blind_date_number || null,
       });
     }
 
