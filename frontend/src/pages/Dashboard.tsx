@@ -141,7 +141,7 @@ function PricingAnalysisTab({ cleanedFilter }: { cleanedFilter?: boolean }) {
                         <p style={{ margin: '0 0 0.35rem', fontWeight: 600 }}>${label}</p>
                         {payload.map(p => (
                           <p key={p.dataKey as string} style={{ margin: '0.15rem 0', color: p.color }}>
-                            {p.dataKey}: {p.value}
+                            {String(p.dataKey)}: {p.value}
                           </p>
                         ))}
                         <p style={{ margin: '0.35rem 0 0', borderTop: '1px solid #3d3839', paddingTop: '0.35rem', fontWeight: 600 }}>
