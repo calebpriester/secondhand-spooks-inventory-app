@@ -1,7 +1,11 @@
 # ---- Stage 1: Build frontend ----
 FROM node:20-slim AS frontend-build
 WORKDIR /app/frontend
-COPY frontend/package*.json ./
+# Copy only package.json (NOT package-lock.json) so npm does a fresh resolution
+# that installs the correct rollup native binary for the build platform.
+# Copying the lockfile + npm ci triggers npm bug #4828 (missing optional
+# @rollup/rollup-linux-*-gnu module), which fails `vite build`.
+COPY frontend/package.json ./
 RUN npm install
 COPY frontend/ ./
 ENV VITE_API_URL=/api
